@@ -20,7 +20,6 @@ services:
       - type: bind
         source: ./
         target: /app
-    entrypoint: ./scripts/ci_entrypoint.sh
     working_dir: /app
     networks:
       - governor
