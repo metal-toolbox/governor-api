@@ -15,6 +15,7 @@ steps:
     key: "test"
     plugins:
       - docker-compose#v4.14.0:
+          cli-version: 2
           run: go
           config: docker-compose-ci.yml
           command: ["make", "ci-test"]
