@@ -1,0 +1,29 @@
+version: "3.9"
+
+services:
+  crdb:
+    image: cockroachdb/cockroach:v22.1.11
+    command: start-single-node --insecure
+    ports:
+      - "26257:26257"
+    restart: unless-stopped
+    networks:
+      - governor
+
+  go:
+    image: golang:1.20
+    depends_on:
+      - crdb
+    environment:
+      GOVERNOR_DB_URI: postgresql://root@crdb:26257/governor_test?sslmode=disable
+    volumes:
+      - type: bind
+        source: ./
+        target: /app
+    entrypoint: ./scripts/ci_entrypoint.sh
+    working_dir: /app
+    networks:
+      - governor
+
+networks:
+  governor:

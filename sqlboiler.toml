@@ -1,0 +1,12 @@
+wipe = true
+pkgname = "models"
+output = "internal/models"
+no-tests = true
+
+[crdb]
+dbname = "governor_test"
+host = "localhost"
+port = 26257
+user = "root"
+sslmode = "disable"
+blacklist = ["goose_db_version"]

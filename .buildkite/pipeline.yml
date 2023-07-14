@@ -1,0 +1,59 @@
+env:
+  APP_NAME: ${BUILDKITE_PIPELINE_SLUG}
+  IMAGE_REPO: ghcr.io/metal-toolbox/${APP_NAME}
+  IMAGE_TAG: ${BUILDKITE_BUILD_NUMBER}-${BUILDKITE_COMMIT:0:8}
+
+steps:
+  - label: ":golangci-lint: lint :lint-roller:"
+    key: "lint"
+    plugins:
+      - docker#v5.8.0:
+          image: "registry.hub.docker.com/golangci/golangci-lint:v1.51-alpine"
+          command: ["golangci-lint", "run", "-v"]
+
+  - label: ":test_tube: test"
+    key: "test"
+    plugins:
+      - docker-compose#v4.14.0:
+          run: go
+          config: docker-compose-ci.yml
+          command: ["make", "ci-test"]
+
+  - label: ":golang: build"
+    key: "gobuild"
+    artifact_paths: "bin/${APP_NAME}"
+    plugins:
+      - docker#v5.8.0:
+          image: "golang:1.20"
+          environment:
+            - CGO_ENABLED=0
+            - GOOS=linux
+          command: ["go", "build", "-buildvcs=false", "-mod=mod", "-a", "-o", "bin/$APP_NAME"]
+
+  - label: ":docker: docker build and publish"
+    key: "build"
+    depends_on: ["lint", "test", "gobuild"]
+    env:
+      BUILDKITE_PLUGINS_ALWAYS_CLONE_FRESH: "true"
+    commands: |
+      #!/bin/bash
+      echo --- Retrieve Artifacts
+      buildkite-agent artifact download "bin/${APP_NAME}" .
+      # move it to where we expect and make sure it is executable
+      cp bin/${APP_NAME} ${APP_NAME}
+      chmod +x ${APP_NAME}
+    plugins:
+      - equinixmetal-buildkite/docker-metadata#v1.0.0:
+          images:
+          - "${IMAGE_REPO}"
+          extra_tags:
+          - "${IMAGE_TAG}"
+      - equinixmetal-buildkite/docker-build#v1.1.0:
+          push: true
+          build-args:
+            - NAME=${APP_NAME}
+      - equinixmetal-buildkite/trivy#v1.18.2:
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          security-checks: config,secret,vuln
+          skip-files: 'cosign.key,Dockerfile.dev'
