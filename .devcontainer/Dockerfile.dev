@@ -1,0 +1,45 @@
+ARG VARIANT=bullseye
+ARG GO_VERSION=1.20
+ARG CRDB_VERSION=22.1.11
+
+# Used to install cockroachdb into the devcontainer
+FROM --platform=linux/amd64 cockroachdb/cockroach:v${CRDB_VERSION} as CRDB
+
+FROM --platform=linux/amd64 mcr.microsoft.com/vscode/devcontainers/go:0-${GO_VERSION}-${VARIANT}
+ENV HYDRA_VERSION=1.11.10
+ENV NATS_CLI_VERSION=0.0.35
+
+RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | gpg --dearmor > /usr/share/keyrings/yarn-archive-keyring.gpg
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+    && apt-get -y install --no-install-recommends \
+    bash-completion uuid-runtime iputils-ping zsh \
+    && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
+# Set up crdb
+RUN mkdir /usr/local/lib/cockroach
+COPY --from=CRDB /cockroach/cockroach /usr/local/bin
+COPY --from=CRDB /usr/local/lib/cockroach/*.so /usr/local/lib/cockroach/
+
+# Install hydra
+RUN curl -o /tmp/install.sh https://raw.githubusercontent.com/ory/meta/master/install.sh \
+    && chmod +x /tmp/install.sh \
+    && /tmp/install.sh -d -b /usr/local/bin hydra v${HYDRA_VERSION} \
+    && rm -f /tmp/install.sh
+
+USER vscode
+
+# Install nats nsc
+RUN curl -o /tmp/install.sh  https://raw.githubusercontent.com/nats-io/nsc/main/install.sh \
+    && chmod +x /tmp/install.sh \
+    && /tmp/install.sh \
+    && rm -f /tmp/install.sh
+
+# [Optional] Uncomment the next lines to use go get to install anything else you need
+RUN go install -v github.com/cweill/gotests/gotests@v1.6.0 \
+    && go install github.com/volatiletech/sqlboiler/v4@latest \
+    && go install github.com/volatiletech/sqlboiler/v4/drivers/sqlboiler-psql@latest \
+    && go install github.com/glerchundi/sqlboiler-crdb/v4@latest \
+    && go install github.com/nats-io/natscli/nats@v${NATS_CLI_VERSION} \
+    && go install github.com/nats-io/nkeys/nk@latest
+
+WORKDIR /workspace

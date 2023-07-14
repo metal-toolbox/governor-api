@@ -1,0 +1,48 @@
+package v1alpha1
+
+const (
+	// Version is the API version constant
+	Version = "v1alpha1"
+
+	// GovernorEventCreate is the action passed on create events
+	GovernorEventCreate = "CREATE"
+	// GovernorEventUpdate is the action passed on update events
+	GovernorEventUpdate = "UPDATE"
+	// GovernorEventDelete is the action passed on delete events
+	GovernorEventDelete = "DELETE"
+	// GovernorEventApprove is the action passed on approve events
+	GovernorEventApprove = "APPROVE"
+	// GovernorEventDeny is the action passed on deny events
+	GovernorEventDeny = "DENY"
+	// GovernorEventRevoke is the action passed on revoke events
+	GovernorEventRevoke = "REVOKE"
+
+	// GovernorUsersEventSubject is the subject name for user events (minus the subject prefix)
+	GovernorUsersEventSubject = "users"
+	// GovernorGroupsEventSubject is the subject name for groups events (minus the subject prefix)
+	GovernorGroupsEventSubject = "groups"
+	// GovernorMembersEventSubject is the subject name for members events (minus the subject prefix)
+	GovernorMembersEventSubject = "members"
+	// GovernorMemberRequestsEventSubject is the subject name for member request events (minus the subject prefix)
+	GovernorMemberRequestsEventSubject = "members.requests"
+	// GovernorApplicationsEventSubject is the subject name for application events (minus the subject prefix)
+	GovernorApplicationsEventSubject = "apps"
+	// GovernorApplicationLinksEventSubject is the subject name for application link events (minus the subject prefix)
+	GovernorApplicationLinksEventSubject = "applinks"
+	// GovernorApplicationLinkRequestsEventSubject is the subject name for applink request events (minus the subject prefix)
+	GovernorApplicationLinkRequestsEventSubject = "applinks.requests"
+	// GovernorApplicationTypesEventSubject is the subject name for application type events (minus the subject prefix)
+	GovernorApplicationTypesEventSubject = "applicationtypes"
+)
+
+// Event is an event notification from Governor.
+type Event struct {
+	Version           string `json:"version"`
+	Action            string `json:"action"`
+	AuditID           string `json:"audit_id,omitempty"`
+	GroupID           string `json:"group_id,omitempty"`
+	UserID            string `json:"user_id,omitempty"`
+	ActorID           string `json:"actor_id,omitempty"`
+	ApplicationID     string `json:"application_id,omitempty"`
+	ApplicationTypeID string `json:"application_type_id,omitempty"`
+}

@@ -1,0 +1,44 @@
+---
+admin-groups:
+  - "governor-admins"
+db:
+  uri: "postgresql://root@crdb:26257/defaultdb?sslmode=disable"
+nats:
+  url: "nats://nats:4222"
+oidc:
+  -
+    name: "dev hydra"
+    enabled: true
+    audience: "http://api:3001/"
+    issuer: "http://127.0.0.1:4444/"
+    jwksuri: "http://hydra:4444/.well-known/jwks.json"
+    claims:
+      roles: scp
+      username: client_id
+  -
+    name: "okta sandbox"
+    enabled: false
+    audience: "api://default"
+    issuer: "https://example.oktapreview.com/oauth2/default"
+    jwksuri: "https://example.oktapreview.com/oauth2/default/v1/keys"
+    claims:
+      roles: scp
+      username: uid
+  -
+    name: "okta prod"
+    enabled: true
+    audience: "api://default"
+    issuer: "https://example.okta.com/oauth2/default"
+    jwksuri: "https://example.okta.com/oauth2/default/v1/keys"
+    claims:
+      roles: scp
+      username: uid
+
+logging:
+  debug: true
+  pretty: true
+
+development: true
+
+audit:
+  log-path: /app-audit/audit.log
