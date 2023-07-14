@@ -44,6 +44,10 @@ steps:
       cp bin/${APP_NAME} ${APP_NAME}
       chmod +x ${APP_NAME}
     plugins:
+      - docker-login#v2.1.0:
+          username: metal-buildkite
+          password-env: SECRET_GHCR_PUBLISH_TOKEN
+          server: ghcr.io
       - equinixmetal-buildkite/docker-metadata#v1.0.0:
           images:
           - "${IMAGE_REPO}"
