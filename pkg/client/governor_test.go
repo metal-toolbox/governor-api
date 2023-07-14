@@ -29,7 +29,7 @@ type mockTokener struct {
 	token *oauth2.Token
 }
 
-func (m *mockHTTPDoer) Do(req *http.Request) (*http.Response, error) {
+func (m *mockHTTPDoer) Do(_ *http.Request) (*http.Response, error) {
 	resp := http.Response{
 		StatusCode: m.statusCode,
 	}
@@ -39,7 +39,7 @@ func (m *mockHTTPDoer) Do(req *http.Request) (*http.Response, error) {
 	return &resp, nil
 }
 
-func (m *mockTokener) Token(ctx context.Context) (*oauth2.Token, error) {
+func (m *mockTokener) Token(_ context.Context) (*oauth2.Token, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -58,7 +58,7 @@ type mockHTTPMultiDoer struct {
 	timesCalled int
 }
 
-func (m *mockHTTPMultiDoer) Do(req *http.Request) (*http.Response, error) {
+func (m *mockHTTPMultiDoer) Do(_ *http.Request) (*http.Response, error) {
 	resp := http.Response{
 		StatusCode: m.statusCode,
 	}

@@ -137,18 +137,14 @@ func startAPI() error {
 		eventbus.WithNATSPrefix(viper.GetString("nats.subject-prefix")),
 	)
 
-	logger.Debug("building apiserver and router")
+	logger.Debug("building api server and router")
 
-	apiserver := &api.Server{
+	apiServer := &api.Server{
 		AuditLogWriter: auf,
 		Conf:           conf,
 		DB:             db,
 		EventBus:       eb,
 	}
 
-	if err := apiserver.Run(); err != nil {
-		return err
-	}
-
-	return nil
+	return apiServer.Run()
 }

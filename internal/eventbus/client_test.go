@@ -20,7 +20,7 @@ type mockConn struct {
 }
 
 // Publish is a mock publish function
-func (m *mockConn) Publish(subject string, data []byte) error {
+func (m *mockConn) Publish(_ string, data []byte) error {
 	if m.err != nil {
 		return m.err
 	}

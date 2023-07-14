@@ -70,7 +70,7 @@ func (c *Client) Shutdown() error {
 }
 
 // Publish an event on the event bus
-func (c *Client) Publish(ctx context.Context, sub string, event *events.Event) error {
+func (c *Client) Publish(_ context.Context, sub string, event *events.Event) error {
 	if event == nil {
 		return ErrEmptyEvent
 	}
