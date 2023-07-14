@@ -2,7 +2,7 @@
 
 ![governor diagram](./governor.svg)
 
-The Governor ecosystem provides cohesive access management across a variety of services.  Primarily, it manages groups and users in an IDP, along with roles and groups in integrated services.  It provides a web interface for users to login, request group enrollments, creates and manage groups as well as application integrations. It provides self service identity and access management with built-in approvals and auditing.  This repository contains the backend components of Governor.  If you are looking for the UI, head over to [this repo](https://github.com/metal-toolbox/governor-ui).  Application integrations are abstracted into Governor Addons which are notified of changes via NATS.  Some example addons are:
+The Governor ecosystem provides cohesive access management across a variety of services.  Primarily, it manages groups and users in an IDP, along with roles and groups in integrated services.  It provides a web interface for users to login, request group enrollments, creates and manage groups as well as application integrations. It provides self service identity and access management with built-in approvals and auditing.  This repository contains the backend component of Governor.  If you are looking for the UI, head over to [this repo](https://github.com/metal-toolbox/governor-ui).  Application integrations are abstracted into Governor Addons which are notified of changes via NATS.  Some example addons are:
 
 * [gov-okta-addon](https://github.com/metal-toolbox/gov-okta-addon)
 * [gov-github-addon](https://github.com/metal-toolbox/gov-github-addon)
