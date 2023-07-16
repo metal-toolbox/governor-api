@@ -214,8 +214,14 @@ func (r *Router) mwUserAuthRequired(authRole mwAuthRole) gin.HandlerFunc {
 
 		r.Logger.Debug("got authenticated user", zap.Any("user", user))
 
-		memberships := make([]string, len(user.R.GroupMemberships))
-		for i, m := range user.R.GroupMemberships {
+		enumeratedMemberships, err := dbtools.GetMembershipsForUser(c, r.DB.DB, user.ID, false)
+		if err != nil {
+			sendError(c, http.StatusInternalServerError, "error getting enumerated groups: "+err.Error())
+			return
+		}
+
+		memberships := make([]string, len(enumeratedMemberships))
+		for i, m := range enumeratedMemberships {
 			memberships[i] = m.GroupID
 		}
 
@@ -289,8 +295,6 @@ func (r *Router) mwGroupAuthRequired(authRole mwAuthRole) gin.HandlerFunc {
 
 		queryMods := []qm.QueryMod{
 			models.UserWhere.ExternalID.EQ(null.StringFrom(c.GetString("jwt.user"))),
-			qm.Load("GroupMemberships"),
-			qm.Load("GroupMemberships.Group"),
 		}
 
 		user, err := models.Users(queryMods...).One(c.Request.Context(), r.DB)
@@ -316,10 +320,16 @@ func (r *Router) mwGroupAuthRequired(authRole mwAuthRole) gin.HandlerFunc {
 			idIsSlug = true
 		}
 
-		for _, m := range user.R.GroupMemberships {
+		enumeratedMemberships, err := dbtools.GetMembershipsForUser(c, r.DB.DB, user.ID, true)
+		if err != nil {
+			sendError(c, http.StatusInternalServerError, "error getting enumerated groups: "+err.Error())
+			return
+		}
+
+		for _, m := range enumeratedMemberships {
 			groupID := m.GroupID
 			if idIsSlug {
-				groupID = m.R.Group.Slug
+				groupID = m.Group.Slug
 			}
 
 			if id == groupID {
@@ -362,8 +372,8 @@ func (r *Router) mwGroupAuthRequired(authRole mwAuthRole) gin.HandlerFunc {
 		if authRole == AuthRoleAdminOrGroupAdmin {
 			isAdmin := false
 
-			memberships := make([]string, len(user.R.GroupMemberships))
-			for i, m := range user.R.GroupMemberships {
+			memberships := make([]string, len(enumeratedMemberships))
+			for i, m := range enumeratedMemberships {
 				memberships[i] = m.GroupID
 			}
 

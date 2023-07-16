@@ -80,8 +80,14 @@ func (r *Router) getAuthenticatedUser(c *gin.Context) {
 		return
 	}
 
-	memberships := make([]string, len(ctxUser.R.GroupMemberships))
-	for i, m := range ctxUser.R.GroupMemberships {
+	enumeratedMemberships, err := dbtools.GetMembershipsForUser(c, r.DB.DB, ctxUser.ID, false)
+	if err != nil {
+		sendError(c, http.StatusInternalServerError, "error enumerating group membership: "+err.Error())
+		return
+	}
+
+	memberships := make([]string, len(enumeratedMemberships))
+	for i, m := range enumeratedMemberships {
 		memberships[i] = m.GroupID
 	}
 
@@ -106,8 +112,14 @@ func (r *Router) getAuthenticatedUserGroups(c *gin.Context) {
 
 	var userAdminGroups []string
 
-	gids := make([]interface{}, len(ctxUser.R.GroupMemberships))
-	for i, g := range ctxUser.R.GroupMemberships {
+	enumeratedMemberships, err := dbtools.GetMembershipsForUser(c, r.DB.DB, ctxUser.ID, false)
+	if err != nil {
+		sendError(c, http.StatusInternalServerError, "error enumerating group membership: "+err.Error())
+		return
+	}
+
+	gids := make([]interface{}, len(enumeratedMemberships))
+	for i, g := range enumeratedMemberships {
 		gids[i] = g.GroupID
 
 		if g.IsAdmin {
@@ -163,7 +175,13 @@ func (r *Router) getAuthenticatedUserGroupApprovals(c *gin.Context) {
 
 	var userGroups, userAdminGroups []string
 
-	for _, g := range ctxUser.R.GroupMemberships {
+	enumeratedMemberships, err := dbtools.GetMembershipsForUser(c, r.DB.DB, ctxUser.ID, false)
+	if err != nil {
+		sendError(c, http.StatusInternalServerError, "error enumerating group membership: "+err.Error())
+		return
+	}
+
+	for _, g := range enumeratedMemberships {
 		userGroups = append(userGroups, g.GroupID)
 
 		if g.IsAdmin {
@@ -350,7 +368,7 @@ func (r *Router) removeAuthenticatedUserGroup(c *gin.Context) {
 	).One(c.Request.Context(), r.DB)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			sendError(c, http.StatusNotFound, "user not in group")
+			sendError(c, http.StatusNotFound, "user not in group (or not a direct member)")
 			return
 		}
 

@@ -109,7 +109,6 @@ func (r *Router) getUser(c *gin.Context) {
 
 	queryMods := []qm.QueryMod{
 		qm.Where("id = ?", id),
-		qm.Load("GroupMemberships"),
 		qm.Load("GroupMembershipRequests"),
 	}
 
@@ -129,8 +128,14 @@ func (r *Router) getUser(c *gin.Context) {
 		return
 	}
 
-	memberships := make([]string, len(user.R.GroupMemberships))
-	for i, m := range user.R.GroupMemberships {
+	enumeratedMemberships, err := dbtools.GetMembershipsForUser(c, r.DB.DB, user.ID, false)
+	if err != nil {
+		sendError(c, http.StatusInternalServerError, "error enumerating group membership: "+err.Error())
+		return
+	}
+
+	memberships := make([]string, len(enumeratedMemberships))
+	for i, m := range enumeratedMemberships {
 		memberships[i] = m.GroupID
 	}
 

@@ -66,10 +66,7 @@ type createGroupMemberReq struct {
 func (r *Router) listGroupMembers(c *gin.Context) {
 	gid := c.Param("id")
 
-	queryMods := []qm.QueryMod{
-		qm.Load("GroupMemberships"),
-		qm.Load("GroupMemberships.User"),
-	}
+	queryMods := []qm.QueryMod{}
 
 	q := qm.Where("id = ?", gid)
 
@@ -91,14 +88,20 @@ func (r *Router) listGroupMembers(c *gin.Context) {
 		return
 	}
 
-	members := make([]GroupMember, len(group.R.GroupMemberships))
-	for i, m := range group.R.GroupMemberships {
+	enumeratedMembers, err := dbtools.GetMembersOfGroup(c, r.DB.DB, group.ID, true)
+	if err != nil {
+		sendError(c, http.StatusInternalServerError, "error enumerating group membership: "+err.Error())
+		return
+	}
+
+	members := make([]GroupMember, len(enumeratedMembers))
+	for i, m := range enumeratedMembers {
 		members[i] = GroupMember{
-			ID:        m.R.User.ID,
-			Name:      m.R.User.Name,
-			Email:     m.R.User.Email,
-			AvatarURL: m.R.User.AvatarURL.String,
-			Status:    m.R.User.Status.String,
+			ID:        m.User.ID,
+			Name:      m.User.Name,
+			Email:     m.User.Email,
+			AvatarURL: m.User.AvatarURL.String,
+			Status:    m.User.Status.String,
 			IsAdmin:   m.IsAdmin,
 			ExpiresAt: m.ExpiresAt,
 		}
@@ -306,7 +309,7 @@ func (r *Router) updateGroupMember(c *gin.Context) {
 	).One(c.Request.Context(), r.DB)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			sendError(c, http.StatusNotFound, "user not in group")
+			sendError(c, http.StatusNotFound, "user not in group (or not a direct member)")
 			return
 		}
 
@@ -470,7 +473,7 @@ func (r *Router) removeGroupMember(c *gin.Context) {
 	).One(c.Request.Context(), r.DB)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			sendError(c, http.StatusNotFound, "user not in group")
+			sendError(c, http.StatusNotFound, "user not in group (or not a direct member)")
 			return
 		}
 
@@ -1140,27 +1143,48 @@ func (r *Router) getGroupMembershipsAll(c *gin.Context) {
 		qm.Load("Group"),
 	}
 
+	var response []string
+
 	if _, ok := c.GetQuery("expired"); ok {
 		queryMods = append(queryMods, qm.Where("expires_at <= NOW()"))
-	}
 
-	groupMemberships, err := models.GroupMemberships(queryMods...).All(ctx, r.DB)
-	if err != nil {
-		if !errors.Is(err, sql.ErrNoRows) {
-			sendError(c, http.StatusInternalServerError, "error getting group memberships"+err.Error())
-			return
+		groupMemberships, err := models.GroupMemberships(queryMods...).All(ctx, r.DB)
+		if err != nil {
+			if !errors.Is(err, sql.ErrNoRows) {
+				sendError(c, http.StatusInternalServerError, "error getting group memberships"+err.Error())
+				return
+			}
 		}
-	}
 
-	response := make([]GroupMembership, len(groupMemberships))
-	for i, m := range groupMemberships {
-		response[i] = GroupMembership{
-			ID:        m.ID,
-			GroupID:   m.GroupID,
-			GroupSlug: m.R.Group.Slug,
-			UserID:    m.UserID,
-			UserEmail: m.R.User.Email,
-			ExpiresAt: m.ExpiresAt,
+		response := make([]GroupMembership, len(groupMemberships))
+		for i, m := range groupMemberships {
+			response[i] = GroupMembership{
+				ID:        m.ID,
+				GroupID:   m.GroupID,
+				GroupSlug: m.R.Group.Slug,
+				UserID:    m.UserID,
+				UserEmail: m.R.User.Email,
+				ExpiresAt: m.ExpiresAt,
+			}
+		}
+	} else {
+		enumeratedMemberships, err := dbtools.GetAllGroupMemberships(c, r.DB.DB, true)
+		if err != nil {
+			if err != nil {
+				sendError(c, http.StatusInternalServerError, "error getting group memberships"+err.Error())
+				return
+			}
+		}
+		response := make([]GroupMembership, len(enumeratedMemberships))
+		for i, m := range enumeratedMemberships {
+			response[i] = GroupMembership{
+				ID:        "",
+				GroupID:   m.GroupID,
+				GroupSlug: m.Group.Slug,
+				UserID:    m.UserID,
+				UserEmail: m.User.Email,
+				ExpiresAt: m.ExpiresAt,
+			}
 		}
 	}
 

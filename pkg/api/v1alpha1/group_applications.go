@@ -729,7 +729,13 @@ func (r *Router) processGroupAppRequest(c *gin.Context) {
 	// check that the authenticated user is member of the approver group
 	isApprover := false
 
-	for _, m := range ctxUser.R.GroupMemberships {
+	enumeratedMemberships, err := dbtools.GetMembershipsForUser(c, r.DB.DB, ctxUser.ID, false)
+	if err != nil {
+		sendError(c, http.StatusInternalServerError, "error enumerating group membership: "+err.Error())
+		return
+	}
+
+	for _, m := range enumeratedMemberships {
 		if request.ApproverGroupID == m.GroupID {
 			isApprover = true
 			break
