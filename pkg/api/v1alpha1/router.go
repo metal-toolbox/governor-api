@@ -476,6 +476,43 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:applications")),
 		r.listApplicationTypeApps,
 	)
+
+	rg.GET(
+		"/notification-types",
+		r.AuditMW.AuditWithType("ListNotificationTypes"),
+		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:notifications")),
+		r.listNotificationTypes,
+	)
+
+	rg.GET(
+		"/notification-types/:id",
+		r.AuditMW.AuditWithType("GetNotificationType"),
+		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:notifications")),
+		r.getNotificationType,
+	)
+
+	rg.POST(
+		"/notification-types",
+		r.AuditMW.AuditWithType("CreateNotificationType"),
+		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:notifications")),
+		r.mwUserAuthRequired(AuthRoleAdmin),
+		r.createNotificationType,
+	)
+
+	rg.PUT(
+		"/notification-types/:id",
+		r.AuditMW.AuditWithType("UpdateNotificationType"),
+		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:notifications")),
+		r.updateNotificationType,
+	)
+
+	rg.DELETE(
+		"/notification-types/:id",
+		r.AuditMW.AuditWithType("DeleteNotificationType"),
+		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:notifications")),
+		r.mwUserAuthRequired(AuthRoleAdmin),
+		r.deleteNotificationType,
+	)
 }
 
 func contains(list []string, item string) bool {

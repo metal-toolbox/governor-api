@@ -815,3 +815,60 @@ func AuditGroupApplicationRequestRevoked(ctx context.Context, exec boil.ContextE
 
 	return &event, event.Insert(ctx, exec, boil.Infer())
 }
+
+// AuditNotificationTypeCreated inserts an event representing a notification type being created
+func AuditNotificationTypeCreated(ctx context.Context, exec boil.ContextExecutor, pID string, actor *models.User, a *models.NotificationType) (*models.AuditEvent, error) {
+	// TODO non-user API actors don't exist in the governor database,
+	// we need to figure out how to handle that relationship in the audit table
+	var actorID null.String
+	if actor != nil {
+		actorID = null.StringFrom(actor.ID)
+	}
+
+	event := models.AuditEvent{
+		ParentID:  null.StringFrom(pID),
+		ActorID:   actorID,
+		Action:    "notification_type.created",
+		Changeset: calculateChangeset(&models.NotificationType{}, a),
+	}
+
+	return &event, event.Insert(ctx, exec, boil.Infer())
+}
+
+// AuditNotificationTypeDeleted inserts an event representing an notification type being deleted
+func AuditNotificationTypeDeleted(ctx context.Context, exec boil.ContextExecutor, pID string, actor *models.User, a *models.NotificationType) (*models.AuditEvent, error) {
+	// TODO non-user API actors don't exist in the governor database,
+	// we need to figure out how to handle that relationship in the audit table
+	var actorID null.String
+	if actor != nil {
+		actorID = null.StringFrom(actor.ID)
+	}
+
+	event := models.AuditEvent{
+		ParentID:  null.StringFrom(pID),
+		ActorID:   actorID,
+		Action:    "notification_type.deleted",
+		Changeset: calculateChangeset(a, &models.NotificationType{}),
+	}
+
+	return &event, event.Insert(ctx, exec, boil.Infer())
+}
+
+// AuditNotificationTypeUpdated inserts an event representing notification type update into the events table
+func AuditNotificationTypeUpdated(ctx context.Context, exec boil.ContextExecutor, pID string, actor *models.User, o, a *models.NotificationType) (*models.AuditEvent, error) {
+	// TODO non-user API actors don't exist in the governor database,
+	// we need to figure out how to handle that relationship in the audit table
+	var actorID null.String
+	if actor != nil {
+		actorID = null.StringFrom(actor.ID)
+	}
+
+	event := models.AuditEvent{
+		ParentID:  null.StringFrom(pID),
+		ActorID:   actorID,
+		Action:    "notification_type.updated",
+		Changeset: calculateChangeset(o, a),
+	}
+
+	return &event, event.Insert(ctx, exec, boil.Infer())
+}
