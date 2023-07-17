@@ -85,7 +85,7 @@ dev-hydra: |
 		echo "strategies:\n  access_token: jwt\n" >> ./hydra/hydra.yml; \
 		echo "oidc:\n  subject_identifiers:\n    supported_types:\n      - public\n" >> ./hydra/hydra.yml; \
 	fi;
-	@docker-compose up -d hydra-migrate hydra consent
+	@docker-compose up -d hydra-migrate hydra
 	@sleep 10
 	@echo creating hydra client-id governor and client-secret ${SECRET}
 	@docker-compose exec hydra hydra clients create \
