@@ -513,6 +513,43 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		r.mwUserAuthRequired(AuthRoleAdmin),
 		r.deleteNotificationType,
 	)
+
+	rg.GET(
+		"/notification-targets",
+		r.AuditMW.AuditWithType("ListNotificationTargets"),
+		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:notifications")),
+		r.listNotificationTargets,
+	)
+
+	rg.GET(
+		"/notification-targets/:id",
+		r.AuditMW.AuditWithType("GetNotificationTarget"),
+		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:notifications")),
+		r.getNotificationTarget,
+	)
+
+	rg.POST(
+		"/notification-targets",
+		r.AuditMW.AuditWithType("CreateNotificationTarget"),
+		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:notifications")),
+		r.mwUserAuthRequired(AuthRoleAdmin),
+		r.createNotificationTarget,
+	)
+
+	rg.PUT(
+		"/notification-targets/:id",
+		r.AuditMW.AuditWithType("UpdateNotificationTarget"),
+		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:notifications")),
+		r.updateNotificationTarget,
+	)
+
+	rg.DELETE(
+		"/notification-targets/:id",
+		r.AuditMW.AuditWithType("DeleteNotificationTarget"),
+		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:notifications")),
+		r.mwUserAuthRequired(AuthRoleAdmin),
+		r.deleteNotificationTarget,
+	)
 }
 
 func contains(list []string, item string) bool {

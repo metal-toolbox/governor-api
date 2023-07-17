@@ -872,3 +872,60 @@ func AuditNotificationTypeUpdated(ctx context.Context, exec boil.ContextExecutor
 
 	return &event, event.Insert(ctx, exec, boil.Infer())
 }
+
+// AuditNotificationTargetCreated inserts an event representing a notification target being created
+func AuditNotificationTargetCreated(ctx context.Context, exec boil.ContextExecutor, pID string, actor *models.User, a *models.NotificationTarget) (*models.AuditEvent, error) {
+	// TODO non-user API actors don't exist in the governor database,
+	// we need to figure out how to handle that relationship in the audit table
+	var actorID null.String
+	if actor != nil {
+		actorID = null.StringFrom(actor.ID)
+	}
+
+	event := models.AuditEvent{
+		ParentID:  null.StringFrom(pID),
+		ActorID:   actorID,
+		Action:    "notification_target.created",
+		Changeset: calculateChangeset(&models.NotificationTarget{}, a),
+	}
+
+	return &event, event.Insert(ctx, exec, boil.Infer())
+}
+
+// AuditNotificationTargetDeleted inserts an event representing an notification target being deleted
+func AuditNotificationTargetDeleted(ctx context.Context, exec boil.ContextExecutor, pID string, actor *models.User, a *models.NotificationTarget) (*models.AuditEvent, error) {
+	// TODO non-user API actors don't exist in the governor database,
+	// we need to figure out how to handle that relationship in the audit table
+	var actorID null.String
+	if actor != nil {
+		actorID = null.StringFrom(actor.ID)
+	}
+
+	event := models.AuditEvent{
+		ParentID:  null.StringFrom(pID),
+		ActorID:   actorID,
+		Action:    "notification_target.deleted",
+		Changeset: calculateChangeset(a, &models.NotificationTarget{}),
+	}
+
+	return &event, event.Insert(ctx, exec, boil.Infer())
+}
+
+// AuditNotificationTargetUpdated inserts an event representing notification target update into the events table
+func AuditNotificationTargetUpdated(ctx context.Context, exec boil.ContextExecutor, pID string, actor *models.User, o, a *models.NotificationTarget) (*models.AuditEvent, error) {
+	// TODO non-user API actors don't exist in the governor database,
+	// we need to figure out how to handle that relationship in the audit table
+	var actorID null.String
+	if actor != nil {
+		actorID = null.StringFrom(actor.ID)
+	}
+
+	event := models.AuditEvent{
+		ParentID:  null.StringFrom(pID),
+		ActorID:   actorID,
+		Action:    "notification_target.updated",
+		Changeset: calculateChangeset(o, a),
+	}
+
+	return &event, event.Insert(ctx, exec, boil.Infer())
+}
