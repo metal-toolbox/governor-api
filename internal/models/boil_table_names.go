@@ -14,6 +14,8 @@ var TableNames = struct {
 	GroupMemberships         string
 	GroupOrganizations       string
 	Groups                   string
+	NotificationTargets      string
+	NotificationTypes        string
 	Organizations            string
 	Users                    string
 }{
@@ -27,6 +29,8 @@ var TableNames = struct {
 	GroupMemberships:         "group_memberships",
 	GroupOrganizations:       "group_organizations",
 	Groups:                   "groups",
+	NotificationTargets:      "notification_targets",
+	NotificationTypes:        "notification_types",
 	Organizations:            "organizations",
 	Users:                    "users",
 }
