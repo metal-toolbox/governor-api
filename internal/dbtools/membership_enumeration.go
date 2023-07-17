@@ -39,6 +39,7 @@ const (
 		SELECT
 			group_id,
 			user_id,
+			expires_at,
 			is_admin,
 			TRUE AS direct
 		FROM
@@ -47,6 +48,7 @@ const (
 		SELECT
 			b.parent_group_id,
 			a.user_id,
+			b.expires_at,
 			FALSE AS is_admin,
 			FALSE AS direct
 		FROM
@@ -56,6 +58,11 @@ const (
 	SELECT
 		group_id,
 		user_id,
+		CASE WHEN BOOL_OR(direct) THEN
+			MAX(expires_at)
+		ELSE
+			NULL
+		END AS expires_at,
 		BOOL_OR(is_admin) as is_admin,
 		BOOL_OR(direct) as direct
 	FROM
@@ -87,6 +94,11 @@ const (
 	SELECT
 		group_id,
 		user_id,
+		CASE WHEN BOOL_OR(direct) THEN
+			MAX(expires_at)
+		ELSE
+			NULL
+		END AS expires_at,
 		BOOL_OR(is_admin) as is_admin,
 		BOOL_OR(direct) as direct
 	FROM
@@ -126,20 +138,22 @@ const (
 	SELECT DISTINCT
 		$1 AS group_id,
 		user_id,
-		CASE WHEN direct THEN
+		BOOL_OR(CASE WHEN direct THEN
 			group_memberships.is_admin
 		ELSE
 			FALSE
-		END AS is_admin,
-		CASE WHEN direct THEN
-			group_memberships.expires_at
+		END) AS is_admin,
+		CASE WHEN BOOL_OR(direct) THEN
+			MAX(group_memberships.expires_at)
 		ELSE
 			NULL
 		END AS expires_at,
-		direct
+		BOOL_OR(direct) as direct
 	FROM
 		ensure_root
-		INNER JOIN group_memberships ON group_memberships.group_id = ensure_root.group_id;`
+		INNER JOIN group_memberships ON group_memberships.group_id = ensure_root.group_id
+	GROUP BY
+		group_memberships.user_id;`
 )
 
 // EnumeratedMembership represents a single user-to-group membership, which may be direct or indirect
