@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/friendsofgo/errors"
+	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
@@ -23,21 +24,24 @@ import (
 
 // NotificationPreference is an object representing the database table.
 type NotificationPreference struct {
-	UserID               string `boil:"user_id" json:"user_id" toml:"user_id" yaml:"user_id"`
-	NotificationTypeID   string `boil:"notification_type_id" json:"notification_type_id" toml:"notification_type_id" yaml:"notification_type_id"`
-	NotificationTargetID string `boil:"notification_target_id" json:"notification_target_id" toml:"notification_target_id" yaml:"notification_target_id"`
-	Enabled              bool   `boil:"enabled" json:"enabled" toml:"enabled" yaml:"enabled"`
+	ID                   string      `boil:"id" json:"id" toml:"id" yaml:"id"`
+	UserID               string      `boil:"user_id" json:"user_id" toml:"user_id" yaml:"user_id"`
+	NotificationTypeID   string      `boil:"notification_type_id" json:"notification_type_id" toml:"notification_type_id" yaml:"notification_type_id"`
+	NotificationTargetID null.String `boil:"notification_target_id" json:"notification_target_id,omitempty" toml:"notification_target_id" yaml:"notification_target_id,omitempty"`
+	Enabled              bool        `boil:"enabled" json:"enabled" toml:"enabled" yaml:"enabled"`
 
 	R *notificationPreferenceR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L notificationPreferenceL  `boil:"-" json:"-" toml:"-" yaml:"-"`
 }
 
 var NotificationPreferenceColumns = struct {
+	ID                   string
 	UserID               string
 	NotificationTypeID   string
 	NotificationTargetID string
 	Enabled              string
 }{
+	ID:                   "id",
 	UserID:               "user_id",
 	NotificationTypeID:   "notification_type_id",
 	NotificationTargetID: "notification_target_id",
@@ -45,11 +49,13 @@ var NotificationPreferenceColumns = struct {
 }
 
 var NotificationPreferenceTableColumns = struct {
+	ID                   string
 	UserID               string
 	NotificationTypeID   string
 	NotificationTargetID string
 	Enabled              string
 }{
+	ID:                   "notification_preferences.id",
 	UserID:               "notification_preferences.user_id",
 	NotificationTypeID:   "notification_preferences.notification_type_id",
 	NotificationTargetID: "notification_preferences.notification_target_id",
@@ -59,14 +65,16 @@ var NotificationPreferenceTableColumns = struct {
 // Generated where
 
 var NotificationPreferenceWhere = struct {
+	ID                   whereHelperstring
 	UserID               whereHelperstring
 	NotificationTypeID   whereHelperstring
-	NotificationTargetID whereHelperstring
+	NotificationTargetID whereHelpernull_String
 	Enabled              whereHelperbool
 }{
+	ID:                   whereHelperstring{field: "\"notification_preferences\".\"id\""},
 	UserID:               whereHelperstring{field: "\"notification_preferences\".\"user_id\""},
 	NotificationTypeID:   whereHelperstring{field: "\"notification_preferences\".\"notification_type_id\""},
-	NotificationTargetID: whereHelperstring{field: "\"notification_preferences\".\"notification_target_id\""},
+	NotificationTargetID: whereHelpernull_String{field: "\"notification_preferences\".\"notification_target_id\""},
 	Enabled:              whereHelperbool{field: "\"notification_preferences\".\"enabled\""},
 }
 
@@ -118,10 +126,10 @@ func (r *notificationPreferenceR) GetNotificationTarget() *NotificationTarget {
 type notificationPreferenceL struct{}
 
 var (
-	notificationPreferenceAllColumns            = []string{"user_id", "notification_type_id", "notification_target_id", "enabled"}
-	notificationPreferenceColumnsWithoutDefault = []string{"user_id", "notification_type_id", "notification_target_id"}
-	notificationPreferenceColumnsWithDefault    = []string{"enabled"}
-	notificationPreferencePrimaryKeyColumns     = []string{"user_id", "notification_type_id", "notification_target_id"}
+	notificationPreferenceAllColumns            = []string{"id", "user_id", "notification_type_id", "notification_target_id", "enabled"}
+	notificationPreferenceColumnsWithoutDefault = []string{"user_id", "notification_type_id"}
+	notificationPreferenceColumnsWithDefault    = []string{"id", "notification_target_id", "enabled"}
+	notificationPreferencePrimaryKeyColumns     = []string{"id"}
 	notificationPreferenceGeneratedColumns      = []string{}
 )
 
@@ -711,7 +719,9 @@ func (notificationPreferenceL) LoadNotificationTarget(ctx context.Context, e boi
 		if object.R == nil {
 			object.R = &notificationPreferenceR{}
 		}
-		args = append(args, object.NotificationTargetID)
+		if !queries.IsNil(object.NotificationTargetID) {
+			args = append(args, object.NotificationTargetID)
+		}
 
 	} else {
 	Outer:
@@ -721,12 +731,14 @@ func (notificationPreferenceL) LoadNotificationTarget(ctx context.Context, e boi
 			}
 
 			for _, a := range args {
-				if a == obj.NotificationTargetID {
+				if queries.Equal(a, obj.NotificationTargetID) {
 					continue Outer
 				}
 			}
 
-			args = append(args, obj.NotificationTargetID)
+			if !queries.IsNil(obj.NotificationTargetID) {
+				args = append(args, obj.NotificationTargetID)
+			}
 
 		}
 	}
@@ -785,7 +797,7 @@ func (notificationPreferenceL) LoadNotificationTarget(ctx context.Context, e boi
 
 	for _, local := range slice {
 		for _, foreign := range resultSlice {
-			if local.NotificationTargetID == foreign.ID {
+			if queries.Equal(local.NotificationTargetID, foreign.ID) {
 				local.R.NotificationTarget = foreign
 				if foreign.R == nil {
 					foreign.R = &notificationTargetR{}
@@ -815,7 +827,7 @@ func (o *NotificationPreference) SetUser(ctx context.Context, exec boil.ContextE
 		strmangle.SetParamNames("\"", "\"", 1, []string{"user_id"}),
 		strmangle.WhereClause("\"", "\"", 2, notificationPreferencePrimaryKeyColumns),
 	)
-	values := []interface{}{related.ID, o.UserID, o.NotificationTypeID, o.NotificationTargetID}
+	values := []interface{}{related.ID, o.ID}
 
 	if boil.IsDebug(ctx) {
 		writer := boil.DebugWriterFrom(ctx)
@@ -862,7 +874,7 @@ func (o *NotificationPreference) SetNotificationType(ctx context.Context, exec b
 		strmangle.SetParamNames("\"", "\"", 1, []string{"notification_type_id"}),
 		strmangle.WhereClause("\"", "\"", 2, notificationPreferencePrimaryKeyColumns),
 	)
-	values := []interface{}{related.ID, o.UserID, o.NotificationTypeID, o.NotificationTargetID}
+	values := []interface{}{related.ID, o.ID}
 
 	if boil.IsDebug(ctx) {
 		writer := boil.DebugWriterFrom(ctx)
@@ -909,7 +921,7 @@ func (o *NotificationPreference) SetNotificationTarget(ctx context.Context, exec
 		strmangle.SetParamNames("\"", "\"", 1, []string{"notification_target_id"}),
 		strmangle.WhereClause("\"", "\"", 2, notificationPreferencePrimaryKeyColumns),
 	)
-	values := []interface{}{related.ID, o.UserID, o.NotificationTypeID, o.NotificationTargetID}
+	values := []interface{}{related.ID, o.ID}
 
 	if boil.IsDebug(ctx) {
 		writer := boil.DebugWriterFrom(ctx)
@@ -920,7 +932,7 @@ func (o *NotificationPreference) SetNotificationTarget(ctx context.Context, exec
 		return errors.Wrap(err, "failed to update local table")
 	}
 
-	o.NotificationTargetID = related.ID
+	queries.Assign(&o.NotificationTargetID, related.ID)
 	if o.R == nil {
 		o.R = &notificationPreferenceR{
 			NotificationTarget: related,
@@ -940,6 +952,39 @@ func (o *NotificationPreference) SetNotificationTarget(ctx context.Context, exec
 	return nil
 }
 
+// RemoveNotificationTarget relationship.
+// Sets o.R.NotificationTarget to nil.
+// Removes o from all passed in related items' relationships struct.
+func (o *NotificationPreference) RemoveNotificationTarget(ctx context.Context, exec boil.ContextExecutor, related *NotificationTarget) error {
+	var err error
+
+	queries.SetScanner(&o.NotificationTargetID, nil)
+	if _, err = o.Update(ctx, exec, boil.Whitelist("notification_target_id")); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	if o.R != nil {
+		o.R.NotificationTarget = nil
+	}
+	if related == nil || related.R == nil {
+		return nil
+	}
+
+	for i, ri := range related.R.NotificationPreferences {
+		if queries.Equal(o.NotificationTargetID, ri.NotificationTargetID) {
+			continue
+		}
+
+		ln := len(related.R.NotificationPreferences)
+		if ln > 1 && i < ln-1 {
+			related.R.NotificationPreferences[i] = related.R.NotificationPreferences[ln-1]
+		}
+		related.R.NotificationPreferences = related.R.NotificationPreferences[:ln-1]
+		break
+	}
+	return nil
+}
+
 // NotificationPreferences retrieves all the records using an executor.
 func NotificationPreferences(mods ...qm.QueryMod) notificationPreferenceQuery {
 	mods = append(mods, qm.From("\"notification_preferences\""))
@@ -953,7 +998,7 @@ func NotificationPreferences(mods ...qm.QueryMod) notificationPreferenceQuery {
 
 // FindNotificationPreference retrieves a single record by ID with an executor.
 // If selectCols is empty Find will return all columns.
-func FindNotificationPreference(ctx context.Context, exec boil.ContextExecutor, userID string, notificationTypeID string, notificationTargetID string, selectCols ...string) (*NotificationPreference, error) {
+func FindNotificationPreference(ctx context.Context, exec boil.ContextExecutor, iD string, selectCols ...string) (*NotificationPreference, error) {
 	notificationPreferenceObj := &NotificationPreference{}
 
 	sel := "*"
@@ -961,10 +1006,10 @@ func FindNotificationPreference(ctx context.Context, exec boil.ContextExecutor, 
 		sel = strings.Join(strmangle.IdentQuoteSlice(dialect.LQ, dialect.RQ, selectCols), ",")
 	}
 	query := fmt.Sprintf(
-		"select %s from \"notification_preferences\" where \"user_id\"=$1 AND \"notification_type_id\"=$2 AND \"notification_target_id\"=$3", sel,
+		"select %s from \"notification_preferences\" where \"id\"=$1", sel,
 	)
 
-	q := queries.Raw(query, userID, notificationTypeID, notificationTargetID)
+	q := queries.Raw(query, iD)
 
 	err := q.Bind(ctx, exec, notificationPreferenceObj)
 	if err != nil {
@@ -1200,7 +1245,7 @@ func (o *NotificationPreference) Delete(ctx context.Context, exec boil.ContextEx
 	}
 
 	args := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), notificationPreferencePrimaryKeyMapping)
-	sql := "DELETE FROM \"notification_preferences\" WHERE \"user_id\"=$1 AND \"notification_type_id\"=$2 AND \"notification_target_id\"=$3"
+	sql := "DELETE FROM \"notification_preferences\" WHERE \"id\"=$1"
 
 	if boil.IsDebug(ctx) {
 		writer := boil.DebugWriterFrom(ctx)
@@ -1297,7 +1342,7 @@ func (o NotificationPreferenceSlice) DeleteAll(ctx context.Context, exec boil.Co
 // Reload refetches the object from the database
 // using the primary keys with an executor.
 func (o *NotificationPreference) Reload(ctx context.Context, exec boil.ContextExecutor) error {
-	ret, err := FindNotificationPreference(ctx, exec, o.UserID, o.NotificationTypeID, o.NotificationTargetID)
+	ret, err := FindNotificationPreference(ctx, exec, o.ID)
 	if err != nil {
 		return err
 	}
@@ -1336,16 +1381,16 @@ func (o *NotificationPreferenceSlice) ReloadAll(ctx context.Context, exec boil.C
 }
 
 // NotificationPreferenceExists checks if the NotificationPreference row exists.
-func NotificationPreferenceExists(ctx context.Context, exec boil.ContextExecutor, userID string, notificationTypeID string, notificationTargetID string) (bool, error) {
+func NotificationPreferenceExists(ctx context.Context, exec boil.ContextExecutor, iD string) (bool, error) {
 	var exists bool
-	sql := "select exists(select 1 from \"notification_preferences\" where \"user_id\"=$1 AND \"notification_type_id\"=$2 AND \"notification_target_id\"=$3 limit 1)"
+	sql := "select exists(select 1 from \"notification_preferences\" where \"id\"=$1 limit 1)"
 
 	if boil.IsDebug(ctx) {
 		writer := boil.DebugWriterFrom(ctx)
 		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, userID, notificationTypeID, notificationTargetID)
+		fmt.Fprintln(writer, iD)
 	}
-	row := exec.QueryRowContext(ctx, sql, userID, notificationTypeID, notificationTargetID)
+	row := exec.QueryRowContext(ctx, sql, iD)
 
 	err := row.Scan(&exists)
 	if err != nil {
@@ -1357,7 +1402,7 @@ func NotificationPreferenceExists(ctx context.Context, exec boil.ContextExecutor
 
 // Exists checks if the NotificationPreference row exists.
 func (o *NotificationPreference) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, error) {
-	return NotificationPreferenceExists(ctx, exec, o.UserID, o.NotificationTypeID, o.NotificationTargetID)
+	return NotificationPreferenceExists(ctx, exec, o.ID)
 }
 
 // Upsert attempts an insert using an executor, and does an update or ignore on conflict.

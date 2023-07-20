@@ -461,7 +461,7 @@ func (notificationTargetL) LoadNotificationPreferences(ctx context.Context, e bo
 			}
 
 			for _, a := range args {
-				if a == obj.ID {
+				if queries.Equal(a, obj.ID) {
 					continue Outer
 				}
 			}
@@ -519,7 +519,7 @@ func (notificationTargetL) LoadNotificationPreferences(ctx context.Context, e bo
 
 	for _, foreign := range resultSlice {
 		for _, local := range slice {
-			if local.ID == foreign.NotificationTargetID {
+			if queries.Equal(local.ID, foreign.NotificationTargetID) {
 				local.R.NotificationPreferences = append(local.R.NotificationPreferences, foreign)
 				if foreign.R == nil {
 					foreign.R = &notificationPreferenceR{}
@@ -541,7 +541,7 @@ func (o *NotificationTarget) AddNotificationPreferences(ctx context.Context, exe
 	var err error
 	for _, rel := range related {
 		if insert {
-			rel.NotificationTargetID = o.ID
+			queries.Assign(&rel.NotificationTargetID, o.ID)
 			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
 				return errors.Wrap(err, "failed to insert into foreign table")
 			}
@@ -551,7 +551,7 @@ func (o *NotificationTarget) AddNotificationPreferences(ctx context.Context, exe
 				strmangle.SetParamNames("\"", "\"", 1, []string{"notification_target_id"}),
 				strmangle.WhereClause("\"", "\"", 2, notificationPreferencePrimaryKeyColumns),
 			)
-			values := []interface{}{o.ID, rel.UserID, rel.NotificationTypeID, rel.NotificationTargetID}
+			values := []interface{}{o.ID, rel.ID}
 
 			if boil.IsDebug(ctx) {
 				writer := boil.DebugWriterFrom(ctx)
@@ -562,7 +562,7 @@ func (o *NotificationTarget) AddNotificationPreferences(ctx context.Context, exe
 				return errors.Wrap(err, "failed to update foreign table")
 			}
 
-			rel.NotificationTargetID = o.ID
+			queries.Assign(&rel.NotificationTargetID, o.ID)
 		}
 	}
 
@@ -583,6 +583,80 @@ func (o *NotificationTarget) AddNotificationPreferences(ctx context.Context, exe
 			rel.R.NotificationTarget = o
 		}
 	}
+	return nil
+}
+
+// SetNotificationPreferences removes all previously related items of the
+// notification_target replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.NotificationTarget's NotificationPreferences accordingly.
+// Replaces o.R.NotificationPreferences with related.
+// Sets related.R.NotificationTarget's NotificationPreferences accordingly.
+func (o *NotificationTarget) SetNotificationPreferences(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*NotificationPreference) error {
+	query := "update \"notification_preferences\" set \"notification_target_id\" = null where \"notification_target_id\" = $1"
+	values := []interface{}{o.ID}
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, query)
+		fmt.Fprintln(writer, values)
+	}
+	_, err := exec.ExecContext(ctx, query, values...)
+	if err != nil {
+		return errors.Wrap(err, "failed to remove relationships before set")
+	}
+
+	if o.R != nil {
+		for _, rel := range o.R.NotificationPreferences {
+			queries.SetScanner(&rel.NotificationTargetID, nil)
+			if rel.R == nil {
+				continue
+			}
+
+			rel.R.NotificationTarget = nil
+		}
+		o.R.NotificationPreferences = nil
+	}
+
+	return o.AddNotificationPreferences(ctx, exec, insert, related...)
+}
+
+// RemoveNotificationPreferences relationships from objects passed in.
+// Removes related items from R.NotificationPreferences (uses pointer comparison, removal does not keep order)
+// Sets related.R.NotificationTarget.
+func (o *NotificationTarget) RemoveNotificationPreferences(ctx context.Context, exec boil.ContextExecutor, related ...*NotificationPreference) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	var err error
+	for _, rel := range related {
+		queries.SetScanner(&rel.NotificationTargetID, nil)
+		if rel.R != nil {
+			rel.R.NotificationTarget = nil
+		}
+		if _, err = rel.Update(ctx, exec, boil.Whitelist("notification_target_id")); err != nil {
+			return err
+		}
+	}
+	if o.R == nil {
+		return nil
+	}
+
+	for _, rel := range related {
+		for i, ri := range o.R.NotificationPreferences {
+			if rel != ri {
+				continue
+			}
+
+			ln := len(o.R.NotificationPreferences)
+			if ln > 1 && i < ln-1 {
+				o.R.NotificationPreferences[i] = o.R.NotificationPreferences[ln-1]
+			}
+			o.R.NotificationPreferences = o.R.NotificationPreferences[:ln-1]
+			break
+		}
+	}
+
 	return nil
 }
 

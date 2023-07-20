@@ -1757,7 +1757,7 @@ func (o *User) AddNotificationPreferences(ctx context.Context, exec boil.Context
 				strmangle.SetParamNames("\"", "\"", 1, []string{"user_id"}),
 				strmangle.WhereClause("\"", "\"", 2, notificationPreferencePrimaryKeyColumns),
 			)
-			values := []interface{}{o.ID, rel.UserID, rel.NotificationTypeID, rel.NotificationTargetID}
+			values := []interface{}{o.ID, rel.ID}
 
 			if boil.IsDebug(ctx) {
 				writer := boil.DebugWriterFrom(ctx)

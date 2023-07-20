@@ -75,10 +75,11 @@ func (r *Router) getAuthenticatedUser(c *gin.Context) {
 	if ctxUser.R == nil {
 		c.JSON(http.StatusOK, AuthenticatedUser{
 			User: &User{
-				User:               ctxUser,
-				Memberships:        []string{},
-				MembershipsDirect:  []string{},
-				MembershipRequests: []string{},
+				User:                    ctxUser,
+				Memberships:             []string{},
+				MembershipsDirect:       []string{},
+				MembershipRequests:      []string{},
+				NotificationPreferences: UserNotificationPreferences{},
 			},
 			Admin: *ctxAdmin,
 		})
@@ -111,10 +112,11 @@ func (r *Router) getAuthenticatedUser(c *gin.Context) {
 
 	c.JSON(http.StatusOK, AuthenticatedUser{
 		User: &User{
-			User:               ctxUser,
-			Memberships:        memberships,
-			MembershipsDirect:  membershipsDirect,
-			MembershipRequests: requests,
+			User:                    ctxUser,
+			Memberships:             memberships,
+			MembershipsDirect:       membershipsDirect,
+			MembershipRequests:      requests,
+			NotificationPreferences: UserNotificationPreferences{},
 		},
 		Admin: *ctxAdmin,
 	})

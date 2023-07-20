@@ -34,20 +34,22 @@ var permittedListUsersParams = []string{"external_id", "email"}
 // User is a user response
 type User struct {
 	*models.User
-	Memberships        []string `json:"memberships,omitempty"`
-	MembershipsDirect  []string `json:"memberships_direct,omitempty"`
-	MembershipRequests []string `json:"membership_requests,omitempty"`
+	Memberships             []string                    `json:"memberships,omitempty"`
+	MembershipsDirect       []string                    `json:"memberships_direct,omitempty"`
+	MembershipRequests      []string                    `json:"membership_requests,omitempty"`
+	NotificationPreferences UserNotificationPreferences `json:"notification_preferences,omitempty"`
 }
 
 // UserReq is a user request payload
 type UserReq struct {
-	AvatarURL      string `json:"avatar_url,omitempty"`
-	Email          string `json:"email"`
-	ExternalID     string `json:"external_id"`
-	GithubID       string `json:"github_id,omitempty"`
-	GithubUsername string `json:"github_username,omitempty"`
-	Name           string `json:"name"`
-	Status         string `json:"status,omitempty"`
+	AvatarURL               string                      `json:"avatar_url,omitempty"`
+	Email                   string                      `json:"email"`
+	ExternalID              string                      `json:"external_id"`
+	GithubID                string                      `json:"github_id,omitempty"`
+	GithubUsername          string                      `json:"github_username,omitempty"`
+	Name                    string                      `json:"name"`
+	Status                  string                      `json:"status,omitempty"`
+	NotificationPreferences UserNotificationPreferences `json:"notification_preferences,omitempty"`
 }
 
 // listUsers responds with the list of all users
@@ -117,7 +119,9 @@ func (r *Router) getUser(c *gin.Context) {
 		queryMods = append(queryMods, qm.WithDeleted())
 	}
 
-	user, err := models.Users(queryMods...).One(c.Request.Context(), r.DB)
+	ctx := boil.WithDebug(c.Request.Context(), true)
+
+	user, err := models.Users(queryMods...).One(ctx, r.DB)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			sendError(c, http.StatusNotFound, "user not found: "+err.Error())
@@ -152,11 +156,17 @@ func (r *Router) getUser(c *gin.Context) {
 		requests[i] = r.GroupID
 	}
 
+	notificationPreferences, err := getNotificationPreferences(c.Request.Context(), id, r.DB)
+	if err != nil {
+		sendError(c, http.StatusInternalServerError, "error getting notification preferences: "+err.Error())
+	}
+
 	c.JSON(http.StatusOK, User{
-		User:               user,
-		Memberships:        memberships,
-		MembershipsDirect:  membershipsDirect,
-		MembershipRequests: requests,
+		User:                    user,
+		Memberships:             memberships,
+		MembershipsDirect:       membershipsDirect,
+		MembershipRequests:      requests,
+		NotificationPreferences: notificationPreferences,
 	})
 }
 
@@ -335,10 +345,10 @@ func (r *Router) updateUser(c *gin.Context) {
 		return
 	}
 
-	if req == (UserReq{}) {
-		sendError(c, http.StatusBadRequest, "missing user request parameters")
-		return
-	}
+	// if req == (UserReq{}) {
+	// 	sendError(c, http.StatusBadRequest, "missing user request parameters")
+	// 	return
+	// }
 
 	if req.AvatarURL != "" {
 		user.AvatarURL = null.StringFrom(req.AvatarURL)

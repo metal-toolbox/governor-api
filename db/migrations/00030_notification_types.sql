@@ -23,12 +23,14 @@ CREATE TABLE notification_targets (
 );
 
 CREATE TABLE notification_preferences (
+  id UUID PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
   notification_type_id UUID NOT NULL REFERENCES notification_types(id) ON DELETE CASCADE ON UPDATE CASCADE, 
-  notification_target_id UUID NOT NULL REFERENCES notification_targets(id) ON DELETE CASCADE ON UPDATE CASCADE,
-  PRIMARY KEY (user_id, notification_type_id, notification_target_id),
+  notification_target_id UUID NULL REFERENCES notification_targets(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  enabled BOOL NOT NULL DEFAULT false,
 
-  enabled BOOL NOT NULL DEFAULT false
+  CONSTRAINT unique_user_type_target UNIQUE (user_id, notification_type_id, notification_target_id),
+  INDEX (user_id) STORING (notification_type_id, notification_target_id, enabled)
 );
 -- +goose StatementEnd
 

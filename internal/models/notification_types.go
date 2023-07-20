@@ -551,7 +551,7 @@ func (o *NotificationType) AddNotificationPreferences(ctx context.Context, exec 
 				strmangle.SetParamNames("\"", "\"", 1, []string{"notification_type_id"}),
 				strmangle.WhereClause("\"", "\"", 2, notificationPreferencePrimaryKeyColumns),
 			)
-			values := []interface{}{o.ID, rel.UserID, rel.NotificationTypeID, rel.NotificationTargetID}
+			values := []interface{}{o.ID, rel.ID}
 
 			if boil.IsDebug(ctx) {
 				writer := boil.DebugWriterFrom(ctx)
