@@ -240,6 +240,14 @@ func (r *Router) createUser(c *gin.Context) {
 		user.Status = null.StringFrom(UserStatusPending)
 	}
 
+	if req.NotificationPreferences == nil || len(req.NotificationPreferences) == 0 {
+		req.NotificationPreferences, err = defaultNotificationPreferences(c.Request.Context(), r.DB)
+		if err != nil {
+			sendError(c, http.StatusInternalServerError, "error getting default notification preferences: "+err.Error())
+			return
+		}
+	}
+
 	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
 	if err != nil {
 		sendError(c, http.StatusBadRequest, "error starting create user transaction: "+err.Error())
@@ -255,6 +263,23 @@ func (r *Router) createUser(c *gin.Context) {
 
 		sendError(c, http.StatusBadRequest, msg)
 
+		return
+	}
+
+	if err := createOrUpdateNotificationPreferences(
+		c.Request.Context(),
+		user.ID,
+		req.NotificationPreferences,
+		tx,
+		r.DB,
+	); err != nil {
+		msg := "error updating user notification preferences: " + err.Error()
+
+		if err := tx.Rollback(); err != nil {
+			msg += "error rolling back transaction: " + err.Error()
+		}
+
+		sendError(c, http.StatusBadRequest, msg)
 		return
 	}
 
@@ -414,6 +439,25 @@ func (r *Router) updateUser(c *gin.Context) {
 		sendError(c, http.StatusBadRequest, msg)
 
 		return
+	}
+
+	if req.NotificationPreferences != nil || len(req.NotificationPreferences) != 0 {
+		if err := createOrUpdateNotificationPreferences(
+			c.Request.Context(),
+			user.ID,
+			req.NotificationPreferences,
+			tx,
+			r.DB,
+		); err != nil {
+			msg := "error updating user notification preferences: " + err.Error()
+
+			if err := tx.Rollback(); err != nil {
+				msg += "error rolling back transaction: " + err.Error()
+			}
+
+			sendError(c, http.StatusBadRequest, msg)
+			return
+		}
 	}
 
 	event, err := dbtools.AuditUserUpdated(c.Request.Context(), tx, getCtxAuditID(c), getCtxUser(c), &original, user)

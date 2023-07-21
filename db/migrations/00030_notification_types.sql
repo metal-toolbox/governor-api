@@ -5,6 +5,7 @@ CREATE TABLE notification_types (
   name STRING NOT NULL,
   slug STRING NOT NULL,
   description STRING NOT NULL,
+  default_enabled BOOL NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at TIMESTAMPTZ NULL,
@@ -16,6 +17,7 @@ CREATE TABLE notification_targets (
   name STRING NOT NULL,
   slug STRING NOT NULL,
   description STRING NOT NULL,
+  default_enabled BOOL NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at TIMESTAMPTZ NULL,
@@ -27,9 +29,10 @@ CREATE TABLE notification_preferences (
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
   notification_type_id UUID NOT NULL REFERENCES notification_types(id) ON DELETE CASCADE ON UPDATE CASCADE, 
   notification_target_id UUID NULL REFERENCES notification_targets(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  notification_target_id_null_string UUID AS (IFNULL(notification_target_id, '00000000-0000-0000-0000-000000000000')) STORED,
   enabled BOOL NOT NULL DEFAULT false,
 
-  CONSTRAINT unique_user_type_target UNIQUE (user_id, notification_type_id, notification_target_id),
+  CONSTRAINT unique_user_type_target UNIQUE (user_id, notification_type_id, notification_target_id_null_string),
   INDEX (user_id) STORING (notification_type_id, notification_target_id, enabled)
 );
 -- +goose StatementEnd

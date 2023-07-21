@@ -24,72 +24,79 @@ import (
 
 // NotificationType is an object representing the database table.
 type NotificationType struct {
-	ID          string    `boil:"id" json:"id" toml:"id" yaml:"id"`
-	Name        string    `boil:"name" json:"name" toml:"name" yaml:"name"`
-	Slug        string    `boil:"slug" json:"slug" toml:"slug" yaml:"slug"`
-	Description string    `boil:"description" json:"description" toml:"description" yaml:"description"`
-	CreatedAt   time.Time `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
-	UpdatedAt   time.Time `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
-	DeletedAt   null.Time `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
+	ID             string    `boil:"id" json:"id" toml:"id" yaml:"id"`
+	Name           string    `boil:"name" json:"name" toml:"name" yaml:"name"`
+	Slug           string    `boil:"slug" json:"slug" toml:"slug" yaml:"slug"`
+	Description    string    `boil:"description" json:"description" toml:"description" yaml:"description"`
+	DefaultEnabled bool      `boil:"default_enabled" json:"default_enabled" toml:"default_enabled" yaml:"default_enabled"`
+	CreatedAt      time.Time `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
+	UpdatedAt      time.Time `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
+	DeletedAt      null.Time `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
 
 	R *notificationTypeR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L notificationTypeL  `boil:"-" json:"-" toml:"-" yaml:"-"`
 }
 
 var NotificationTypeColumns = struct {
-	ID          string
-	Name        string
-	Slug        string
-	Description string
-	CreatedAt   string
-	UpdatedAt   string
-	DeletedAt   string
+	ID             string
+	Name           string
+	Slug           string
+	Description    string
+	DefaultEnabled string
+	CreatedAt      string
+	UpdatedAt      string
+	DeletedAt      string
 }{
-	ID:          "id",
-	Name:        "name",
-	Slug:        "slug",
-	Description: "description",
-	CreatedAt:   "created_at",
-	UpdatedAt:   "updated_at",
-	DeletedAt:   "deleted_at",
+	ID:             "id",
+	Name:           "name",
+	Slug:           "slug",
+	Description:    "description",
+	DefaultEnabled: "default_enabled",
+	CreatedAt:      "created_at",
+	UpdatedAt:      "updated_at",
+	DeletedAt:      "deleted_at",
 }
 
 var NotificationTypeTableColumns = struct {
-	ID          string
-	Name        string
-	Slug        string
-	Description string
-	CreatedAt   string
-	UpdatedAt   string
-	DeletedAt   string
+	ID             string
+	Name           string
+	Slug           string
+	Description    string
+	DefaultEnabled string
+	CreatedAt      string
+	UpdatedAt      string
+	DeletedAt      string
 }{
-	ID:          "notification_types.id",
-	Name:        "notification_types.name",
-	Slug:        "notification_types.slug",
-	Description: "notification_types.description",
-	CreatedAt:   "notification_types.created_at",
-	UpdatedAt:   "notification_types.updated_at",
-	DeletedAt:   "notification_types.deleted_at",
+	ID:             "notification_types.id",
+	Name:           "notification_types.name",
+	Slug:           "notification_types.slug",
+	Description:    "notification_types.description",
+	DefaultEnabled: "notification_types.default_enabled",
+	CreatedAt:      "notification_types.created_at",
+	UpdatedAt:      "notification_types.updated_at",
+	DeletedAt:      "notification_types.deleted_at",
 }
 
 // Generated where
 
 var NotificationTypeWhere = struct {
-	ID          whereHelperstring
-	Name        whereHelperstring
-	Slug        whereHelperstring
-	Description whereHelperstring
-	CreatedAt   whereHelpertime_Time
-	UpdatedAt   whereHelpertime_Time
-	DeletedAt   whereHelpernull_Time
+	ID             whereHelperstring
+	Name           whereHelperstring
+	Slug           whereHelperstring
+	Description    whereHelperstring
+	DefaultEnabled whereHelperbool
+	CreatedAt      whereHelpertime_Time
+	UpdatedAt      whereHelpertime_Time
+	DeletedAt      whereHelpernull_Time
 }{
-	ID:          whereHelperstring{field: "\"notification_types\".\"id\""},
-	Name:        whereHelperstring{field: "\"notification_types\".\"name\""},
-	Slug:        whereHelperstring{field: "\"notification_types\".\"slug\""},
-	Description: whereHelperstring{field: "\"notification_types\".\"description\""},
-	CreatedAt:   whereHelpertime_Time{field: "\"notification_types\".\"created_at\""},
-	UpdatedAt:   whereHelpertime_Time{field: "\"notification_types\".\"updated_at\""},
-	DeletedAt:   whereHelpernull_Time{field: "\"notification_types\".\"deleted_at\""},
+	ID:             whereHelperstring{field: "\"notification_types\".\"id\""},
+	Name:           whereHelperstring{field: "\"notification_types\".\"name\""},
+	Slug:           whereHelperstring{field: "\"notification_types\".\"slug\""},
+	Description:    whereHelperstring{field: "\"notification_types\".\"description\""},
+	DefaultEnabled: whereHelperbool{field: "\"notification_types\".\"default_enabled\""},
+	CreatedAt:      whereHelpertime_Time{field: "\"notification_types\".\"created_at\""},
+	UpdatedAt:      whereHelpertime_Time{field: "\"notification_types\".\"updated_at\""},
+	DeletedAt:      whereHelpernull_Time{field: "\"notification_types\".\"deleted_at\""},
 }
 
 // NotificationTypeRels is where relationship names are stored.
@@ -120,9 +127,9 @@ func (r *notificationTypeR) GetNotificationPreferences() NotificationPreferenceS
 type notificationTypeL struct{}
 
 var (
-	notificationTypeAllColumns            = []string{"id", "name", "slug", "description", "created_at", "updated_at", "deleted_at"}
+	notificationTypeAllColumns            = []string{"id", "name", "slug", "description", "default_enabled", "created_at", "updated_at", "deleted_at"}
 	notificationTypeColumnsWithoutDefault = []string{"name", "slug", "description"}
-	notificationTypeColumnsWithDefault    = []string{"id", "created_at", "updated_at", "deleted_at"}
+	notificationTypeColumnsWithDefault    = []string{"id", "default_enabled", "created_at", "updated_at", "deleted_at"}
 	notificationTypePrimaryKeyColumns     = []string{"id"}
 	notificationTypeGeneratedColumns      = []string{}
 )

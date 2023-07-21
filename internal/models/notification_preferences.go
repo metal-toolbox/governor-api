@@ -24,58 +24,65 @@ import (
 
 // NotificationPreference is an object representing the database table.
 type NotificationPreference struct {
-	ID                   string      `boil:"id" json:"id" toml:"id" yaml:"id"`
-	UserID               string      `boil:"user_id" json:"user_id" toml:"user_id" yaml:"user_id"`
-	NotificationTypeID   string      `boil:"notification_type_id" json:"notification_type_id" toml:"notification_type_id" yaml:"notification_type_id"`
-	NotificationTargetID null.String `boil:"notification_target_id" json:"notification_target_id,omitempty" toml:"notification_target_id" yaml:"notification_target_id,omitempty"`
-	Enabled              bool        `boil:"enabled" json:"enabled" toml:"enabled" yaml:"enabled"`
+	ID                             string      `boil:"id" json:"id" toml:"id" yaml:"id"`
+	UserID                         string      `boil:"user_id" json:"user_id" toml:"user_id" yaml:"user_id"`
+	NotificationTypeID             string      `boil:"notification_type_id" json:"notification_type_id" toml:"notification_type_id" yaml:"notification_type_id"`
+	NotificationTargetID           null.String `boil:"notification_target_id" json:"notification_target_id,omitempty" toml:"notification_target_id" yaml:"notification_target_id,omitempty"`
+	NotificationTargetIDNullString null.String `boil:"notification_target_id_null_string" json:"notification_target_id_null_string,omitempty" toml:"notification_target_id_null_string" yaml:"notification_target_id_null_string,omitempty"`
+	Enabled                        bool        `boil:"enabled" json:"enabled" toml:"enabled" yaml:"enabled"`
 
 	R *notificationPreferenceR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L notificationPreferenceL  `boil:"-" json:"-" toml:"-" yaml:"-"`
 }
 
 var NotificationPreferenceColumns = struct {
-	ID                   string
-	UserID               string
-	NotificationTypeID   string
-	NotificationTargetID string
-	Enabled              string
+	ID                             string
+	UserID                         string
+	NotificationTypeID             string
+	NotificationTargetID           string
+	NotificationTargetIDNullString string
+	Enabled                        string
 }{
-	ID:                   "id",
-	UserID:               "user_id",
-	NotificationTypeID:   "notification_type_id",
-	NotificationTargetID: "notification_target_id",
-	Enabled:              "enabled",
+	ID:                             "id",
+	UserID:                         "user_id",
+	NotificationTypeID:             "notification_type_id",
+	NotificationTargetID:           "notification_target_id",
+	NotificationTargetIDNullString: "notification_target_id_null_string",
+	Enabled:                        "enabled",
 }
 
 var NotificationPreferenceTableColumns = struct {
-	ID                   string
-	UserID               string
-	NotificationTypeID   string
-	NotificationTargetID string
-	Enabled              string
+	ID                             string
+	UserID                         string
+	NotificationTypeID             string
+	NotificationTargetID           string
+	NotificationTargetIDNullString string
+	Enabled                        string
 }{
-	ID:                   "notification_preferences.id",
-	UserID:               "notification_preferences.user_id",
-	NotificationTypeID:   "notification_preferences.notification_type_id",
-	NotificationTargetID: "notification_preferences.notification_target_id",
-	Enabled:              "notification_preferences.enabled",
+	ID:                             "notification_preferences.id",
+	UserID:                         "notification_preferences.user_id",
+	NotificationTypeID:             "notification_preferences.notification_type_id",
+	NotificationTargetID:           "notification_preferences.notification_target_id",
+	NotificationTargetIDNullString: "notification_preferences.notification_target_id_null_string",
+	Enabled:                        "notification_preferences.enabled",
 }
 
 // Generated where
 
 var NotificationPreferenceWhere = struct {
-	ID                   whereHelperstring
-	UserID               whereHelperstring
-	NotificationTypeID   whereHelperstring
-	NotificationTargetID whereHelpernull_String
-	Enabled              whereHelperbool
+	ID                             whereHelperstring
+	UserID                         whereHelperstring
+	NotificationTypeID             whereHelperstring
+	NotificationTargetID           whereHelpernull_String
+	NotificationTargetIDNullString whereHelpernull_String
+	Enabled                        whereHelperbool
 }{
-	ID:                   whereHelperstring{field: "\"notification_preferences\".\"id\""},
-	UserID:               whereHelperstring{field: "\"notification_preferences\".\"user_id\""},
-	NotificationTypeID:   whereHelperstring{field: "\"notification_preferences\".\"notification_type_id\""},
-	NotificationTargetID: whereHelpernull_String{field: "\"notification_preferences\".\"notification_target_id\""},
-	Enabled:              whereHelperbool{field: "\"notification_preferences\".\"enabled\""},
+	ID:                             whereHelperstring{field: "\"notification_preferences\".\"id\""},
+	UserID:                         whereHelperstring{field: "\"notification_preferences\".\"user_id\""},
+	NotificationTypeID:             whereHelperstring{field: "\"notification_preferences\".\"notification_type_id\""},
+	NotificationTargetID:           whereHelpernull_String{field: "\"notification_preferences\".\"notification_target_id\""},
+	NotificationTargetIDNullString: whereHelpernull_String{field: "\"notification_preferences\".\"notification_target_id_null_string\""},
+	Enabled:                        whereHelperbool{field: "\"notification_preferences\".\"enabled\""},
 }
 
 // NotificationPreferenceRels is where relationship names are stored.
@@ -126,9 +133,9 @@ func (r *notificationPreferenceR) GetNotificationTarget() *NotificationTarget {
 type notificationPreferenceL struct{}
 
 var (
-	notificationPreferenceAllColumns            = []string{"id", "user_id", "notification_type_id", "notification_target_id", "enabled"}
+	notificationPreferenceAllColumns            = []string{"id", "user_id", "notification_type_id", "notification_target_id", "notification_target_id_null_string", "enabled"}
 	notificationPreferenceColumnsWithoutDefault = []string{"user_id", "notification_type_id"}
-	notificationPreferenceColumnsWithDefault    = []string{"id", "notification_target_id", "enabled"}
+	notificationPreferenceColumnsWithDefault    = []string{"id", "notification_target_id", "notification_target_id_null_string", "enabled"}
 	notificationPreferencePrimaryKeyColumns     = []string{"id"}
 	notificationPreferenceGeneratedColumns      = []string{}
 )
