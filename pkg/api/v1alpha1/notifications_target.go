@@ -10,11 +10,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/gosimple/slug"
 	"github.com/metal-toolbox/auditevent/ginaudit"
+	"github.com/metal-toolbox/governor-api/internal/dbtools"
+	"github.com/metal-toolbox/governor-api/internal/models"
+	events "github.com/metal-toolbox/governor-api/pkg/events/v1alpha1"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
-	"go.equinixmetal.net/governor-api/internal/dbtools"
-	"go.equinixmetal.net/governor-api/internal/models"
-	events "go.equinixmetal.net/governor-api/pkg/events/v1alpha1"
 	"go.uber.org/zap"
 )
 

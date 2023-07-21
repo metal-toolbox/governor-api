@@ -8,10 +8,10 @@ import (
 	"sync"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/metal-toolbox/governor-api/internal/models"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
-	"go.equinixmetal.net/governor-api/internal/models"
 )
 
 type UserNotificationPreferenceTarget struct {
