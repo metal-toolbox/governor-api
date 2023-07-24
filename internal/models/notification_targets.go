@@ -128,8 +128,8 @@ type notificationTargetL struct{}
 
 var (
 	notificationTargetAllColumns            = []string{"id", "name", "slug", "description", "default_enabled", "created_at", "updated_at", "deleted_at"}
-	notificationTargetColumnsWithoutDefault = []string{"name", "slug", "description"}
-	notificationTargetColumnsWithDefault    = []string{"id", "default_enabled", "created_at", "updated_at", "deleted_at"}
+	notificationTargetColumnsWithoutDefault = []string{"name", "slug", "description", "default_enabled"}
+	notificationTargetColumnsWithDefault    = []string{"id", "created_at", "updated_at", "deleted_at"}
 	notificationTargetPrimaryKeyColumns     = []string{"id"}
 	notificationTargetGeneratedColumns      = []string{}
 )

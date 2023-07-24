@@ -25,8 +25,9 @@ type NotificationTarget struct {
 
 // NotificationTargetReq is a request to create a notification target
 type NotificationTargetReq struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	Name           string `json:"name"`
+	Description    string `json:"description"`
+	DefaultEnabled bool   `json:"default_enabled"`
 }
 
 // listNotificationTargets lists notification targets as JSON
@@ -68,8 +69,9 @@ func (r *Router) createNotificationTarget(c *gin.Context) {
 	}
 
 	notificationTarget := &models.NotificationTarget{
-		Name:        req.Name,
-		Description: req.Description,
+		Name:           req.Name,
+		Description:    req.Description,
+		DefaultEnabled: req.DefaultEnabled,
 	}
 
 	notificationTarget.Slug = slug.Make(notificationTarget.Name)
@@ -128,6 +130,13 @@ func (r *Router) createNotificationTarget(c *gin.Context) {
 		}
 
 		sendError(c, http.StatusBadRequest, msg)
+		return
+	}
+
+	// CRDB cannot refresh a materialized view inside explicit transactions
+	// https://www.cockroachlabs.com/docs/stable/views#known-limitations
+	if err := dbtools.RefreshNotificationDefaults(c.Request.Context(), r.DB); err != nil {
+		sendError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -273,6 +282,11 @@ func (r *Router) deleteNotificationTarget(c *gin.Context) {
 		return
 	}
 
+	if err := dbtools.RefreshNotificationDefaults(c.Request.Context(), r.DB); err != nil {
+		sendError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
 	err = r.EventBus.Publish(
 		c.Request.Context(),
 		events.GovernorNotificationTargetsEventSubject,
@@ -333,7 +347,11 @@ func (r *Router) updateNotificationTarget(c *gin.Context) {
 		return
 	}
 
-	n.Description = req.Description
+	if req.Description != "" {
+		n.Description = req.Description
+	}
+
+	n.DefaultEnabled = req.DefaultEnabled
 
 	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
 	if err != nil {
@@ -390,6 +408,11 @@ func (r *Router) updateNotificationTarget(c *gin.Context) {
 		}
 
 		sendError(c, http.StatusBadRequest, msg)
+		return
+	}
+
+	if err := dbtools.RefreshNotificationDefaults(c.Request.Context(), r.DB); err != nil {
+		sendError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 

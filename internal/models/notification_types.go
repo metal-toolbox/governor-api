@@ -128,8 +128,8 @@ type notificationTypeL struct{}
 
 var (
 	notificationTypeAllColumns            = []string{"id", "name", "slug", "description", "default_enabled", "created_at", "updated_at", "deleted_at"}
-	notificationTypeColumnsWithoutDefault = []string{"name", "slug", "description"}
-	notificationTypeColumnsWithDefault    = []string{"id", "default_enabled", "created_at", "updated_at", "deleted_at"}
+	notificationTypeColumnsWithoutDefault = []string{"name", "slug", "description", "default_enabled"}
+	notificationTypeColumnsWithDefault    = []string{"id", "created_at", "updated_at", "deleted_at"}
 	notificationTypePrimaryKeyColumns     = []string{"id"}
 	notificationTypeGeneratedColumns      = []string{}
 )

@@ -79,7 +79,7 @@ func (r *Router) getAuthenticatedUser(c *gin.Context) {
 				Memberships:             []string{},
 				MembershipsDirect:       []string{},
 				MembershipRequests:      []string{},
-				NotificationPreferences: UserNotificationPreferences{},
+				NotificationPreferences: dbtools.UserNotificationPreferences{},
 			},
 			Admin: *ctxAdmin,
 		})
@@ -116,7 +116,7 @@ func (r *Router) getAuthenticatedUser(c *gin.Context) {
 			Memberships:             memberships,
 			MembershipsDirect:       membershipsDirect,
 			MembershipRequests:      requests,
-			NotificationPreferences: UserNotificationPreferences{},
+			NotificationPreferences: dbtools.UserNotificationPreferences{},
 		},
 		Admin: *ctxAdmin,
 	})

@@ -34,22 +34,22 @@ var permittedListUsersParams = []string{"external_id", "email"}
 // User is a user response
 type User struct {
 	*models.User
-	Memberships             []string                    `json:"memberships,omitempty"`
-	MembershipsDirect       []string                    `json:"memberships_direct,omitempty"`
-	MembershipRequests      []string                    `json:"membership_requests,omitempty"`
-	NotificationPreferences UserNotificationPreferences `json:"notification_preferences,omitempty"`
+	Memberships             []string                            `json:"memberships,omitempty"`
+	MembershipsDirect       []string                            `json:"memberships_direct,omitempty"`
+	MembershipRequests      []string                            `json:"membership_requests,omitempty"`
+	NotificationPreferences dbtools.UserNotificationPreferences `json:"notification_preferences,omitempty"`
 }
 
 // UserReq is a user request payload
 type UserReq struct {
-	AvatarURL               string                      `json:"avatar_url,omitempty"`
-	Email                   string                      `json:"email"`
-	ExternalID              string                      `json:"external_id"`
-	GithubID                string                      `json:"github_id,omitempty"`
-	GithubUsername          string                      `json:"github_username,omitempty"`
-	Name                    string                      `json:"name"`
-	Status                  string                      `json:"status,omitempty"`
-	NotificationPreferences UserNotificationPreferences `json:"notification_preferences,omitempty"`
+	AvatarURL               string                              `json:"avatar_url,omitempty"`
+	Email                   string                              `json:"email"`
+	ExternalID              string                              `json:"external_id"`
+	GithubID                string                              `json:"github_id,omitempty"`
+	GithubUsername          string                              `json:"github_username,omitempty"`
+	Name                    string                              `json:"name"`
+	Status                  string                              `json:"status,omitempty"`
+	NotificationPreferences dbtools.UserNotificationPreferences `json:"notification_preferences,omitempty"`
 }
 
 // listUsers responds with the list of all users
@@ -156,9 +156,10 @@ func (r *Router) getUser(c *gin.Context) {
 		requests[i] = r.GroupID
 	}
 
-	notificationPreferences, err := getNotificationPreferences(c.Request.Context(), id, r.DB)
+	notificationPreferences, err := dbtools.GetNotificationPreferences(c.Request.Context(), id, r.DB)
 	if err != nil {
 		sendError(c, http.StatusInternalServerError, "error getting notification preferences: "+err.Error())
+		return
 	}
 
 	c.JSON(http.StatusOK, User{
@@ -240,14 +241,6 @@ func (r *Router) createUser(c *gin.Context) {
 		user.Status = null.StringFrom(UserStatusPending)
 	}
 
-	if req.NotificationPreferences == nil || len(req.NotificationPreferences) == 0 {
-		req.NotificationPreferences, err = defaultNotificationPreferences(c.Request.Context(), r.DB)
-		if err != nil {
-			sendError(c, http.StatusInternalServerError, "error getting default notification preferences: "+err.Error())
-			return
-		}
-	}
-
 	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
 	if err != nil {
 		sendError(c, http.StatusBadRequest, "error starting create user transaction: "+err.Error())
@@ -266,21 +259,23 @@ func (r *Router) createUser(c *gin.Context) {
 		return
 	}
 
-	if err := createOrUpdateNotificationPreferences(
-		c.Request.Context(),
-		user.ID,
-		req.NotificationPreferences,
-		tx,
-		r.DB,
-	); err != nil {
-		msg := "error updating user notification preferences: " + err.Error()
+	if req.NotificationPreferences != nil && len(req.NotificationPreferences) > 0 {
+		if err := dbtools.CreateOrUpdateNotificationPreferences(
+			c.Request.Context(),
+			user.ID,
+			req.NotificationPreferences,
+			tx,
+			r.DB,
+		); err != nil {
+			msg := "error updating user notification preferences: " + err.Error()
 
-		if err := tx.Rollback(); err != nil {
-			msg += "error rolling back transaction: " + err.Error()
+			if err := tx.Rollback(); err != nil {
+				msg += "error rolling back transaction: " + err.Error()
+			}
+
+			sendError(c, http.StatusBadRequest, msg)
+			return
 		}
-
-		sendError(c, http.StatusBadRequest, msg)
-		return
 	}
 
 	event, err := dbtools.AuditUserCreatedWithActor(c.Request.Context(), tx, getCtxAuditID(c), getCtxUser(c), user)
@@ -441,8 +436,8 @@ func (r *Router) updateUser(c *gin.Context) {
 		return
 	}
 
-	if req.NotificationPreferences != nil || len(req.NotificationPreferences) != 0 {
-		if err := createOrUpdateNotificationPreferences(
+	if req.NotificationPreferences != nil && len(req.NotificationPreferences) > 0 {
+		if err := dbtools.CreateOrUpdateNotificationPreferences(
 			c.Request.Context(),
 			user.ID,
 			req.NotificationPreferences,
