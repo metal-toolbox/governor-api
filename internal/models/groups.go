@@ -106,6 +106,8 @@ var GroupRels = struct {
 	GroupApplicationRequests              string
 	ApproverGroupGroupApplicationRequests string
 	GroupApplications                     string
+	ParentGroupGroupHierarchies           string
+	MemberGroupGroupHierarchies           string
 	GroupMembershipRequests               string
 	GroupMemberships                      string
 	GroupOrganizations                    string
@@ -115,6 +117,8 @@ var GroupRels = struct {
 	GroupApplicationRequests:              "GroupApplicationRequests",
 	ApproverGroupGroupApplicationRequests: "ApproverGroupGroupApplicationRequests",
 	GroupApplications:                     "GroupApplications",
+	ParentGroupGroupHierarchies:           "ParentGroupGroupHierarchies",
+	MemberGroupGroupHierarchies:           "MemberGroupGroupHierarchies",
 	GroupMembershipRequests:               "GroupMembershipRequests",
 	GroupMemberships:                      "GroupMemberships",
 	GroupOrganizations:                    "GroupOrganizations",
@@ -127,6 +131,8 @@ type groupR struct {
 	GroupApplicationRequests              GroupApplicationRequestSlice `boil:"GroupApplicationRequests" json:"GroupApplicationRequests" toml:"GroupApplicationRequests" yaml:"GroupApplicationRequests"`
 	ApproverGroupGroupApplicationRequests GroupApplicationRequestSlice `boil:"ApproverGroupGroupApplicationRequests" json:"ApproverGroupGroupApplicationRequests" toml:"ApproverGroupGroupApplicationRequests" yaml:"ApproverGroupGroupApplicationRequests"`
 	GroupApplications                     GroupApplicationSlice        `boil:"GroupApplications" json:"GroupApplications" toml:"GroupApplications" yaml:"GroupApplications"`
+	ParentGroupGroupHierarchies           GroupHierarchySlice          `boil:"ParentGroupGroupHierarchies" json:"ParentGroupGroupHierarchies" toml:"ParentGroupGroupHierarchies" yaml:"ParentGroupGroupHierarchies"`
+	MemberGroupGroupHierarchies           GroupHierarchySlice          `boil:"MemberGroupGroupHierarchies" json:"MemberGroupGroupHierarchies" toml:"MemberGroupGroupHierarchies" yaml:"MemberGroupGroupHierarchies"`
 	GroupMembershipRequests               GroupMembershipRequestSlice  `boil:"GroupMembershipRequests" json:"GroupMembershipRequests" toml:"GroupMembershipRequests" yaml:"GroupMembershipRequests"`
 	GroupMemberships                      GroupMembershipSlice         `boil:"GroupMemberships" json:"GroupMemberships" toml:"GroupMemberships" yaml:"GroupMemberships"`
 	GroupOrganizations                    GroupOrganizationSlice       `boil:"GroupOrganizations" json:"GroupOrganizations" toml:"GroupOrganizations" yaml:"GroupOrganizations"`
@@ -170,6 +176,20 @@ func (r *groupR) GetGroupApplications() GroupApplicationSlice {
 		return nil
 	}
 	return r.GroupApplications
+}
+
+func (r *groupR) GetParentGroupGroupHierarchies() GroupHierarchySlice {
+	if r == nil {
+		return nil
+	}
+	return r.ParentGroupGroupHierarchies
+}
+
+func (r *groupR) GetMemberGroupGroupHierarchies() GroupHierarchySlice {
+	if r == nil {
+		return nil
+	}
+	return r.MemberGroupGroupHierarchies
 }
 
 func (r *groupR) GetGroupMembershipRequests() GroupMembershipRequestSlice {
@@ -550,6 +570,34 @@ func (o *Group) GroupApplications(mods ...qm.QueryMod) groupApplicationQuery {
 	)
 
 	return GroupApplications(queryMods...)
+}
+
+// ParentGroupGroupHierarchies retrieves all the group_hierarchy's GroupHierarchies with an executor via parent_group_id column.
+func (o *Group) ParentGroupGroupHierarchies(mods ...qm.QueryMod) groupHierarchyQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"group_hierarchies\".\"parent_group_id\"=?", o.ID),
+	)
+
+	return GroupHierarchies(queryMods...)
+}
+
+// MemberGroupGroupHierarchies retrieves all the group_hierarchy's GroupHierarchies with an executor via member_group_id column.
+func (o *Group) MemberGroupGroupHierarchies(mods ...qm.QueryMod) groupHierarchyQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"group_hierarchies\".\"member_group_id\"=?", o.ID),
+	)
+
+	return GroupHierarchies(queryMods...)
 }
 
 // GroupMembershipRequests retrieves all the group_membership_request's GroupMembershipRequests with an executor.
@@ -1158,6 +1206,234 @@ func (groupL) LoadGroupApplications(ctx context.Context, e boil.ContextExecutor,
 					foreign.R = &groupApplicationR{}
 				}
 				foreign.R.Group = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadParentGroupGroupHierarchies allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (groupL) LoadParentGroupGroupHierarchies(ctx context.Context, e boil.ContextExecutor, singular bool, maybeGroup interface{}, mods queries.Applicator) error {
+	var slice []*Group
+	var object *Group
+
+	if singular {
+		var ok bool
+		object, ok = maybeGroup.(*Group)
+		if !ok {
+			object = new(Group)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeGroup)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeGroup))
+			}
+		}
+	} else {
+		s, ok := maybeGroup.(*[]*Group)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeGroup)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeGroup))
+			}
+		}
+	}
+
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &groupR{}
+		}
+		args = append(args, object.ID)
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &groupR{}
+			}
+
+			for _, a := range args {
+				if a == obj.ID {
+					continue Outer
+				}
+			}
+
+			args = append(args, obj.ID)
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(
+		qm.From(`group_hierarchies`),
+		qm.WhereIn(`group_hierarchies.parent_group_id in ?`, args...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load group_hierarchies")
+	}
+
+	var resultSlice []*GroupHierarchy
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice group_hierarchies")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on group_hierarchies")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for group_hierarchies")
+	}
+
+	if len(groupHierarchyAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.ParentGroupGroupHierarchies = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &groupHierarchyR{}
+			}
+			foreign.R.ParentGroup = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.ParentGroupID {
+				local.R.ParentGroupGroupHierarchies = append(local.R.ParentGroupGroupHierarchies, foreign)
+				if foreign.R == nil {
+					foreign.R = &groupHierarchyR{}
+				}
+				foreign.R.ParentGroup = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadMemberGroupGroupHierarchies allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (groupL) LoadMemberGroupGroupHierarchies(ctx context.Context, e boil.ContextExecutor, singular bool, maybeGroup interface{}, mods queries.Applicator) error {
+	var slice []*Group
+	var object *Group
+
+	if singular {
+		var ok bool
+		object, ok = maybeGroup.(*Group)
+		if !ok {
+			object = new(Group)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeGroup)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeGroup))
+			}
+		}
+	} else {
+		s, ok := maybeGroup.(*[]*Group)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeGroup)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeGroup))
+			}
+		}
+	}
+
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &groupR{}
+		}
+		args = append(args, object.ID)
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &groupR{}
+			}
+
+			for _, a := range args {
+				if a == obj.ID {
+					continue Outer
+				}
+			}
+
+			args = append(args, obj.ID)
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(
+		qm.From(`group_hierarchies`),
+		qm.WhereIn(`group_hierarchies.member_group_id in ?`, args...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load group_hierarchies")
+	}
+
+	var resultSlice []*GroupHierarchy
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice group_hierarchies")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on group_hierarchies")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for group_hierarchies")
+	}
+
+	if len(groupHierarchyAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.MemberGroupGroupHierarchies = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &groupHierarchyR{}
+			}
+			foreign.R.MemberGroup = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.MemberGroupID {
+				local.R.MemberGroupGroupHierarchies = append(local.R.MemberGroupGroupHierarchies, foreign)
+				if foreign.R == nil {
+					foreign.R = &groupHierarchyR{}
+				}
+				foreign.R.MemberGroup = local
 				break
 			}
 		}
@@ -1916,6 +2192,112 @@ func (o *Group) AddGroupApplications(ctx context.Context, exec boil.ContextExecu
 			}
 		} else {
 			rel.R.Group = o
+		}
+	}
+	return nil
+}
+
+// AddParentGroupGroupHierarchies adds the given related objects to the existing relationships
+// of the group, optionally inserting them as new records.
+// Appends related to o.R.ParentGroupGroupHierarchies.
+// Sets related.R.ParentGroup appropriately.
+func (o *Group) AddParentGroupGroupHierarchies(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*GroupHierarchy) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.ParentGroupID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"group_hierarchies\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"parent_group_id"}),
+				strmangle.WhereClause("\"", "\"", 2, groupHierarchyPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.ParentGroupID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &groupR{
+			ParentGroupGroupHierarchies: related,
+		}
+	} else {
+		o.R.ParentGroupGroupHierarchies = append(o.R.ParentGroupGroupHierarchies, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &groupHierarchyR{
+				ParentGroup: o,
+			}
+		} else {
+			rel.R.ParentGroup = o
+		}
+	}
+	return nil
+}
+
+// AddMemberGroupGroupHierarchies adds the given related objects to the existing relationships
+// of the group, optionally inserting them as new records.
+// Appends related to o.R.MemberGroupGroupHierarchies.
+// Sets related.R.MemberGroup appropriately.
+func (o *Group) AddMemberGroupGroupHierarchies(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*GroupHierarchy) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.MemberGroupID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"group_hierarchies\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"member_group_id"}),
+				strmangle.WhereClause("\"", "\"", 2, groupHierarchyPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.MemberGroupID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &groupR{
+			MemberGroupGroupHierarchies: related,
+		}
+	} else {
+		o.R.MemberGroupGroupHierarchies = append(o.R.MemberGroupGroupHierarchies, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &groupHierarchyR{
+				MemberGroup: o,
+			}
+		} else {
+			rel.R.MemberGroup = o
 		}
 	}
 	return nil

@@ -9,6 +9,7 @@ var TableNames = struct {
 	AuditEvents              string
 	GroupApplicationRequests string
 	GroupApplications        string
+	GroupHierarchies         string
 	GroupMembershipRequests  string
 	GroupMemberships         string
 	GroupOrganizations       string
@@ -21,6 +22,7 @@ var TableNames = struct {
 	AuditEvents:              "audit_events",
 	GroupApplicationRequests: "group_application_requests",
 	GroupApplications:        "group_applications",
+	GroupHierarchies:         "group_hierarchies",
 	GroupMembershipRequests:  "group_membership_requests",
 	GroupMemberships:         "group_memberships",
 	GroupOrganizations:       "group_organizations",
