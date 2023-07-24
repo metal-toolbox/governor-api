@@ -51,7 +51,7 @@ func TestServerRunning(t *testing.T) {
 	scan := r.Scan(&c)
 
 	assert.NoError(t, scan)
-	assert.Equal(t, c, 3)
+	assert.Equal(t, c, 4)
 }
 
 func TestGetMembershipsForUser(t *testing.T) {

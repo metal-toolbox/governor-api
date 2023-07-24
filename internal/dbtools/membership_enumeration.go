@@ -174,14 +174,14 @@ func GetMembershipsForUser(ctx context.Context, db *sql.DB, userID string, shoul
 	err := queries.Raw(membershipsByUserQuery, userID).Bind(ctx, db, &enumeratedMemberships)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
-			return []EnumeratedMembership{}, err
+			return nil, err
 		}
 	}
 
 	if shouldPopulateAllModels {
 		enumeratedMemberships, err = populateModels(ctx, db, enumeratedMemberships)
 		if err != nil {
-			return []EnumeratedMembership{}, err
+			return nil, err
 		}
 	}
 
@@ -231,18 +231,21 @@ func GetAllGroupMemberships(ctx context.Context, db *sql.DB, shouldPopulateAllMo
 }
 
 func populateModels(ctx context.Context, db *sql.DB, memberships []EnumeratedMembership) ([]EnumeratedMembership, error) {
-	groupIDs := make([]string, 0)
-	userIDs := make([]string, 0)
+	groupIDSet := make(map[string]bool)
+	userIDSet := make(map[string]bool)
 
 	for _, m := range memberships {
-		if !contains(groupIDs, m.GroupID) {
-			groupIDs = append(groupIDs, m.GroupID)
+		if _, exists := groupIDSet[m.GroupID]; !exists {
+			groupIDSet[m.GroupID] = true
 		}
 
-		if !contains(userIDs, m.UserID) {
-			userIDs = append(userIDs, m.UserID)
+		if _, exists := userIDSet[m.UserID]; !exists {
+			userIDSet[m.UserID] = true
 		}
 	}
+
+	groupIDs := stringMapToKeySlice(groupIDSet)
+	userIDs := stringMapToKeySlice(userIDSet)
 
 	queryMods := []qm.QueryMod{
 		qm.WhereIn("id in ?", stringSliceToInterface(groupIDs)...),
@@ -268,16 +271,6 @@ func populateModels(ctx context.Context, db *sql.DB, memberships []EnumeratedMem
 	}
 
 	return memberships, nil
-}
-
-func contains(list []string, item string) bool {
-	for _, i := range list {
-		if i == item {
-			return true
-		}
-	}
-
-	return false
 }
 
 func findGroupByID(list models.GroupSlice, id string) *models.Group {
@@ -308,4 +301,17 @@ func stringSliceToInterface(s []string) []interface{} {
 	}
 
 	return convertedIDs
+}
+
+func stringMapToKeySlice(m map[string]bool) []string {
+	keys := make([]string, len(m))
+
+	i := 0
+
+	for k := range m {
+		keys[i] = k
+		i++
+	}
+
+	return keys
 }
