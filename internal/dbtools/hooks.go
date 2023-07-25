@@ -936,25 +936,21 @@ func AuditNotificationPreferencesUpdated(ctx context.Context, exec boil.ContextE
 	// TODO non-user API actors don't exist in the governor database,
 	// we need to figure out how to handle that relationship in the audit table
 	type userNotificationPreferencesAuditRecord struct {
-		UserID      string `json:"user_id"`
 		Preferences string `json:"preferences"`
 	}
 
-	old := &userNotificationPreferencesAuditRecord{UserID: userID}
-	new := &userNotificationPreferencesAuditRecord{UserID: userID}
-
-	oldJson, err := json.Marshal(o)
+	beforeJson, err := json.Marshal(o)
 	if err != nil {
 		return nil, err
 	}
 
-	newJson, err := json.Marshal(a)
+	afterJson, err := json.Marshal(a)
 	if err != nil {
 		return nil, err
 	}
 
-	old.Preferences = string(oldJson)
-	new.Preferences = string(newJson)
+	before := &userNotificationPreferencesAuditRecord{Preferences: string(beforeJson)}
+	after := &userNotificationPreferencesAuditRecord{Preferences: string(afterJson)}
 
 	var actorID null.String
 	if actor != nil {
@@ -962,10 +958,11 @@ func AuditNotificationPreferencesUpdated(ctx context.Context, exec boil.ContextE
 	}
 
 	event := models.AuditEvent{
-		ParentID:  null.StringFrom(pID),
-		ActorID:   actorID,
-		Action:    "notification_preferences.updated",
-		Changeset: calculateChangeset(old, new),
+		ParentID:      null.StringFrom(pID),
+		ActorID:       actorID,
+		Action:        "notification_preferences.updated",
+		SubjectUserID: null.NewString(userID, true),
+		Changeset:     calculateChangeset(before, after),
 	}
 
 	return &event, event.Insert(ctx, exec, boil.Infer())

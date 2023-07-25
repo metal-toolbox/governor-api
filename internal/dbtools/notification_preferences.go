@@ -139,6 +139,7 @@ func slugToIDMap(ctx context.Context, table string, db *sqlx.DB) (slugIdMap map[
 			"jsonb_object_agg(slug, id) as map",
 		),
 		qm.From(table),
+		qm.Where("deleted_at IS NULL"),
 		qm.GroupBy("1"),
 	)
 
