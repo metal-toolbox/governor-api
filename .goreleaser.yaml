@@ -1,0 +1,56 @@
+project_name: governor-api
+
+before:
+  hooks:
+    - go mod download
+
+builds:
+  - id: go
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{ .CommitDate }}
+      - -X github.com/metal-toolbox/governor-api/pkg/version.version={{.Version}}
+      - -X github.com/metal-toolbox/governor-api/pkg/version.commit={{.Commit}}
+      - -X github.com/metal-toolbox/governor-api/pkg/version.date={{.CommitDate}}
+      - -X github.com/metal-toolbox/governor-api/pkg/version.builtBy=goreleaser
+
+changelog:
+  skip: false
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+  groups:
+    - title: "🎄 Features"
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: '🐞 Bug fixes'
+      regexp: '^.*?bug(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: "🚀 Others"
+      order: 999
+
+archives:
+  - format: binary
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ .Tag }}-next"
+
+release:
+  mode: prepend
+  prerelease: auto
+  draft: false
+  name_template: "Release {{.Tag}}"
+  header: |
+    # What's Changed
