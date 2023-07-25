@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"sync"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/metal-toolbox/governor-api/internal/models"
+	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
@@ -36,7 +36,7 @@ func RefreshNotificationDefaults(ctx context.Context, ex boil.ContextExecutor) (
 	return
 }
 
-func GetNotificationPreferences(ctxx context.Context, uid string, db *sqlx.DB) (UserNotificationPreferences, error) {
+func GetNotificationPreferences(ctx context.Context, uid string, ex boil.ContextExecutor, withDefaults bool) (UserNotificationPreferences, error) {
 	type preferencesQueryRecord struct {
 		NotificationType        string          `boil:"notification_type"`
 		NotificationTargetsJSON json.RawMessage `boil:"notification_targets"`
@@ -47,10 +47,7 @@ func GetNotificationPreferences(ctxx context.Context, uid string, db *sqlx.DB) (
 		Enabled bool   `json:"f2"`
 	}
 
-	ctx := boil.WithDebug(ctxx, true)
-
-	records := []*preferencesQueryRecord{}
-	q := models.NewQuery(
+	queryMods := []qm.QueryMod{
 		qm.With(
 			`np as (
 				SELECT 
@@ -67,14 +64,25 @@ func GetNotificationPreferences(ctxx context.Context, uid string, db *sqlx.DB) (
 			)`,
 			uid,
 		),
-		qm.Select("nd.type_slug AS notification_type"),
-		qm.Select("jsonb_agg((nd.target_slug, IFNULL(np.enabled, nd.default_enabled))) AS notification_targets"),
-		qm.From("notification_defaults as nd"),
-		qm.FullOuterJoin("np on (np.target_id = nd.target_id AND np.type_id = nd.type_id)"),
-		qm.GroupBy("nd.type_slug"),
-	)
+	}
 
-	if err := q.Bind(ctx, db, &records); err != nil {
+	if withDefaults {
+		queryMods = append(queryMods, qm.Select("nd.type_slug AS notification_type"))
+		queryMods = append(queryMods, qm.Select("jsonb_agg((nd.target_slug, IFNULL(np.enabled, nd.default_enabled))) AS notification_targets"))
+		queryMods = append(queryMods, qm.From("notification_defaults as nd"))
+		queryMods = append(queryMods, qm.FullOuterJoin("np on (np.target_id = nd.target_id AND np.type_id = nd.type_id)"))
+		queryMods = append(queryMods, qm.GroupBy("nd.type_slug"))
+	} else {
+		queryMods = append(queryMods, qm.Select("np.type_slug AS notification_type"))
+		queryMods = append(queryMods, qm.Select("jsonb_agg((np.target_slug, np.enabled)) AS notification_targets"))
+		queryMods = append(queryMods, qm.From("np"))
+		queryMods = append(queryMods, qm.GroupBy("np.type_slug"))
+	}
+
+	records := []*preferencesQueryRecord{}
+	q := models.NewQuery(queryMods...)
+
+	if err := q.Bind(ctx, ex, &records); err != nil {
 		return nil, err
 	}
 
@@ -143,11 +151,15 @@ func slugToIDMap(ctx context.Context, table string, db *sqlx.DB) (slugIdMap map[
 }
 
 func CreateOrUpdateNotificationPreferences(
-	ctx context.Context, uid string,
-	p UserNotificationPreferences,
+	ctx context.Context,
+	user *models.User,
+	notificationPreferences UserNotificationPreferences,
 	ex boil.ContextExecutor,
 	db *sqlx.DB,
-) error {
+	auditId string,
+	actor *models.User,
+) (*models.AuditEvent, error) {
+
 	typeSlugToID := map[string]string{}
 	targetSlugToID := map[string]string{}
 	errs := ""
@@ -175,82 +187,79 @@ func CreateOrUpdateNotificationPreferences(
 
 	wg.Wait()
 	if errs != "" {
-		return fmt.Errorf(errs)
+		return nil, fmt.Errorf(errs)
 	}
 
-	fmt.Println(typeSlugToID)
+	curr, err := GetNotificationPreferences(ctx, user.ID, ex, false)
+	if err != nil {
+		return nil, err
+	}
 
-	valuesarg := []interface{}{uid}
-	valuessql := []string{}
-	placeholderCounter := 2
-
-	for _, preference := range p {
-		typeID, ok := typeSlugToID[preference.NotificationType]
+	for _, p := range notificationPreferences {
+		notificationTypeId, ok := typeSlugToID[p.NotificationType]
 		if !ok {
-			return fmt.Errorf("notification type %s does not exist", preference.NotificationType)
+			return nil, fmt.Errorf("notificationType %s not found", p.NotificationType)
 		}
 
-		// type preferences
-		valuessql = append(
-			valuessql,
-			fmt.Sprintf(
-				"($1, $%d, NULL, $%d)",
-				placeholderCounter,
-				placeholderCounter+1,
-			),
-		)
+		np := &models.NotificationPreference{
+			UserID:               user.ID,
+			NotificationTypeID:   notificationTypeId,
+			NotificationTargetID: null.NewString("", false),
+			Enabled:              p.Enabled,
+		}
 
-		placeholderCounter += 2
+		if err := np.Upsert(
+			ctx,
+			ex,
+			true,
+			[]string{
+				models.NotificationPreferenceColumns.UserID,
+				models.NotificationPreferenceColumns.NotificationTypeID,
+				models.NotificationPreferenceColumns.NotificationTargetIDNullString,
+			},
+			boil.Whitelist(models.NotificationPreferenceColumns.Enabled),
+			boil.Infer(),
+		); err != nil {
+			return nil, err
+		}
 
-		valuesarg = append(valuesarg, typeID)
-		valuesarg = append(valuesarg, preference.Enabled)
-
-		// target preferences
-		for _, notificationTarget := range preference.NotificationTargets {
-			targetID, ok := targetSlugToID[notificationTarget.Target]
+		for _, t := range p.NotificationTargets {
+			notificationTargetId, ok := targetSlugToID[t.Target]
 			if !ok {
-				return fmt.Errorf("notification target %s does not exist", notificationTarget.Target)
+				return nil, fmt.Errorf("notificationTarget %s not found", t.Target)
 			}
 
-			valuessql = append(
-				valuessql,
-				fmt.Sprintf(
-					"($1, $%d, $%d, $%d)",
-					placeholderCounter,
-					placeholderCounter+1,
-					placeholderCounter+2,
-				),
-			)
-			placeholderCounter += 3
+			np := &models.NotificationPreference{
+				UserID:               user.ID,
+				NotificationTypeID:   notificationTypeId,
+				NotificationTargetID: null.NewString(notificationTargetId, true),
+				Enabled:              t.Enabled,
+			}
 
-			valuesarg = append(valuesarg, typeID)
-			valuesarg = append(valuesarg, targetID)
-			valuesarg = append(valuesarg, notificationTarget.Enabled)
+			if err := np.Upsert(
+				ctx,
+				ex,
+				true,
+				[]string{
+					models.NotificationPreferenceColumns.UserID,
+					models.NotificationPreferenceColumns.NotificationTypeID,
+					models.NotificationPreferenceColumns.NotificationTargetIDNullString,
+				},
+				boil.Whitelist(models.NotificationPreferenceColumns.Enabled),
+				boil.Infer(),
+			); err != nil {
+				return nil, err
+			}
 		}
 	}
 
-	rawInsertQuery := fmt.Sprintf(
-		"INSERT INTO \"%s\" %s\n VALUES\n%s\n%s\n;",
-		models.TableNames.NotificationPreferences,
-		fmt.Sprintf(
-			"(%s, %s, %s, %s)",
-			models.NotificationPreferenceColumns.UserID,
-			models.NotificationPreferenceColumns.NotificationTypeID,
-			models.NotificationPreferenceColumns.NotificationTargetID,
-			models.NotificationPreferenceColumns.Enabled,
-		),
-		strings.Join(valuessql, ",\n"),
-		fmt.Sprintf(
-			"ON CONFLICT (%s, %s, %s)\nDO UPDATE SET %s = excluded.%s",
-			models.NotificationPreferenceColumns.UserID,
-			models.NotificationPreferenceColumns.NotificationTypeID,
-			models.NotificationPreferenceColumns.NotificationTargetIDNullString,
-			models.NotificationPreferenceColumns.Enabled,
-			models.NotificationPreferenceColumns.Enabled,
-		),
+	audit, err := AuditNotificationPreferencesUpdated(
+		ctx, ex, auditId, actor, user.ID, curr, notificationPreferences,
 	)
 
-	q := queries.Raw(rawInsertQuery, valuesarg...)
-	_, err := q.ExecContext(ctx, ex)
-	return err
+	if err != nil {
+		return nil, err
+	}
+
+	return audit, nil
 }

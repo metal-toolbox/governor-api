@@ -2,6 +2,7 @@ package dbtools
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"time"
@@ -925,6 +926,46 @@ func AuditNotificationTargetUpdated(ctx context.Context, exec boil.ContextExecut
 		ActorID:   actorID,
 		Action:    "notification_target.updated",
 		Changeset: calculateChangeset(o, a),
+	}
+
+	return &event, event.Insert(ctx, exec, boil.Infer())
+}
+
+// AuditNotificationPreferencesUpdated inserts an event representing notification preferences update into the events table
+func AuditNotificationPreferencesUpdated(ctx context.Context, exec boil.ContextExecutor, pID string, actor *models.User, userID string, o, a UserNotificationPreferences) (*models.AuditEvent, error) {
+	// TODO non-user API actors don't exist in the governor database,
+	// we need to figure out how to handle that relationship in the audit table
+	type userNotificationPreferencesAuditRecord struct {
+		UserID      string `json:"user_id"`
+		Preferences string `json:"preferences"`
+	}
+
+	old := &userNotificationPreferencesAuditRecord{UserID: userID}
+	new := &userNotificationPreferencesAuditRecord{UserID: userID}
+
+	oldJson, err := json.Marshal(o)
+	if err != nil {
+		return nil, err
+	}
+
+	newJson, err := json.Marshal(a)
+	if err != nil {
+		return nil, err
+	}
+
+	old.Preferences = string(oldJson)
+	new.Preferences = string(newJson)
+
+	var actorID null.String
+	if actor != nil {
+		actorID = null.StringFrom(actor.ID)
+	}
+
+	event := models.AuditEvent{
+		ParentID:  null.StringFrom(pID),
+		ActorID:   actorID,
+		Action:    "notification_preferences.updated",
+		Changeset: calculateChangeset(old, new),
 	}
 
 	return &event, event.Insert(ctx, exec, boil.Infer())

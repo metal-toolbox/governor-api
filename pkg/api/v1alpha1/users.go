@@ -156,7 +156,7 @@ func (r *Router) getUser(c *gin.Context) {
 		requests[i] = r.GroupID
 	}
 
-	notificationPreferences, err := dbtools.GetNotificationPreferences(c.Request.Context(), id, r.DB)
+	notificationPreferences, err := dbtools.GetNotificationPreferences(c.Request.Context(), id, r.DB, true)
 	if err != nil {
 		sendError(c, http.StatusInternalServerError, "error getting notification preferences: "+err.Error())
 		return
@@ -259,15 +259,31 @@ func (r *Router) createUser(c *gin.Context) {
 		return
 	}
 
-	if req.NotificationPreferences != nil && len(req.NotificationPreferences) > 0 {
-		if err := dbtools.CreateOrUpdateNotificationPreferences(
+	shouldUpdateNotificationPreferences := req.NotificationPreferences != nil && len(req.NotificationPreferences) > 0
+	if shouldUpdateNotificationPreferences {
+		event, err := dbtools.CreateOrUpdateNotificationPreferences(
 			c.Request.Context(),
-			user.ID,
+			user,
 			req.NotificationPreferences,
 			tx,
 			r.DB,
-		); err != nil {
+			getCtxAuditID(c),
+			getCtxUser(c),
+		)
+
+		if err != nil {
 			msg := "error updating user notification preferences: " + err.Error()
+
+			if err := tx.Rollback(); err != nil {
+				msg += "error rolling back transaction: " + err.Error()
+			}
+
+			sendError(c, http.StatusBadRequest, msg)
+			return
+		}
+
+		if err := updateContextWithAuditEventData(c, event); err != nil {
+			msg := "error updating notification preferences (audit): " + err.Error()
 
 			if err := tx.Rollback(); err != nil {
 				msg += "error rolling back transaction: " + err.Error()
@@ -331,6 +347,20 @@ func (r *Router) createUser(c *gin.Context) {
 	}); err != nil {
 		sendError(c, http.StatusBadRequest, "failed to publish user create event, downstream changes may be delayed "+err.Error())
 		return
+	}
+
+	if shouldUpdateNotificationPreferences {
+		if err := r.EventBus.Publish(c.Request.Context(), events.GovernorNotificationPreferencesEventSubject, &events.Event{
+			Version: events.Version,
+			Action:  events.GovernorEventUpdate,
+			AuditID: c.GetString(ginaudit.AuditIDContextKey),
+			ActorID: getCtxActorID(c),
+			GroupID: "",
+			UserID:  user.ID,
+		}); err != nil {
+			sendError(c, http.StatusBadRequest, "failed to publish user delete event, downstream changes may be delayed "+err.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusAccepted, user)
@@ -436,15 +466,31 @@ func (r *Router) updateUser(c *gin.Context) {
 		return
 	}
 
-	if req.NotificationPreferences != nil && len(req.NotificationPreferences) > 0 {
-		if err := dbtools.CreateOrUpdateNotificationPreferences(
+	shouldUpdateNotificationPreferences := req.NotificationPreferences != nil && len(req.NotificationPreferences) > 0
+	if shouldUpdateNotificationPreferences {
+		event, err := dbtools.CreateOrUpdateNotificationPreferences(
 			c.Request.Context(),
-			user.ID,
+			user,
 			req.NotificationPreferences,
 			tx,
 			r.DB,
-		); err != nil {
+			getCtxAuditID(c),
+			getCtxUser(c),
+		)
+
+		if err != nil {
 			msg := "error updating user notification preferences: " + err.Error()
+
+			if err := tx.Rollback(); err != nil {
+				msg += "error rolling back transaction: " + err.Error()
+			}
+
+			sendError(c, http.StatusBadRequest, msg)
+			return
+		}
+
+		if err := updateContextWithAuditEventData(c, event); err != nil {
+			msg := "error updating notification preferences (audit): " + err.Error()
 
 			if err := tx.Rollback(); err != nil {
 				msg += "error rolling back transaction: " + err.Error()
@@ -550,6 +596,20 @@ func (r *Router) updateUser(c *gin.Context) {
 	}); err != nil {
 		sendError(c, http.StatusBadRequest, "failed to publish user update event, downstream changes may be delayed "+err.Error())
 		return
+	}
+
+	if shouldUpdateNotificationPreferences {
+		if err := r.EventBus.Publish(c.Request.Context(), events.GovernorNotificationPreferencesEventSubject, &events.Event{
+			Version: events.Version,
+			Action:  events.GovernorEventUpdate,
+			AuditID: c.GetString(ginaudit.AuditIDContextKey),
+			ActorID: getCtxActorID(c),
+			GroupID: "",
+			UserID:  user.ID,
+		}); err != nil {
+			sendError(c, http.StatusBadRequest, "failed to publish user delete event, downstream changes may be delayed "+err.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusAccepted, user)

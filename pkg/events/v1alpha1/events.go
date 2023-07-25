@@ -39,6 +39,8 @@ const (
 	GovernorNotificationTypesEventSubject = "notificationtypes"
 	// GovernorNotificationTargetsEventSubject is the subject name for notification target events (minus the subject prefix)
 	GovernorNotificationTargetsEventSubject = "notificationtarget"
+	// GovernorNotificationPreferencesEventSubject is the subject name for notification preference events (minus the subject prefix)
+	GovernorNotificationPreferencesEventSubject = "notificationpreference"
 )
 
 // Event is an event notification from Governor.
