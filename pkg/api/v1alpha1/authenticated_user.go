@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -25,8 +26,9 @@ type AuthenticatedUser struct {
 
 // AuthenticatedUserReq is an authenticated user request payload for updating selected details
 type AuthenticatedUserReq struct {
-	AvatarURL      *string `json:"avatar_url"`
-	GithubUsername *string `json:"github_username"`
+	AvatarURL               *string                             `json:"avatar_url"`
+	GithubUsername          *string                             `json:"github_username"`
+	NotificationPreferences dbtools.UserNotificationPreferences `json:"notification_preferences,omitempty"`
 }
 
 // AuthenticatedUserGroup is an authenticated user group response
@@ -72,6 +74,12 @@ func (r *Router) getAuthenticatedUser(c *gin.Context) {
 		return
 	}
 
+	notificationPreferences, err := dbtools.GetNotificationPreferences(c.Request.Context(), ctxUser.ID, r.DB, true)
+	if err != nil {
+		sendError(c, http.StatusInternalServerError, "error getting notification preferences: "+err.Error())
+		return
+	}
+
 	if ctxUser.R == nil {
 		c.JSON(http.StatusOK, AuthenticatedUser{
 			User: &User{
@@ -79,7 +87,7 @@ func (r *Router) getAuthenticatedUser(c *gin.Context) {
 				Memberships:             []string{},
 				MembershipsDirect:       []string{},
 				MembershipRequests:      []string{},
-				NotificationPreferences: dbtools.UserNotificationPreferences{},
+				NotificationPreferences: notificationPreferences,
 			},
 			Admin: *ctxAdmin,
 		})
@@ -116,7 +124,7 @@ func (r *Router) getAuthenticatedUser(c *gin.Context) {
 			Memberships:             memberships,
 			MembershipsDirect:       membershipsDirect,
 			MembershipRequests:      requests,
-			NotificationPreferences: dbtools.UserNotificationPreferences{},
+			NotificationPreferences: notificationPreferences,
 		},
 		Admin: *ctxAdmin,
 	})
@@ -506,6 +514,17 @@ func (r *Router) updateAuthenticatedUser(c *gin.Context) {
 		return
 	}
 
+	wg := &sync.WaitGroup{}
+	updateNotificationPreferencesStatusCode := http.StatusOK
+	updateNotificationPreferencesError := error(nil)
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		_, updateNotificationPreferencesStatusCode, updateNotificationPreferencesError =
+			handleUpdateNotificationPreferencesRequests(c, r.DB, ctxUser, r.EventBus, req.NotificationPreferences)
+	}()
+
 	if req.AvatarURL != nil {
 		ctxUser.AvatarURL = null.StringFrom(*req.AvatarURL)
 	}
@@ -566,6 +585,12 @@ func (r *Router) updateAuthenticatedUser(c *gin.Context) {
 
 		sendError(c, http.StatusBadRequest, msg)
 
+		return
+	}
+
+	wg.Wait()
+	if updateNotificationPreferencesError != nil {
+		sendError(c, updateNotificationPreferencesStatusCode, updateNotificationPreferencesError.Error())
 		return
 	}
 

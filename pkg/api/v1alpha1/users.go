@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"reflect"
 	"strconv"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/metal-toolbox/auditevent/ginaudit"
@@ -50,6 +52,10 @@ type UserReq struct {
 	Name                    string                              `json:"name"`
 	Status                  string                              `json:"status,omitempty"`
 	NotificationPreferences dbtools.UserNotificationPreferences `json:"notification_preferences,omitempty"`
+}
+
+func (ur *UserReq) IsEmpty() bool {
+	return reflect.DeepEqual(*ur, UserReq{})
 }
 
 // listUsers responds with the list of all users
@@ -241,6 +247,17 @@ func (r *Router) createUser(c *gin.Context) {
 		user.Status = null.StringFrom(UserStatusPending)
 	}
 
+	wg := &sync.WaitGroup{}
+	updateNotificationPreferencesStatusCode := http.StatusOK
+	updateNotificationPreferencesError := error(nil)
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		_, updateNotificationPreferencesStatusCode, updateNotificationPreferencesError =
+			handleUpdateNotificationPreferencesRequests(c, r.DB, user, r.EventBus, req.NotificationPreferences)
+	}()
+
 	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
 	if err != nil {
 		sendError(c, http.StatusBadRequest, "error starting create user transaction: "+err.Error())
@@ -257,41 +274,6 @@ func (r *Router) createUser(c *gin.Context) {
 		sendError(c, http.StatusBadRequest, msg)
 
 		return
-	}
-
-	shouldUpdateNotificationPreferences := req.NotificationPreferences != nil && len(req.NotificationPreferences) > 0
-	if shouldUpdateNotificationPreferences {
-		event, err := dbtools.CreateOrUpdateNotificationPreferences(
-			c.Request.Context(),
-			user,
-			req.NotificationPreferences,
-			tx,
-			r.DB,
-			getCtxAuditID(c),
-			getCtxUser(c),
-		)
-
-		if err != nil {
-			msg := "error updating user notification preferences: " + err.Error()
-
-			if err := tx.Rollback(); err != nil {
-				msg += "error rolling back transaction: " + err.Error()
-			}
-
-			sendError(c, http.StatusBadRequest, msg)
-			return
-		}
-
-		if err := updateContextWithAuditEventData(c, event); err != nil {
-			msg := "error updating notification preferences (audit): " + err.Error()
-
-			if err := tx.Rollback(); err != nil {
-				msg += "error rolling back transaction: " + err.Error()
-			}
-
-			sendError(c, http.StatusBadRequest, msg)
-			return
-		}
 	}
 
 	event, err := dbtools.AuditUserCreatedWithActor(c.Request.Context(), tx, getCtxAuditID(c), getCtxUser(c), user)
@@ -331,6 +313,12 @@ func (r *Router) createUser(c *gin.Context) {
 		return
 	}
 
+	wg.Wait()
+	if updateNotificationPreferencesError != nil {
+		sendError(c, updateNotificationPreferencesStatusCode, updateNotificationPreferencesError.Error())
+		return
+	}
+
 	// only publish events for active users
 	if !isActiveUser(user) {
 		c.JSON(http.StatusAccepted, user)
@@ -347,20 +335,6 @@ func (r *Router) createUser(c *gin.Context) {
 	}); err != nil {
 		sendError(c, http.StatusBadRequest, "failed to publish user create event, downstream changes may be delayed "+err.Error())
 		return
-	}
-
-	if shouldUpdateNotificationPreferences {
-		if err := r.EventBus.Publish(c.Request.Context(), events.GovernorNotificationPreferencesEventSubject, &events.Event{
-			Version: events.Version,
-			Action:  events.GovernorEventUpdate,
-			AuditID: c.GetString(ginaudit.AuditIDContextKey),
-			ActorID: getCtxActorID(c),
-			GroupID: "",
-			UserID:  user.ID,
-		}); err != nil {
-			sendError(c, http.StatusBadRequest, "failed to publish user delete event, downstream changes may be delayed "+err.Error())
-			return
-		}
 	}
 
 	c.JSON(http.StatusAccepted, user)
@@ -395,10 +369,10 @@ func (r *Router) updateUser(c *gin.Context) {
 		return
 	}
 
-	// if req == (UserReq{}) {
-	// 	sendError(c, http.StatusBadRequest, "missing user request parameters")
-	// 	return
-	// }
+	if req.IsEmpty() {
+		sendError(c, http.StatusBadRequest, "missing user request parameters")
+		return
+	}
 
 	if req.AvatarURL != "" {
 		user.AvatarURL = null.StringFrom(req.AvatarURL)
@@ -448,6 +422,17 @@ func (r *Router) updateUser(c *gin.Context) {
 		user.GithubUsername = null.StringFrom(req.GithubUsername)
 	}
 
+	wg := &sync.WaitGroup{}
+	updateNotificationPreferencesStatusCode := http.StatusOK
+	updateNotificationPreferencesError := error(nil)
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		_, updateNotificationPreferencesStatusCode, updateNotificationPreferencesError =
+			handleUpdateNotificationPreferencesRequests(c, r.DB, user, r.EventBus, req.NotificationPreferences)
+	}()
+
 	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
 	if err != nil {
 		sendError(c, http.StatusBadRequest, "error starting update transaction: "+err.Error())
@@ -464,41 +449,6 @@ func (r *Router) updateUser(c *gin.Context) {
 		sendError(c, http.StatusBadRequest, msg)
 
 		return
-	}
-
-	shouldUpdateNotificationPreferences := req.NotificationPreferences != nil && len(req.NotificationPreferences) > 0
-	if shouldUpdateNotificationPreferences {
-		event, err := dbtools.CreateOrUpdateNotificationPreferences(
-			c.Request.Context(),
-			user,
-			req.NotificationPreferences,
-			tx,
-			r.DB,
-			getCtxAuditID(c),
-			getCtxUser(c),
-		)
-
-		if err != nil {
-			msg := "error updating user notification preferences: " + err.Error()
-
-			if err := tx.Rollback(); err != nil {
-				msg += "error rolling back transaction: " + err.Error()
-			}
-
-			sendError(c, http.StatusBadRequest, msg)
-			return
-		}
-
-		if err := updateContextWithAuditEventData(c, event); err != nil {
-			msg := "error updating notification preferences (audit): " + err.Error()
-
-			if err := tx.Rollback(); err != nil {
-				msg += "error rolling back transaction: " + err.Error()
-			}
-
-			sendError(c, http.StatusBadRequest, msg)
-			return
-		}
 	}
 
 	event, err := dbtools.AuditUserUpdated(c.Request.Context(), tx, getCtxAuditID(c), getCtxUser(c), &original, user)
@@ -535,6 +485,12 @@ func (r *Router) updateUser(c *gin.Context) {
 
 		sendError(c, http.StatusBadRequest, msg)
 
+		return
+	}
+
+	wg.Wait()
+	if updateNotificationPreferencesError != nil {
+		sendError(c, updateNotificationPreferencesStatusCode, updateNotificationPreferencesError.Error())
 		return
 	}
 
@@ -596,20 +552,6 @@ func (r *Router) updateUser(c *gin.Context) {
 	}); err != nil {
 		sendError(c, http.StatusBadRequest, "failed to publish user update event, downstream changes may be delayed "+err.Error())
 		return
-	}
-
-	if shouldUpdateNotificationPreferences {
-		if err := r.EventBus.Publish(c.Request.Context(), events.GovernorNotificationPreferencesEventSubject, &events.Event{
-			Version: events.Version,
-			Action:  events.GovernorEventUpdate,
-			AuditID: c.GetString(ginaudit.AuditIDContextKey),
-			ActorID: getCtxActorID(c),
-			GroupID: "",
-			UserID:  user.ID,
-		}); err != nil {
-			sendError(c, http.StatusBadRequest, "failed to publish user delete event, downstream changes may be delayed "+err.Error())
-			return
-		}
 	}
 
 	c.JSON(http.StatusAccepted, user)

@@ -3,51 +3,31 @@ package v1alpha1
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jmoiron/sqlx"
 	"github.com/metal-toolbox/auditevent/ginaudit"
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
+	"github.com/metal-toolbox/governor-api/internal/eventbus"
 	"github.com/metal-toolbox/governor-api/internal/models"
 	events "github.com/metal-toolbox/governor-api/pkg/events/v1alpha1"
 )
 
-func (r *Router) getUserNotificationPreferences(c *gin.Context) {
-	id := c.Param("id")
-	np, err := dbtools.GetNotificationPreferences(c.Request.Context(), id, r.DB, true)
-	if err != nil {
-		sendError(c, http.StatusInternalServerError, "error getting notification preferences: "+err.Error())
-		return
-	}
-	c.JSON(http.StatusOK, np)
-}
-
-func (r *Router) updateUserNotificationPreferences(c *gin.Context) {
-	id := c.Param("id")
-
-	user, err := models.FindUser(c.Request.Context(), r.DB, id)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			sendError(c, http.StatusNotFound, "user not found: "+err.Error())
-			return
-		}
-
-		sendError(c, http.StatusInternalServerError, "error getting user "+err.Error())
-
-		return
-	}
-
-	req := dbtools.UserNotificationPreferences{}
-	if err := c.BindJSON(&req); err != nil {
-		sendError(c, http.StatusBadRequest, "unable to bind request: "+err.Error())
-		return
-	}
-
+// handleUpdateNotificationPreferencesRequests handles all notification preferences
+// update requests, including those originated from `/users/:id` or `/user`
+func handleUpdateNotificationPreferencesRequests(
+	c *gin.Context,
+	db *sqlx.DB,
+	user *models.User,
+	eb *eventbus.Client,
+	req dbtools.UserNotificationPreferences,
+) (dbtools.UserNotificationPreferences, int, error) {
 	if len(req) > 0 {
-		tx, err := r.DB.BeginTx(c.Request.Context(), nil)
+		tx, err := db.BeginTx(c.Request.Context(), nil)
 		if err != nil {
-			sendError(c, http.StatusBadRequest, "error starting update transaction: "+err.Error())
-			return
+			return nil, http.StatusBadRequest, fmt.Errorf("error starting update transaction: %s", err.Error())
 		}
 
 		event, err := dbtools.CreateOrUpdateNotificationPreferences(
@@ -55,7 +35,7 @@ func (r *Router) updateUserNotificationPreferences(c *gin.Context) {
 			user,
 			req,
 			tx,
-			r.DB,
+			db,
 			getCtxAuditID(c),
 			getCtxUser(c),
 		)
@@ -67,8 +47,7 @@ func (r *Router) updateUserNotificationPreferences(c *gin.Context) {
 				msg += "error rolling back transaction: " + err.Error()
 			}
 
-			sendError(c, http.StatusBadRequest, msg)
-			return
+			return nil, http.StatusBadRequest, fmt.Errorf(msg)
 		}
 
 		if err := updateContextWithAuditEventData(c, event); err != nil {
@@ -78,8 +57,7 @@ func (r *Router) updateUserNotificationPreferences(c *gin.Context) {
 				msg += "error rolling back transaction: " + err.Error()
 			}
 
-			sendError(c, http.StatusBadRequest, msg)
-			return
+			return nil, http.StatusBadRequest, fmt.Errorf(msg)
 		}
 
 		if err := tx.Commit(); err != nil {
@@ -89,24 +67,21 @@ func (r *Router) updateUserNotificationPreferences(c *gin.Context) {
 				msg = msg + "error rolling back transaction: " + err.Error()
 			}
 
-			sendError(c, http.StatusBadRequest, msg)
-			return
+			return nil, http.StatusBadRequest, fmt.Errorf(msg)
 		}
 	}
 
-	np, err := dbtools.GetNotificationPreferences(c.Request.Context(), user.ID, r.DB, true)
+	np, err := dbtools.GetNotificationPreferences(c.Request.Context(), user.ID, db, true)
 	if err != nil {
-		sendError(c, http.StatusInternalServerError, "error fetching notification preferences: "+err.Error())
-		return
+		return nil, http.StatusInternalServerError, fmt.Errorf("error fetching notification preferences: %s", err.Error())
 	}
 
 	// only publish events for active users
 	if !isActiveUser(user) {
-		c.JSON(http.StatusAccepted, np)
-		return
+		return np, http.StatusAccepted, nil
 	}
 
-	if err := r.EventBus.Publish(c.Request.Context(), events.GovernorNotificationPreferencesEventSubject, &events.Event{
+	if err := eb.Publish(c.Request.Context(), events.GovernorNotificationPreferencesEventSubject, &events.Event{
 		Version: events.Version,
 		Action:  events.GovernorEventUpdate,
 		AuditID: c.GetString(ginaudit.AuditIDContextKey),
@@ -114,9 +89,103 @@ func (r *Router) updateUserNotificationPreferences(c *gin.Context) {
 		GroupID: "",
 		UserID:  user.ID,
 	}); err != nil {
-		sendError(c, http.StatusBadRequest, "failed to publish user delete event, downstream changes may be delayed "+err.Error())
+		return nil, http.StatusBadRequest, fmt.Errorf("failed to publish user delete event, downstream changes may be delayed %s", err.Error())
+	}
+
+	return np, http.StatusAccepted, nil
+}
+
+// getUserNotificationPreferences returns the user's notification preferences
+func (r *Router) getUserNotificationPreferences(c *gin.Context) {
+	id := c.Param("id")
+	user, err := models.FindUser(c.Request.Context(), r.DB, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			sendError(c, http.StatusNotFound, "user not found: "+err.Error())
+			return
+		}
+
+		sendError(c, http.StatusInternalServerError, "error getting user "+err.Error())
+		return
+	}
+
+	np, err := dbtools.GetNotificationPreferences(c.Request.Context(), user.ID, r.DB, true)
+	if err != nil {
+		sendError(c, http.StatusInternalServerError, "error getting notification preferences: "+err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, np)
+}
+
+// getUserNotificationPreferences returns the authenticated user's notification
+// preferences
+func (r *Router) getAuthenticatedUserNotificationPreferences(c *gin.Context) {
+	ctxUser := getCtxUser(c)
+	if ctxUser == nil {
+		sendError(c, http.StatusUnauthorized, "no user in context")
+		return
+	}
+
+	np, err := dbtools.GetNotificationPreferences(c.Request.Context(), ctxUser.ID, r.DB, true)
+	if err != nil {
+		sendError(c, http.StatusInternalServerError, "error getting notification preferences: "+err.Error())
 		return
 	}
 
 	c.JSON(http.StatusOK, np)
+}
+
+// updateUserNotificationPreferences is the http handler for
+// /users/:id/notification-preferences
+func (r *Router) updateUserNotificationPreferences(c *gin.Context) {
+	id := c.Param("id")
+
+	user, err := models.FindUser(c.Request.Context(), r.DB, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			sendError(c, http.StatusNotFound, "user not found: "+err.Error())
+			return
+		}
+
+		sendError(c, http.StatusInternalServerError, "error getting user "+err.Error())
+		return
+	}
+
+	req := dbtools.UserNotificationPreferences{}
+	if err := c.BindJSON(&req); err != nil {
+		sendError(c, http.StatusBadRequest, "unable to bind request: "+err.Error())
+		return
+	}
+
+	np, code, err := handleUpdateNotificationPreferencesRequests(c, r.DB, user, r.EventBus, req)
+	if err != nil {
+		sendError(c, code, err.Error())
+		return
+	}
+
+	c.JSON(code, np)
+}
+
+// updateUserNotificationPreferences is the http handler for
+// /user/notification-preferences
+func (r *Router) updateAuthenticatedUserNotificationPreferences(c *gin.Context) {
+	ctxUser := getCtxUser(c)
+	if ctxUser == nil {
+		sendError(c, http.StatusUnauthorized, "no user in context")
+		return
+	}
+
+	req := dbtools.UserNotificationPreferences{}
+	if err := c.BindJSON(&req); err != nil {
+		sendError(c, http.StatusBadRequest, "unable to bind request: "+err.Error())
+		return
+	}
+
+	np, code, err := handleUpdateNotificationPreferencesRequests(c, r.DB, ctxUser, r.EventBus, req)
+	if err != nil {
+		sendError(c, code, err.Error())
+		return
+	}
+
+	c.JSON(code, np)
 }

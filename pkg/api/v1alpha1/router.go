@@ -82,6 +82,22 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 	)
 
 	rg.GET(
+		"/user/notification-preferences",
+		r.AuditMW.AuditWithType("GetUserNotificationPreferences"),
+		r.AuthMW.AuthRequired([]string{oidcScope}),
+		r.mwUserAuthRequired(AuthRoleUser),
+		r.getAuthenticatedUserNotificationPreferences,
+	)
+
+	rg.PUT(
+		"/user/notification-preferences",
+		r.AuditMW.AuditWithType("UpdateUserNotificationPreferences"),
+		r.AuthMW.AuthRequired([]string{oidcScope}),
+		r.mwUserAuthRequired(AuthRoleUser),
+		r.updateAuthenticatedUserNotificationPreferences,
+	)
+
+	rg.GET(
 		"/users",
 		r.AuditMW.AuditWithType("ListUsers"),
 		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:users")),
