@@ -1,0 +1,16 @@
+apiVersion: v2
+name: governor-api
+description: A helm chart for Governor-API
+type: application
+version: 0.1.0
+appVersion: v0.0.1
+
+dependencies:
+  - name: common
+    repository: https://charts.bitnami.com/bitnami
+    tags:
+      - bitnami-common
+    version: 2.4.0
+  - name: k8s-otel-collector
+    repository: https://helm.equinixmetal.com
+    version: 0.6.1

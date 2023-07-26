@@ -1,0 +1,86 @@
+clusterInfo:
+  fqdn: ""
+  environment: ""
+  facility: ""
+debug: false
+image:
+  repository: ghcr.io/metal-toolbox/governor-api
+  tag: 43-520c6716
+  pullPolicy: IfNotPresent
+dbURI:
+  existingSecret: db-uri
+ingress:
+  domains: []
+  enabled: true
+resources:
+  limits:
+    cpu: 500m
+    memory: 1Gi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+nats:
+  url:
+  credsPath: /nats
+  subjectPrefix: governor.events
+# These toggles allow us to update the secrets versions and even keys in the future
+secrets:
+  dbconn: dbconn-uri/v2
+  oidcClientSecret: governor-oidc-client-secret/v2
+  oktaApiToken: governor-okta-api-token/v1
+  natsCreds: governor-nats-client-creds/v1
+governor:
+  adminGroups: "governor-admins"
+api:
+  enabled: true
+  ingress:
+    prefix: api.governor
+  replicaCount: 2
+  readinessProbe:
+    periodSeconds: 20
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 3
+  oidc:
+    - audience: ""
+      issuer: ""
+      jwksuri: ""
+      enabled: true
+      rolesClaim: ""
+      userClaim: ""
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+audit:
+  auditImage:
+    repository: ghcr.io/metal-toolbox/audittail
+    tag: v0.7.0
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  initContainer:
+    resources:
+      limits:
+        cpu: 100m
+        memory: 20Mi
+      requests:
+        cpu: 100m
+        memory: 20Mi
+tracing:
+  enabled: true
+db:
+  connections:
+    max_open: 20
+    max_idle: 20
+    max_lifetime: 0
+k8s-otel-collector:
+  include_otel_attributes: true
