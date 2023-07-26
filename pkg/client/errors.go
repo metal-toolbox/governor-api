@@ -35,4 +35,7 @@ var (
 
 	// ErrUserNotFound is returned when a user is expected to be returned but instead is not
 	ErrUserNotFound = errors.New("user not found")
+
+	// ErrNotificationTypeNotFound is returned when a notification type is not found
+	ErrNotificationTypeNotFound = errors.New("notification type not found")
 )
