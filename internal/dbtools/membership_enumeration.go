@@ -275,16 +275,30 @@ func CheckNewHierarchyWouldCreateCycle(ctx context.Context, db *sql.DB, parentGr
 
 // FindMemberDiff finds members present in the second EnumeratedMembership which are not present in the first
 func FindMemberDiff(before, after []EnumeratedMembership) []EnumeratedMembership {
-	beforeMap := make(map[EnumeratedMembership]bool)
+	type key struct {
+		groupID string
+		userID  string
+	}
+
+	beforeMap := make(map[key]bool)
 
 	for _, e := range before {
-		beforeMap[e] = true
+		k := key{
+			groupID: e.GroupID,
+			userID:  e.UserID,
+		}
+		beforeMap[k] = true
 	}
 
 	uniqueMembersAfter := make([]EnumeratedMembership, 0)
 
 	for _, e := range after {
-		if _, exists := beforeMap[e]; !exists {
+		k := key{
+			groupID: e.GroupID,
+			userID:  e.UserID,
+		}
+
+		if _, exists := beforeMap[k]; !exists {
 			uniqueMembersAfter = append(uniqueMembersAfter, e)
 		}
 	}
