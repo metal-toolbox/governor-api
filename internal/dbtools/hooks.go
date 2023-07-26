@@ -225,6 +225,66 @@ func AuditGroupDeleted(ctx context.Context, exec boil.ContextExecutor, pID strin
 	return &event, event.Insert(ctx, exec, boil.Infer())
 }
 
+// AuditGroupHierarchyCreated inserts an event representing group hierarchy creation into the events table
+func AuditGroupHierarchyCreated(ctx context.Context, exec boil.ContextExecutor, pID string, actor *models.User, m *models.GroupHierarchy) (*models.AuditEvent, error) {
+	// TODO non-user API actors don't exist in the governor database,
+	// we need to figure out how to handle that relationship in the audit table
+	var actorID null.String
+	if actor != nil {
+		actorID = null.StringFrom(actor.ID)
+	}
+
+	event := models.AuditEvent{
+		ParentID:       null.StringFrom(pID),
+		ActorID:        actorID,
+		SubjectGroupID: null.StringFrom(m.ParentGroupID),
+		Action:         "group.hierarchy.added",
+		Changeset:      calculateChangeset(&models.GroupHierarchy{}, m),
+	}
+
+	return &event, event.Insert(ctx, exec, boil.Infer())
+}
+
+// AuditGroupHierarchyUpdated inserts an event representing group hierarchy update into the events table
+func AuditGroupHierarchyUpdated(ctx context.Context, exec boil.ContextExecutor, pID string, actor *models.User, m *models.GroupHierarchy) (*models.AuditEvent, error) {
+	// TODO non-user API actors don't exist in the governor database,
+	// we need to figure out how to handle that relationship in the audit table
+	var actorID null.String
+	if actor != nil {
+		actorID = null.StringFrom(actor.ID)
+	}
+
+	event := models.AuditEvent{
+		ParentID:       null.StringFrom(pID),
+		ActorID:        actorID,
+		SubjectGroupID: null.StringFrom(m.ParentGroupID),
+		Action:         "group.hierarchy.updated",
+		Changeset:      calculateChangeset(&models.GroupHierarchy{}, m),
+	}
+
+	return &event, event.Insert(ctx, exec, boil.Infer())
+}
+
+// AuditGroupHierarchyDeleted inserts an event representing group hierarchy deletion into the events table
+func AuditGroupHierarchyDeleted(ctx context.Context, exec boil.ContextExecutor, pID string, actor *models.User, m *models.GroupHierarchy) (*models.AuditEvent, error) {
+	// TODO non-user API actors don't exist in the governor database,
+	// we need to figure out how to handle that relationship in the audit table
+	var actorID null.String
+	if actor != nil {
+		actorID = null.StringFrom(actor.ID)
+	}
+
+	event := models.AuditEvent{
+		ParentID:       null.StringFrom(pID),
+		ActorID:        actorID,
+		SubjectGroupID: null.StringFrom(m.ParentGroupID),
+		Action:         "group.hierarchy.removed",
+		Changeset:      []string{},
+	}
+
+	return &event, event.Insert(ctx, exec, boil.Infer())
+}
+
 // AuditGroupMembershipCreated inserts an event representing group membership creation into the events table
 func AuditGroupMembershipCreated(ctx context.Context, exec boil.ContextExecutor, pID string, actor *models.User, m *models.GroupMembership) (*models.AuditEvent, error) {
 	// TODO non-user API actors don't exist in the governor database,

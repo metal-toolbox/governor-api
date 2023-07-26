@@ -149,6 +149,13 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 	)
 
 	rg.GET(
+		"/groups/hierarchies",
+		r.AuditMW.AuditWithType("GetGroupHierarchiesAll"),
+		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:groups")),
+		r.getGroupHierarchiesAll,
+	)
+
+	rg.GET(
 		"/groups/:id",
 		r.AuditMW.AuditWithType("GetGroup"),
 		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:groups")),
@@ -302,6 +309,37 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		r.AuthMW.AuthRequired(updateScopesWithOpenID("governor:groups")),
 		r.mwGroupAuthRequired(AuthRoleGroupAdmin),
 		r.removeGroupOrganization,
+	)
+
+	rg.GET(
+		"/groups/:id/hierarchies",
+		r.AuditMW.AuditWithType("GetGroupHierarchies"),
+		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:groups")),
+		r.listMemberGroups,
+	)
+
+	rg.POST(
+		"/groups/:id/hierarchies",
+		r.AuditMW.AuditWithType("CreateGroupHierarchy"),
+		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:groups")),
+		r.mwGroupAuthRequired(AuthRoleGroupAdmin),
+		r.addMemberGroup,
+	)
+
+	rg.PATCH(
+		"/groups/:id/hierarchies/:member_id",
+		r.AuditMW.AuditWithType("UpdateGroupHierarchy"),
+		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:groups")),
+		r.mwGroupAuthRequired(AuthRoleGroupAdmin),
+		r.updateMemberGroup,
+	)
+
+	rg.DELETE(
+		"/groups/:id/hierarchies/:member_id",
+		r.AuditMW.AuditWithType("DeleteGroupHierarchy"),
+		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:groups")),
+		r.mwGroupAuthRequired(AuthRoleGroupAdmin),
+		r.removeMemberGroup,
 	)
 
 	rg.GET(
