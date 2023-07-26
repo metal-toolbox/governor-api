@@ -2,7 +2,7 @@ project_name: governor-api
 
 before:
   hooks:
-    - go mod download
+    - go mod tidy
 
 builds:
   - id: go
