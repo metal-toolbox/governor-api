@@ -224,7 +224,7 @@ func TestGetMembersOfGroup(t *testing.T) {
 	}
 }
 
-func TestCheckNewHierarchyWouldCreateCycle(t *testing.T) {
+func TestHierarchyWouldCreateCycle(t *testing.T) {
 	type testCase struct {
 		parent string
 		member string
@@ -240,7 +240,7 @@ func TestCheckNewHierarchyWouldCreateCycle(t *testing.T) {
 
 	for test, expect := range testCases {
 		t.Run(fmt.Sprintf("test for cycle: %s member of %s", test.member, test.parent), func(t *testing.T) {
-			result, err := CheckNewHierarchyWouldCreateCycle(context.TODO(), db, test.parent, test.member)
+			result, err := HierarchyWouldCreateCycle(context.TODO(), db, test.parent, test.member)
 
 			assert.NoError(t, err)
 

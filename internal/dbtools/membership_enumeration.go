@@ -230,8 +230,8 @@ func GetAllGroupMemberships(ctx context.Context, db *sql.DB, shouldPopulateAllMo
 	return enumeratedMemberships, nil
 }
 
-// CheckNewHierarchyWouldCreateCycle ensures that a new hierarchy does not create a loop or cycle in the database
-func CheckNewHierarchyWouldCreateCycle(ctx context.Context, db *sql.DB, parentGroupID, memberGroupID string) (bool, error) {
+// HierarchyWouldCreateCycle returns true if a given new parent->member relationship would create a cycle in the database
+func HierarchyWouldCreateCycle(ctx context.Context, db *sql.DB, parentGroupID, memberGroupID string) (bool, error) {
 	hierarchies := make(map[string][]string)
 
 	hierarchyRows, err := models.GroupHierarchies().All(ctx, db)

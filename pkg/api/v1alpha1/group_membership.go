@@ -182,6 +182,19 @@ func (r *Router) addGroupMember(c *gin.Context) {
 		return
 	}
 
+	membershipsBefore, err := dbtools.GetMembershipsForUser(c, r.DB.DB, user.ID, false)
+	if err != nil {
+		msg := "failed to compute new effective memberships: " + err.Error()
+
+		if err := tx.Rollback(); err != nil {
+			msg += "error rolling back transaction: " + err.Error()
+		}
+
+		sendError(c, http.StatusBadRequest, msg)
+
+		return
+	}
+
 	if err := groupMem.Insert(c.Request.Context(), r.DB, boil.Infer()); err != nil {
 		msg := "failed to update group membership: " + err.Error()
 
@@ -219,6 +232,19 @@ func (r *Router) addGroupMember(c *gin.Context) {
 		return
 	}
 
+	membershipsAfter, err := dbtools.GetMembershipsForUser(c, r.DB.DB, user.ID, false)
+	if err != nil {
+		msg := "failed to compute new effective memberships: " + err.Error()
+
+		if err := tx.Rollback(); err != nil {
+			msg += "error rolling back transaction: " + err.Error()
+		}
+
+		sendError(c, http.StatusBadRequest, msg)
+
+		return
+	}
+
 	if err := tx.Commit(); err != nil {
 		msg := "error committing groups membership, rolling back: " + err.Error()
 
@@ -237,16 +263,20 @@ func (r *Router) addGroupMember(c *gin.Context) {
 		return
 	}
 
-	if err := r.EventBus.Publish(c.Request.Context(), events.GovernorMembersEventSubject, &events.Event{
-		Version: events.Version,
-		Action:  events.GovernorEventCreate,
-		AuditID: c.GetString(ginaudit.AuditIDContextKey),
-		GroupID: group.ID,
-		UserID:  user.ID,
-		ActorID: getCtxActorID(c),
-	}); err != nil {
-		sendError(c, http.StatusBadRequest, "failed to publish members create event, downstream changes may be delayed "+err.Error())
-		return
+	groupsDiff := dbtools.FindMemberDiff(membershipsBefore, membershipsAfter)
+
+	for _, enumeratedMembership := range groupsDiff {
+		if err := r.EventBus.Publish(c.Request.Context(), events.GovernorMembersEventSubject, &events.Event{
+			Version: events.Version,
+			Action:  events.GovernorEventCreate,
+			AuditID: c.GetString(ginaudit.AuditIDContextKey),
+			GroupID: enumeratedMembership.GroupID,
+			UserID:  enumeratedMembership.UserID,
+			ActorID: getCtxActorID(c),
+		}); err != nil {
+			sendError(c, http.StatusBadRequest, "failed to publish members create event, downstream changes may be delayed "+err.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusNoContent, nil)
@@ -488,6 +518,19 @@ func (r *Router) removeGroupMember(c *gin.Context) {
 		return
 	}
 
+	membershipsBefore, err := dbtools.GetMembershipsForUser(c, r.DB.DB, user.ID, false)
+	if err != nil {
+		msg := "failed to compute new effective memberships: " + err.Error()
+
+		if err := tx.Rollback(); err != nil {
+			msg += "error rolling back transaction: " + err.Error()
+		}
+
+		sendError(c, http.StatusBadRequest, msg)
+
+		return
+	}
+
 	if _, err := membership.Delete(c.Request.Context(), r.DB); err != nil {
 		msg := "error removing membership: " + err.Error()
 
@@ -525,6 +568,19 @@ func (r *Router) removeGroupMember(c *gin.Context) {
 		return
 	}
 
+	membershipsAfter, err := dbtools.GetMembershipsForUser(c, r.DB.DB, user.ID, false)
+	if err != nil {
+		msg := "failed to compute new effective memberships: " + err.Error()
+
+		if err := tx.Rollback(); err != nil {
+			msg += "error rolling back transaction: " + err.Error()
+		}
+
+		sendError(c, http.StatusBadRequest, msg)
+
+		return
+	}
+
 	if err := tx.Commit(); err != nil {
 		msg := "error committing membership delete, rolling back: " + err.Error()
 
@@ -543,16 +599,20 @@ func (r *Router) removeGroupMember(c *gin.Context) {
 		return
 	}
 
-	if err := r.EventBus.Publish(c.Request.Context(), events.GovernorMembersEventSubject, &events.Event{
-		Version: events.Version,
-		Action:  events.GovernorEventDelete,
-		AuditID: c.GetString(ginaudit.AuditIDContextKey),
-		GroupID: group.ID,
-		UserID:  user.ID,
-		ActorID: getCtxActorID(c),
-	}); err != nil {
-		sendError(c, http.StatusBadRequest, "failed to publish members delete event, downstream changes may be delayed "+err.Error())
-		return
+	groupsDiff := dbtools.FindMemberDiff(membershipsAfter, membershipsBefore)
+
+	for _, enumeratedMembership := range groupsDiff {
+		if err := r.EventBus.Publish(c.Request.Context(), events.GovernorMembersEventSubject, &events.Event{
+			Version: events.Version,
+			Action:  events.GovernorEventDelete,
+			AuditID: c.GetString(ginaudit.AuditIDContextKey),
+			GroupID: enumeratedMembership.GroupID,
+			UserID:  enumeratedMembership.UserID,
+			ActorID: getCtxActorID(c),
+		}); err != nil {
+			sendError(c, http.StatusBadRequest, "failed to publish members delete event, downstream changes may be delayed "+err.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusNoContent, nil)
@@ -968,6 +1028,19 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 			return
 		}
 
+		membershipsBefore, err := dbtools.GetMembershipsForUser(c, r.DB.DB, user.ID, false)
+		if err != nil {
+			msg := "failed to compute new effective memberships: " + err.Error()
+
+			if err := tx.Rollback(); err != nil {
+				msg += "error rolling back transaction: " + err.Error()
+			}
+
+			sendError(c, http.StatusBadRequest, msg)
+
+			return
+		}
+
 		if err := groupMem.Insert(c.Request.Context(), tx, boil.Infer()); err != nil {
 			msg := "error approving group membership request , rolling back: " + err.Error()
 
@@ -1017,6 +1090,19 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 			return
 		}
 
+		membershipsAfter, err := dbtools.GetMembershipsForUser(c, r.DB.DB, user.ID, false)
+		if err != nil {
+			msg := "failed to compute new effective memberships: " + err.Error()
+
+			if err := tx.Rollback(); err != nil {
+				msg += "error rolling back transaction: " + err.Error()
+			}
+
+			sendError(c, http.StatusBadRequest, msg)
+
+			return
+		}
+
 		if err := tx.Commit(); err != nil {
 			msg := "error committing group membership approval, rolling back: " + err.Error()
 
@@ -1047,16 +1133,20 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 			return
 		}
 
-		if err := r.EventBus.Publish(c.Request.Context(), events.GovernorMembersEventSubject, &events.Event{
-			Version: events.Version,
-			Action:  events.GovernorEventCreate,
-			AuditID: c.GetString(ginaudit.AuditIDContextKey),
-			GroupID: groupMem.GroupID,
-			UserID:  groupMem.UserID,
-			ActorID: getCtxActorID(c),
-		}); err != nil {
-			sendError(c, http.StatusBadRequest, "failed to publish members create event, downstream changes may be delayed "+err.Error())
-			return
+		groupsDiff := dbtools.FindMemberDiff(membershipsBefore, membershipsAfter)
+
+		for _, enumeratedMembership := range groupsDiff {
+			if err := r.EventBus.Publish(c.Request.Context(), events.GovernorMembersEventSubject, &events.Event{
+				Version: events.Version,
+				Action:  events.GovernorEventCreate,
+				AuditID: c.GetString(ginaudit.AuditIDContextKey),
+				GroupID: enumeratedMembership.GroupID,
+				UserID:  enumeratedMembership.UserID,
+				ActorID: getCtxActorID(c),
+			}); err != nil {
+				sendError(c, http.StatusBadRequest, "failed to publish members create event, downstream changes may be delayed "+err.Error())
+				return
+			}
 		}
 
 		c.JSON(http.StatusNoContent, nil)

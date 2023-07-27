@@ -120,7 +120,7 @@ func (r *Router) addMemberGroup(c *gin.Context) {
 		return
 	}
 
-	createsCycle, err := dbtools.CheckNewHierarchyWouldCreateCycle(c, r.DB.DB, parentGroup.ID, memberGroup.ID)
+	createsCycle, err := dbtools.HierarchyWouldCreateCycle(c, r.DB.DB, parentGroup.ID, memberGroup.ID)
 	if err != nil {
 		sendError(c, http.StatusInternalServerError, "could not determine whether the desired hierarchy creates a cycle")
 		return
