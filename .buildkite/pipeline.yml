@@ -5,7 +5,7 @@ env:
 
 steps:
   - group: ":golang: Application"
-    key: "chart"
+    key: "app"
     steps:
     - label: ":golangci-lint: lint :lint-roller:"
       key: "lint"
