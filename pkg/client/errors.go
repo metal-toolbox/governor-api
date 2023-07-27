@@ -41,4 +41,10 @@ var (
 
 	// ErrMissingNotificationTypeID is returned when a a missing or bad notification type ID is passed to a request
 	ErrMissingNotificationTypeID = errors.New("missing notification type id in request")
+
+	// ErrNotificationTargetNotFound is returned when a notification target is not found
+	ErrNotificationTargetNotFound = errors.New("notification target not found")
+
+	// ErrMissingNotificationTargetID is returned when a a missing or bad notification target ID is passed to a request
+	ErrMissingNotificationTargetID = errors.New("missing notification target id in request")
 )
