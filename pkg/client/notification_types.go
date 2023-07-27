@@ -13,6 +13,10 @@ import (
 
 // NotificationType fetch a notification type
 func (c *Client) NotificationType(ctx context.Context, idOrSlug string, deleted bool) (*v1alpha1.NotificationType, error) {
+	if idOrSlug == "" {
+		return nil, ErrMissingNotificationTypeID
+	}
+
 	u := fmt.Sprintf(
 		"%s/api/%s/notification-types/%s",
 		c.url,
@@ -149,6 +153,10 @@ func (c *Client) CreateNotificationType(
 func (c *Client) UpdateNotificationType(
 	ctx context.Context, idOrSlug string, ntReq *v1alpha1.NotificationTypeReq,
 ) (*v1alpha1.NotificationType, error) {
+	if idOrSlug == "" {
+		return nil, ErrMissingNotificationTypeID
+	}
+
 	req, err := c.newGovernorRequest(
 		ctx, http.MethodPut,
 		fmt.Sprintf(
@@ -197,6 +205,10 @@ func (c *Client) UpdateNotificationType(
 
 // DeleteNotificationType deletes a notification type
 func (c *Client) DeleteNotificationType(ctx context.Context, idOrSlug string) error {
+	if idOrSlug == "" {
+		return ErrMissingNotificationTypeID
+	}
+
 	req, err := c.newGovernorRequest(
 		ctx, http.MethodDelete,
 		fmt.Sprintf(

@@ -38,4 +38,7 @@ var (
 
 	// ErrNotificationTypeNotFound is returned when a notification type is not found
 	ErrNotificationTypeNotFound = errors.New("notification type not found")
+
+	// ErrMissingNotificationTypeID is returned when a a missing or bad notification type ID is passed to a request
+	ErrMissingNotificationTypeID = errors.New("missing notification type id in request")
 )
