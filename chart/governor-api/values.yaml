@@ -83,4 +83,4 @@ db:
     max_idle: 20
     max_lifetime: 0
 k8s-otel-collector:
-  include_otel_attributes: true
+  include_otel_attributes: false
