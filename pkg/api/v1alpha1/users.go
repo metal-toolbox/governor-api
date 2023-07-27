@@ -54,6 +54,7 @@ type UserReq struct {
 	NotificationPreferences dbtools.UserNotificationPreferences `json:"notification_preferences,omitempty"`
 }
 
+// IsEmpty checks if a UserReq object is empty
 func (ur *UserReq) IsEmpty() bool {
 	return reflect.DeepEqual(*ur, UserReq{})
 }
@@ -252,11 +253,13 @@ func (r *Router) createUser(c *gin.Context) {
 	updateNotificationPreferencesError := error(nil)
 
 	wg.Add(1)
-	go func() {
+
+	updateNotificationPreferences := func() {
 		defer wg.Done()
-		_, updateNotificationPreferencesStatusCode, updateNotificationPreferencesError =
-			handleUpdateNotificationPreferencesRequests(c, r.DB, user, r.EventBus, req.NotificationPreferences)
-	}()
+
+		_, updateNotificationPreferencesStatusCode, updateNotificationPreferencesError = handleUpdateNotificationPreferencesRequests(c, r.DB, user, r.EventBus, req.NotificationPreferences)
+	}
+	go updateNotificationPreferences()
 
 	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
 	if err != nil {
@@ -314,6 +317,7 @@ func (r *Router) createUser(c *gin.Context) {
 	}
 
 	wg.Wait()
+
 	if updateNotificationPreferencesError != nil {
 		sendError(c, updateNotificationPreferencesStatusCode, updateNotificationPreferencesError.Error())
 		return
@@ -427,11 +431,13 @@ func (r *Router) updateUser(c *gin.Context) {
 	updateNotificationPreferencesError := error(nil)
 
 	wg.Add(1)
-	go func() {
+
+	updateNotificationPreferences := func() {
 		defer wg.Done()
-		_, updateNotificationPreferencesStatusCode, updateNotificationPreferencesError =
-			handleUpdateNotificationPreferencesRequests(c, r.DB, user, r.EventBus, req.NotificationPreferences)
-	}()
+
+		_, updateNotificationPreferencesStatusCode, updateNotificationPreferencesError = handleUpdateNotificationPreferencesRequests(c, r.DB, user, r.EventBus, req.NotificationPreferences)
+	}
+	go updateNotificationPreferences()
 
 	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
 	if err != nil {
@@ -489,6 +495,7 @@ func (r *Router) updateUser(c *gin.Context) {
 	}
 
 	wg.Wait()
+
 	if updateNotificationPreferencesError != nil {
 		sendError(c, updateNotificationPreferencesStatusCode, updateNotificationPreferencesError.Error())
 		return

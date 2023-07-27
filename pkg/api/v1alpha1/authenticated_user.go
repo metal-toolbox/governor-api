@@ -519,11 +519,13 @@ func (r *Router) updateAuthenticatedUser(c *gin.Context) {
 	updateNotificationPreferencesError := error(nil)
 
 	wg.Add(1)
-	go func() {
+
+	updateNotificationPreferences := func() {
 		defer wg.Done()
-		_, updateNotificationPreferencesStatusCode, updateNotificationPreferencesError =
-			handleUpdateNotificationPreferencesRequests(c, r.DB, ctxUser, r.EventBus, req.NotificationPreferences)
-	}()
+
+		_, updateNotificationPreferencesStatusCode, updateNotificationPreferencesError = handleUpdateNotificationPreferencesRequests(c, r.DB, ctxUser, r.EventBus, req.NotificationPreferences)
+	}
+	go updateNotificationPreferences()
 
 	if req.AvatarURL != nil {
 		ctxUser.AvatarURL = null.StringFrom(*req.AvatarURL)
@@ -589,6 +591,7 @@ func (r *Router) updateAuthenticatedUser(c *gin.Context) {
 	}
 
 	wg.Wait()
+
 	if updateNotificationPreferencesError != nil {
 		sendError(c, updateNotificationPreferencesStatusCode, updateNotificationPreferencesError.Error())
 		return

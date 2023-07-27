@@ -44,6 +44,7 @@ func (r *Router) listNotificationTypes(c *gin.Context) {
 	if err != nil {
 		r.Logger.Error("error fetching notification types", zap.Error(err))
 		sendError(c, http.StatusBadRequest, "error listing notification types: "+err.Error())
+
 		return
 	}
 
@@ -90,6 +91,7 @@ func (r *Router) createNotificationType(c *gin.Context) {
 		}
 
 		sendError(c, http.StatusBadRequest, msg)
+
 		return
 	}
 
@@ -108,6 +110,7 @@ func (r *Router) createNotificationType(c *gin.Context) {
 		}
 
 		sendError(c, http.StatusBadRequest, msg)
+
 		return
 	}
 
@@ -119,6 +122,7 @@ func (r *Router) createNotificationType(c *gin.Context) {
 		}
 
 		sendError(c, http.StatusBadRequest, msg)
+
 		return
 	}
 
@@ -130,6 +134,7 @@ func (r *Router) createNotificationType(c *gin.Context) {
 		}
 
 		sendError(c, http.StatusBadRequest, msg)
+
 		return
 	}
 
@@ -161,6 +166,7 @@ func (r *Router) createNotificationType(c *gin.Context) {
 				"downstream changes may be delayed",
 			),
 		)
+
 		return
 	}
 
@@ -222,6 +228,7 @@ func (r *Router) deleteNotificationType(c *gin.Context) {
 		}
 
 		sendError(c, http.StatusInternalServerError, "error getting notification type: "+err.Error())
+
 		return
 	}
 
@@ -239,6 +246,7 @@ func (r *Router) deleteNotificationType(c *gin.Context) {
 		}
 
 		sendError(c, http.StatusBadRequest, msg)
+
 		return
 	}
 
@@ -257,6 +265,7 @@ func (r *Router) deleteNotificationType(c *gin.Context) {
 		}
 
 		sendError(c, http.StatusBadRequest, msg)
+
 		return
 	}
 
@@ -268,6 +277,7 @@ func (r *Router) deleteNotificationType(c *gin.Context) {
 		}
 
 		sendError(c, http.StatusBadRequest, msg)
+
 		return
 	}
 
@@ -279,6 +289,7 @@ func (r *Router) deleteNotificationType(c *gin.Context) {
 		}
 
 		sendError(c, http.StatusBadRequest, msg)
+
 		return
 	}
 
@@ -308,6 +319,7 @@ func (r *Router) deleteNotificationType(c *gin.Context) {
 				"downstream changes may be delayed",
 			),
 		)
+
 		return
 	}
 
@@ -331,6 +343,7 @@ func (r *Router) updateNotificationType(c *gin.Context) {
 		}
 
 		sendError(c, http.StatusInternalServerError, "error getting notification type: "+err.Error())
+
 		return
 	}
 
@@ -367,6 +380,7 @@ func (r *Router) updateNotificationType(c *gin.Context) {
 		}
 
 		sendError(c, http.StatusBadRequest, msg)
+
 		return
 	}
 
@@ -386,6 +400,7 @@ func (r *Router) updateNotificationType(c *gin.Context) {
 		}
 
 		sendError(c, http.StatusBadRequest, msg)
+
 		return
 	}
 
@@ -397,6 +412,7 @@ func (r *Router) updateNotificationType(c *gin.Context) {
 		}
 
 		sendError(c, http.StatusBadRequest, msg)
+
 		return
 	}
 
@@ -408,6 +424,7 @@ func (r *Router) updateNotificationType(c *gin.Context) {
 		}
 
 		sendError(c, http.StatusBadRequest, msg)
+
 		return
 	}
 
@@ -437,6 +454,7 @@ func (r *Router) updateNotificationType(c *gin.Context) {
 				"downstream changes may be delayed",
 			),
 		)
+
 		return
 	}
 

@@ -58,7 +58,7 @@ func (c *Client) NotificationType(ctx context.Context, idOrSlug string, deleted 
 	return nt, nil
 }
 
-// NotificationType list all notification types
+// NotificationTypes list all notification types
 func (c *Client) NotificationTypes(ctx context.Context, deleted bool) ([]*v1alpha1.NotificationType, error) {
 	u := fmt.Sprintf(
 		"%s/api/%s/notification-types",
@@ -112,12 +112,12 @@ func (c *Client) CreateNotificationType(
 		return nil, err
 	}
 
-	ntReqJson, err := json.Marshal(ntReq)
+	ntReqJSON, err := json.Marshal(ntReq)
 	if err != nil {
 		return nil, err
 	}
 
-	req.Body = io.NopCloser(bytes.NewReader(ntReqJson))
+	req.Body = io.NopCloser(bytes.NewReader(ntReqJSON))
 
 	resp, err := c.httpClient.Do(req.WithContext(ctx))
 	if err != nil {
@@ -162,12 +162,12 @@ func (c *Client) UpdateNotificationType(
 		return nil, err
 	}
 
-	ntReqJson, err := json.Marshal(ntReq)
+	ntReqJSON, err := json.Marshal(ntReq)
 	if err != nil {
 		return nil, err
 	}
 
-	req.Body = io.NopCloser(bytes.NewReader(ntReqJson))
+	req.Body = io.NopCloser(bytes.NewReader(ntReqJSON))
 
 	resp, err := c.httpClient.Do(req.WithContext(ctx))
 	if err != nil {

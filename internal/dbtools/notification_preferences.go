@@ -16,13 +16,23 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
+var errUpdateNotificationPreferencesDB = errors.New("updateNotificationPreferencesDBError")
+
+func newErrUpdateNotificationPreferences(msg string) error {
+	return fmt.Errorf("%w: %s", errUpdateNotificationPreferencesDB, msg)
+}
+
+// UserNotificationPreferenceTarget is the user notification target response
 type UserNotificationPreferenceTarget struct {
 	Target  string `json:"target"`
 	Enabled bool   `json:"enabled"`
 }
 
+// UserNotificationPreferenceTargets is an alias for user notification target
+// slice
 type UserNotificationPreferenceTargets []*UserNotificationPreferenceTarget
 
+// UserNotificationPreference is the user notification preference response
 type UserNotificationPreference struct {
 	NotificationType string `json:"notification_type" boil:"notification_type"`
 	Enabled          bool   `json:"enabled"`
@@ -30,14 +40,22 @@ type UserNotificationPreference struct {
 	NotificationTargets UserNotificationPreferenceTargets `json:"notification_targets"`
 }
 
+// UserNotificationPreferences is an alias for user notification
+// preference slice
 type UserNotificationPreferences []*UserNotificationPreference
 
+// RefreshNotificationDefaults refreshes the notification_defaults
+// materialized view
 func RefreshNotificationDefaults(ctx context.Context, ex boil.ContextExecutor) (err error) {
 	q := queries.Raw("REFRESH MATERIALIZED VIEW notification_defaults")
 	_, err = q.ExecContext(ctx, ex)
+
 	return
 }
 
+// GetNotificationPreferences fetch a user's notification preferences from
+// the governor DB, this function only gets rules the user had modified if
+// `withDefaults` is false
 func GetNotificationPreferences(ctx context.Context, uid string, ex boil.ContextExecutor, withDefaults bool) (UserNotificationPreferences, error) {
 	type preferencesQueryRecord struct {
 		NotificationType        string          `boil:"notification_type"`
@@ -91,46 +109,49 @@ func GetNotificationPreferences(ctx context.Context, uid string, ex boil.Context
 	errs := ""
 	wg := &sync.WaitGroup{}
 	preferences := make(UserNotificationPreferences, len(records))
+	buildNotificationPreferenceRecord := func(i int, r *preferencesQueryRecord) {
+		defer wg.Done()
+
+		targets := []*preferencesQueryRecordNotificationTarget{}
+		if err := json.Unmarshal(r.NotificationTargetsJSON, &targets); err != nil {
+			errs += fmt.Sprintf("%s\n", err.Error())
+		}
+
+		p := new(UserNotificationPreference)
+		p.NotificationType = r.NotificationType
+		p.NotificationTargets = UserNotificationPreferenceTargets{}
+
+		for _, t := range targets {
+			// for rows with NULL target indicates configs are for the parent notification type
+			if t.Target == "" {
+				p.Enabled = t.Enabled
+				continue
+			}
+
+			target := new(UserNotificationPreferenceTarget)
+			*target = UserNotificationPreferenceTarget(*t)
+			p.NotificationTargets = append(p.NotificationTargets, target)
+		}
+
+		preferences[i] = p
+	}
+
 	for i, r := range records {
 		wg.Add(1)
-		go func(i int, r *preferencesQueryRecord) {
-			defer wg.Done()
 
-			targets := []*preferencesQueryRecordNotificationTarget{}
-			if err := json.Unmarshal(r.NotificationTargetsJSON, &targets); err != nil {
-				errs += fmt.Sprintf("%s\n", err.Error())
-			}
-
-			p := new(UserNotificationPreference)
-			p.NotificationType = r.NotificationType
-			p.NotificationTargets = UserNotificationPreferenceTargets{}
-
-			for _, t := range targets {
-				// for rows with NULL target indicates configs are for the parent notification type
-				if t.Target == "" {
-					p.Enabled = t.Enabled
-					continue
-				}
-
-				target := new(UserNotificationPreferenceTarget)
-				*target = UserNotificationPreferenceTarget(*t)
-				p.NotificationTargets = append(p.NotificationTargets, target)
-			}
-
-			preferences[i] = p
-
-		}(i, r)
+		go buildNotificationPreferenceRecord(i, r)
 	}
 
 	wg.Wait()
+
 	if errs != "" {
-		return nil, fmt.Errorf(errs)
+		return nil, newErrUpdateNotificationPreferences(errs)
 	}
 
 	return preferences, nil
 }
 
-func slugToIDMap(ctx context.Context, table string, db *sqlx.DB) (slugIdMap map[string]string, err error) {
+func slugToIDMap(ctx context.Context, table string, db *sqlx.DB) (slugIDMap map[string]string, err error) {
 	rec := &struct {
 		Map json.RawMessage `boil:"map"`
 	}{}
@@ -149,48 +170,61 @@ func slugToIDMap(ctx context.Context, table string, db *sqlx.DB) (slugIdMap map[
 		return
 	}
 
-	err = json.Unmarshal(rec.Map, &slugIdMap)
+	err = json.Unmarshal(rec.Map, &slugIDMap)
+
 	return
 }
 
+// CreateOrUpdateNotificationPreferences updates a user's notification
+// preferences, or creates the preferences if not exists
 func CreateOrUpdateNotificationPreferences(
 	ctx context.Context,
 	user *models.User,
 	notificationPreferences UserNotificationPreferences,
 	ex boil.ContextExecutor,
 	db *sqlx.DB,
-	auditId string,
+	auditID string,
 	actor *models.User,
 ) (*models.AuditEvent, error) {
-
 	typeSlugToID := map[string]string{}
 	targetSlugToID := map[string]string{}
 	errs := ""
 	wg := &sync.WaitGroup{}
 
 	wg.Add(1)
-	go func() {
+
+	getTypeSlugToIDMap := func() {
 		defer wg.Done()
+
 		var err error
+
 		typeSlugToID, err = slugToIDMap(ctx, models.TableNames.NotificationTypes, db)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			errs += fmt.Sprintf("%s\n", err)
 		}
-	}()
+	}
+
+	go getTypeSlugToIDMap()
 
 	wg.Add(1)
-	go func() {
+
+	getTargetSlugToIDMap := func() {
 		defer wg.Done()
+
 		var err error
+
 		targetSlugToID, err = slugToIDMap(ctx, models.TableNames.NotificationTargets, db)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			errs += fmt.Sprintf("%s\n", err)
 		}
-	}()
+	}
+
+	go getTargetSlugToIDMap()
 
 	wg.Wait()
+
 	if errs != "" {
-		return nil, fmt.Errorf(errs)
+		return nil, newErrUpdateNotificationPreferences(errs)
 	}
 
 	curr, err := GetNotificationPreferences(ctx, user.ID, ex, false)
@@ -199,14 +233,15 @@ func CreateOrUpdateNotificationPreferences(
 	}
 
 	for _, p := range notificationPreferences {
-		notificationTypeId, ok := typeSlugToID[p.NotificationType]
+		notificationTypeID, ok := typeSlugToID[p.NotificationType]
 		if !ok {
-			return nil, fmt.Errorf("notificationType %s not found", p.NotificationType)
+			return nil,
+				newErrUpdateNotificationPreferences(fmt.Sprintf("notificationType %s not found", p.NotificationType))
 		}
 
 		np := &models.NotificationPreference{
 			UserID:               user.ID,
-			NotificationTypeID:   notificationTypeId,
+			NotificationTypeID:   notificationTypeID,
 			NotificationTargetID: null.NewString("", false),
 			Enabled:              p.Enabled,
 		}
@@ -227,15 +262,16 @@ func CreateOrUpdateNotificationPreferences(
 		}
 
 		for _, t := range p.NotificationTargets {
-			notificationTargetId, ok := targetSlugToID[t.Target]
+			notificationTargetID, ok := targetSlugToID[t.Target]
 			if !ok {
-				return nil, fmt.Errorf("notificationTarget %s not found", t.Target)
+				return nil,
+					newErrUpdateNotificationPreferences(fmt.Sprintf("notificationTarget %s not found", t.Target))
 			}
 
 			np := &models.NotificationPreference{
 				UserID:               user.ID,
-				NotificationTypeID:   notificationTypeId,
-				NotificationTargetID: null.NewString(notificationTargetId, true),
+				NotificationTypeID:   notificationTypeID,
+				NotificationTargetID: null.NewString(notificationTargetID, true),
 				Enabled:              t.Enabled,
 			}
 
@@ -257,9 +293,8 @@ func CreateOrUpdateNotificationPreferences(
 	}
 
 	audit, err := AuditNotificationPreferencesUpdated(
-		ctx, ex, auditId, actor, user.ID, curr, notificationPreferences,
+		ctx, ex, auditID, actor, user.ID, curr, notificationPreferences,
 	)
-
 	if err != nil {
 		return nil, err
 	}

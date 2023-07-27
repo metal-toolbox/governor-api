@@ -939,18 +939,18 @@ func AuditNotificationPreferencesUpdated(ctx context.Context, exec boil.ContextE
 		Preferences string `json:"preferences"`
 	}
 
-	beforeJson, err := json.Marshal(o)
+	beforeJSON, err := json.Marshal(o)
 	if err != nil {
 		return nil, err
 	}
 
-	afterJson, err := json.Marshal(a)
+	afterJSON, err := json.Marshal(a)
 	if err != nil {
 		return nil, err
 	}
 
-	before := &userNotificationPreferencesAuditRecord{Preferences: string(beforeJson)}
-	after := &userNotificationPreferencesAuditRecord{Preferences: string(afterJson)}
+	before := &userNotificationPreferencesAuditRecord{Preferences: string(beforeJSON)}
+	after := &userNotificationPreferencesAuditRecord{Preferences: string(afterJSON)}
 
 	var actorID null.String
 	if actor != nil {

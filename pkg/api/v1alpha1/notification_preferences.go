@@ -15,6 +15,12 @@ import (
 	events "github.com/metal-toolbox/governor-api/pkg/events/v1alpha1"
 )
 
+var errUpdateNotificationPreferences = errors.New("updateNotificationPreferencesError")
+
+func newErrUpdateNotificationPreferences(msg string) error {
+	return fmt.Errorf("%w: %s", errUpdateNotificationPreferences, msg)
+}
+
 // handleUpdateNotificationPreferencesRequests handles all notification preferences
 // update requests, including those originated from `/users/:id` or `/user`
 func handleUpdateNotificationPreferencesRequests(
@@ -27,7 +33,8 @@ func handleUpdateNotificationPreferencesRequests(
 	if len(req) > 0 {
 		tx, err := db.BeginTx(c.Request.Context(), nil)
 		if err != nil {
-			return nil, http.StatusBadRequest, fmt.Errorf("error starting update transaction: %s", err.Error())
+			return nil, http.StatusBadRequest,
+				newErrUpdateNotificationPreferences(fmt.Sprintf("error starting update transaction: %s", err.Error()))
 		}
 
 		event, err := dbtools.CreateOrUpdateNotificationPreferences(
@@ -39,7 +46,6 @@ func handleUpdateNotificationPreferencesRequests(
 			getCtxAuditID(c),
 			getCtxUser(c),
 		)
-
 		if err != nil {
 			msg := "error updating user notification preferences: " + err.Error()
 
@@ -47,7 +53,7 @@ func handleUpdateNotificationPreferencesRequests(
 				msg += "error rolling back transaction: " + err.Error()
 			}
 
-			return nil, http.StatusBadRequest, fmt.Errorf(msg)
+			return nil, http.StatusBadRequest, newErrUpdateNotificationPreferences(msg)
 		}
 
 		if err := updateContextWithAuditEventData(c, event); err != nil {
@@ -57,7 +63,7 @@ func handleUpdateNotificationPreferencesRequests(
 				msg += "error rolling back transaction: " + err.Error()
 			}
 
-			return nil, http.StatusBadRequest, fmt.Errorf(msg)
+			return nil, http.StatusBadRequest, newErrUpdateNotificationPreferences(msg)
 		}
 
 		if err := tx.Commit(); err != nil {
@@ -67,13 +73,14 @@ func handleUpdateNotificationPreferencesRequests(
 				msg = msg + "error rolling back transaction: " + err.Error()
 			}
 
-			return nil, http.StatusBadRequest, fmt.Errorf(msg)
+			return nil, http.StatusBadRequest, newErrUpdateNotificationPreferences(msg)
 		}
 	}
 
 	np, err := dbtools.GetNotificationPreferences(c.Request.Context(), user.ID, db, true)
 	if err != nil {
-		return nil, http.StatusInternalServerError, fmt.Errorf("error fetching notification preferences: %s", err.Error())
+		return nil, http.StatusInternalServerError,
+			newErrUpdateNotificationPreferences(fmt.Sprintf("error fetching notification preferences: %s", err.Error()))
 	}
 
 	// only publish events for active users
@@ -89,7 +96,10 @@ func handleUpdateNotificationPreferencesRequests(
 		GroupID: "",
 		UserID:  user.ID,
 	}); err != nil {
-		return nil, http.StatusBadRequest, fmt.Errorf("failed to publish user delete event, downstream changes may be delayed %s", err.Error())
+		return nil, http.StatusBadRequest,
+			newErrUpdateNotificationPreferences(
+				fmt.Sprintf("failed to publish user delete event, downstream changes may be delayed %s", err.Error()),
+			)
 	}
 
 	return np, http.StatusAccepted, nil
@@ -98,6 +108,7 @@ func handleUpdateNotificationPreferencesRequests(
 // getUserNotificationPreferences returns the user's notification preferences
 func (r *Router) getUserNotificationPreferences(c *gin.Context) {
 	id := c.Param("id")
+
 	user, err := models.FindUser(c.Request.Context(), r.DB, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -106,6 +117,7 @@ func (r *Router) getUserNotificationPreferences(c *gin.Context) {
 		}
 
 		sendError(c, http.StatusInternalServerError, "error getting user "+err.Error())
+
 		return
 	}
 
@@ -114,6 +126,7 @@ func (r *Router) getUserNotificationPreferences(c *gin.Context) {
 		sendError(c, http.StatusInternalServerError, "error getting notification preferences: "+err.Error())
 		return
 	}
+
 	c.JSON(http.StatusOK, np)
 }
 
@@ -148,6 +161,7 @@ func (r *Router) updateUserNotificationPreferences(c *gin.Context) {
 		}
 
 		sendError(c, http.StatusInternalServerError, "error getting user "+err.Error())
+
 		return
 	}
 
