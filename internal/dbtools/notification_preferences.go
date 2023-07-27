@@ -2,7 +2,9 @@ package dbtools
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -171,7 +173,7 @@ func CreateOrUpdateNotificationPreferences(
 		defer wg.Done()
 		var err error
 		typeSlugToID, err = slugToIDMap(ctx, models.TableNames.NotificationTypes, db)
-		if err != nil {
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			errs += fmt.Sprintf("%s\n", err)
 		}
 	}()
@@ -181,7 +183,7 @@ func CreateOrUpdateNotificationPreferences(
 		defer wg.Done()
 		var err error
 		targetSlugToID, err = slugToIDMap(ctx, models.TableNames.NotificationTargets, db)
-		if err != nil {
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			errs += fmt.Sprintf("%s\n", err)
 		}
 	}()

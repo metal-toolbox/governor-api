@@ -137,14 +137,14 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 
 	rg.GET(
 		"/users/:id/notification-preferences",
-		r.AuditMW.AuditWithType("GetUserPreferences"),
+		r.AuditMW.AuditWithType("GetUserNotificationPreferences"),
 		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:users")),
 		r.getUserNotificationPreferences,
 	)
 
 	rg.PUT(
 		"/users/:id/notification-preferences",
-		r.AuditMW.AuditWithType("UpdateUserPreferences"),
+		r.AuditMW.AuditWithType("UpdateUserNotificationPreferences"),
 		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:users")),
 		r.updateUserNotificationPreferences,
 	)
