@@ -12,11 +12,7 @@ data:
       - {{ .Values.governor.adminGroups }}
 
     nats:
-      {{- if .Values.nats.url }}
       url: {{ .Values.nats.url }}
-      {{- else }}
-      url: tls://governor-nats.{{ .Values.clusterInfo.fqdn }}:4222
-      {{- end }}
       creds-file: {{ .Values.nats.credsPath }}/{{ template "common.names.fullname" . }}-nats-client-creds
       subject-prefix: {{ .Values.nats.subjectPrefix }}
 

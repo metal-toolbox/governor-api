@@ -9,7 +9,7 @@ metadata:
 spec:
   ingressClassName: nginx-governor
   rules:
-    - host: {{ .Values.api.ingress.prefix }}.{{ .Values.clusterInfo.fqdn }}
+    - host: {{ .Values.api.ingress.host }}
       http:
         paths:
           - path: "/"
@@ -26,23 +26,7 @@ spec:
                 name: {{ template "common.names.fullname" $ }}-api
                 port:
                   name: http
-    {{- if .Values.api.ingress.additionalHost }}
-    - host: {{ .Values.api.ingress.additionalHost }}
-      http:
-        paths:
-          - path: "/"
-            pathType: Prefix
-            backend:
-              service:
-                name: {{ template "common.names.fullname" $ }}-api
-                port:
-                  name: http
-    {{- end }}
-
   tls:
     - hosts:
-        - {{ .Values.api.ingress.prefix }}.{{ .Values.clusterInfo.fqdn }}
-        {{- if .Values.api.ingress.additionalHost }}
-        - {{ .Values.api.ingress.additionalHost }}
-        {{- end }}
+        - {{ .Values.api.ingress.host }}
       secretName: {{ template "common.names.fullname" . }}-api-tls
