@@ -44,14 +44,14 @@ type User struct {
 
 // UserReq is a user request payload
 type UserReq struct {
-	AvatarURL               string                              `json:"avatar_url,omitempty"`
-	Email                   string                              `json:"email"`
-	ExternalID              string                              `json:"external_id"`
-	GithubID                string                              `json:"github_id,omitempty"`
-	GithubUsername          string                              `json:"github_username,omitempty"`
-	Name                    string                              `json:"name"`
-	Status                  string                              `json:"status,omitempty"`
-	NotificationPreferences dbtools.UserNotificationPreferences `json:"notification_preferences,omitempty"`
+	AvatarURL               string                      `json:"avatar_url,omitempty"`
+	Email                   string                      `json:"email"`
+	ExternalID              string                      `json:"external_id"`
+	GithubID                string                      `json:"github_id,omitempty"`
+	GithubUsername          string                      `json:"github_username,omitempty"`
+	Name                    string                      `json:"name"`
+	Status                  string                      `json:"status,omitempty"`
+	NotificationPreferences UserNotificationPreferences `json:"notification_preferences,omitempty"`
 }
 
 // IsEmpty checks if a UserReq object is empty
@@ -126,9 +126,7 @@ func (r *Router) getUser(c *gin.Context) {
 		queryMods = append(queryMods, qm.WithDeleted())
 	}
 
-	ctx := boil.WithDebug(c.Request.Context(), true)
-
-	user, err := models.Users(queryMods...).One(ctx, r.DB)
+	user, err := models.Users(queryMods...).One(c.Request.Context(), r.DB)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			sendError(c, http.StatusNotFound, "user not found: "+err.Error())

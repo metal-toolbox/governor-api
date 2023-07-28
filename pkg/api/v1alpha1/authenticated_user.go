@@ -26,9 +26,9 @@ type AuthenticatedUser struct {
 
 // AuthenticatedUserReq is an authenticated user request payload for updating selected details
 type AuthenticatedUserReq struct {
-	AvatarURL               *string                             `json:"avatar_url"`
-	GithubUsername          *string                             `json:"github_username"`
-	NotificationPreferences dbtools.UserNotificationPreferences `json:"notification_preferences,omitempty"`
+	AvatarURL               *string                     `json:"avatar_url"`
+	GithubUsername          *string                     `json:"github_username"`
+	NotificationPreferences UserNotificationPreferences `json:"notification_preferences,omitempty"`
 }
 
 // AuthenticatedUserGroup is an authenticated user group response
