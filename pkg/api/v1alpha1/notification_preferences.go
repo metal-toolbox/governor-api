@@ -15,6 +15,14 @@ import (
 	events "github.com/metal-toolbox/governor-api/pkg/events/v1alpha1"
 )
 
+// UserNotificationPreferences is an alias export for the same struct in
+// dbtools
+type UserNotificationPreferences = dbtools.UserNotificationPreferences
+
+// UserNotificationPreferenceTargets is an alias export for the same struct in
+// dbtools
+type UserNotificationPreferenceTargets = dbtools.UserNotificationPreferenceTargets
+
 var errUpdateNotificationPreferences = errors.New("updateNotificationPreferencesError")
 
 func newErrUpdateNotificationPreferences(msg string) error {
@@ -28,8 +36,8 @@ func handleUpdateNotificationPreferencesRequests(
 	db *sqlx.DB,
 	user *models.User,
 	eb *eventbus.Client,
-	req dbtools.UserNotificationPreferences,
-) (dbtools.UserNotificationPreferences, int, error) {
+	req UserNotificationPreferences,
+) (UserNotificationPreferences, int, error) {
 	if len(req) > 0 {
 		tx, err := db.BeginTx(c.Request.Context(), nil)
 		if err != nil {
@@ -165,7 +173,7 @@ func (r *Router) updateUserNotificationPreferences(c *gin.Context) {
 		return
 	}
 
-	req := dbtools.UserNotificationPreferences{}
+	req := UserNotificationPreferences{}
 	if err := c.BindJSON(&req); err != nil {
 		sendError(c, http.StatusBadRequest, "unable to bind request: "+err.Error())
 		return
@@ -189,7 +197,7 @@ func (r *Router) updateAuthenticatedUserNotificationPreferences(c *gin.Context) 
 		return
 	}
 
-	req := dbtools.UserNotificationPreferences{}
+	req := UserNotificationPreferences{}
 	if err := c.BindJSON(&req); err != nil {
 		sendError(c, http.StatusBadRequest, "unable to bind request: "+err.Error())
 		return
