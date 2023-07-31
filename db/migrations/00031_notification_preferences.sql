@@ -70,8 +70,8 @@ CREATE INDEX ON notification_defaults (target_id, type_id) STORING (target_slug,
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE notification_types;
-DROP TABLE notification_targets;
-DROP TABLE notification_preferences;
 DROP MATERIALIZED VIEW notification_defaults;
+DROP TABLE notification_preferences;
+DROP TABLE notification_targets;
+DROP TABLE notification_types;
 -- +goose StatementEnd

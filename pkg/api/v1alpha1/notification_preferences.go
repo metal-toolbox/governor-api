@@ -3,16 +3,15 @@ package v1alpha1
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jmoiron/sqlx"
 	"github.com/metal-toolbox/auditevent/ginaudit"
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	"github.com/metal-toolbox/governor-api/internal/eventbus"
 	"github.com/metal-toolbox/governor-api/internal/models"
 	events "github.com/metal-toolbox/governor-api/pkg/events/v1alpha1"
+	"github.com/volatiletech/sqlboiler/v4/boil"
 )
 
 // UserNotificationPreferences is an alias export for the same struct in
@@ -23,72 +22,38 @@ type UserNotificationPreferences = dbtools.UserNotificationPreferences
 // dbtools
 type UserNotificationPreferenceTargets = dbtools.UserNotificationPreferenceTargets
 
-var errUpdateNotificationPreferences = errors.New("updateNotificationPreferencesError")
-
-func newErrUpdateNotificationPreferences(msg string) error {
-	return fmt.Errorf("%w: %s", errUpdateNotificationPreferences, msg)
-}
-
 // handleUpdateNotificationPreferencesRequests handles all notification preferences
 // update requests, including those originated from `/users/:id` or `/user`
 func handleUpdateNotificationPreferencesRequests(
 	c *gin.Context,
-	db *sqlx.DB,
+	ex boil.ContextExecutor,
 	user *models.User,
 	eb *eventbus.Client,
 	req UserNotificationPreferences,
 ) (UserNotificationPreferences, int, error) {
-	if len(req) > 0 {
-		tx, err := db.BeginTx(c.Request.Context(), nil)
-		if err != nil {
-			return nil, http.StatusBadRequest,
-				newErrUpdateNotificationPreferences(fmt.Sprintf("error starting update transaction: %s", err.Error()))
-		}
-
-		event, err := dbtools.CreateOrUpdateNotificationPreferences(
-			c.Request.Context(),
-			user,
-			req,
-			tx,
-			db,
-			getCtxAuditID(c),
-			getCtxUser(c),
-		)
-		if err != nil {
-			msg := "error updating user notification preferences: " + err.Error()
-
-			if err := tx.Rollback(); err != nil {
-				msg += "error rolling back transaction: " + err.Error()
-			}
-
-			return nil, http.StatusBadRequest, newErrUpdateNotificationPreferences(msg)
-		}
-
-		if err := updateContextWithAuditEventData(c, event); err != nil {
-			msg := "error updating notification preferences (audit): " + err.Error()
-
-			if err := tx.Rollback(); err != nil {
-				msg += "error rolling back transaction: " + err.Error()
-			}
-
-			return nil, http.StatusBadRequest, newErrUpdateNotificationPreferences(msg)
-		}
-
-		if err := tx.Commit(); err != nil {
-			msg := "error committing user update, rolling back: " + err.Error()
-
-			if err := tx.Rollback(); err != nil {
-				msg = msg + "error rolling back transaction: " + err.Error()
-			}
-
-			return nil, http.StatusBadRequest, newErrUpdateNotificationPreferences(msg)
-		}
+	if len(req) == 0 {
+		return nil, http.StatusBadRequest, ErrNotificationPreferencesEmptyInput
 	}
 
-	np, err := dbtools.GetNotificationPreferences(c.Request.Context(), user.ID, db, true)
+	event, err := dbtools.CreateOrUpdateNotificationPreferences(
+		c.Request.Context(),
+		user,
+		req,
+		ex,
+		getCtxAuditID(c),
+		getCtxUser(c),
+	)
 	if err != nil {
-		return nil, http.StatusInternalServerError,
-			newErrUpdateNotificationPreferences(fmt.Sprintf("error fetching notification preferences: %s", err.Error()))
+		return nil, http.StatusBadRequest, err
+	}
+
+	if err := updateContextWithAuditEventData(c, event); err != nil {
+		return nil, http.StatusBadRequest, err
+	}
+
+	np, err := dbtools.GetNotificationPreferences(c.Request.Context(), user.ID, ex, true)
+	if err != nil {
+		return nil, http.StatusInternalServerError, err
 	}
 
 	// only publish events for active users
@@ -104,10 +69,7 @@ func handleUpdateNotificationPreferencesRequests(
 		GroupID: "",
 		UserID:  user.ID,
 	}); err != nil {
-		return nil, http.StatusBadRequest,
-			newErrUpdateNotificationPreferences(
-				fmt.Sprintf("failed to publish user delete event, downstream changes may be delayed %s", err.Error()),
-			)
+		return nil, http.StatusBadRequest, newErrPublishUpdateNotificationPreferences(err.Error())
 	}
 
 	return np, http.StatusAccepted, nil
@@ -179,13 +141,49 @@ func (r *Router) updateUserNotificationPreferences(c *gin.Context) {
 		return
 	}
 
-	np, code, err := handleUpdateNotificationPreferencesRequests(c, r.DB, user, r.EventBus, req)
+	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
 	if err != nil {
-		sendError(c, code, err.Error())
+		sendError(c, http.StatusBadRequest, "error starting update transaction: "+err.Error())
 		return
 	}
 
-	c.JSON(code, np)
+	updateNotificationPublishEventErr := error(nil)
+
+	np, status, err := handleUpdateNotificationPreferencesRequests(c, tx, user, r.EventBus, req)
+	if err != nil {
+		if errors.Is(err, ErrPublishUpdateNotificationPreferences) {
+			updateNotificationPublishEventErr = err
+		}
+
+		msg := err.Error()
+
+		if err := tx.Rollback(); err != nil {
+			msg += "error rolling back transaction: " + err.Error()
+		}
+
+		sendError(c, status, msg)
+
+		return
+	}
+
+	if err := tx.Commit(); err != nil {
+		msg := "error committing notification preferences update, rolling back: " + err.Error()
+
+		if err := tx.Rollback(); err != nil {
+			msg += ("error rolling back transaction: " + err.Error())
+		}
+
+		sendError(c, http.StatusBadRequest, msg)
+
+		return
+	}
+
+	if updateNotificationPublishEventErr != nil {
+		sendError(c, http.StatusBadRequest, updateNotificationPublishEventErr.Error())
+		return
+	}
+
+	c.JSON(status, np)
 }
 
 // updateUserNotificationPreferences is the http handler for
@@ -203,11 +201,47 @@ func (r *Router) updateAuthenticatedUserNotificationPreferences(c *gin.Context) 
 		return
 	}
 
-	np, code, err := handleUpdateNotificationPreferencesRequests(c, r.DB, ctxUser, r.EventBus, req)
+	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
 	if err != nil {
-		sendError(c, code, err.Error())
+		sendError(c, http.StatusBadRequest, "error starting update transaction: "+err.Error())
 		return
 	}
 
-	c.JSON(code, np)
+	updateNotificationPublishEventErr := error(nil)
+
+	np, status, err := handleUpdateNotificationPreferencesRequests(c, tx, ctxUser, r.EventBus, req)
+	if err != nil {
+		if errors.Is(err, ErrPublishUpdateNotificationPreferences) {
+			updateNotificationPublishEventErr = err
+		}
+
+		msg := err.Error()
+
+		if err := tx.Rollback(); err != nil {
+			msg += "error rolling back transaction: " + err.Error()
+		}
+
+		sendError(c, status, msg)
+
+		return
+	}
+
+	if err := tx.Commit(); err != nil {
+		msg := "error committing notification preferences update, rolling back: " + err.Error()
+
+		if err := tx.Rollback(); err != nil {
+			msg += ("error rolling back transaction: " + err.Error())
+		}
+
+		sendError(c, http.StatusBadRequest, msg)
+
+		return
+	}
+
+	if updateNotificationPublishEventErr != nil {
+		sendError(c, http.StatusBadRequest, updateNotificationPublishEventErr.Error())
+		return
+	}
+
+	c.JSON(status, np)
 }

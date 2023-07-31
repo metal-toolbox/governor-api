@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"reflect"
 	"strconv"
-	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/metal-toolbox/auditevent/ginaudit"
@@ -246,19 +245,6 @@ func (r *Router) createUser(c *gin.Context) {
 		user.Status = null.StringFrom(UserStatusPending)
 	}
 
-	wg := &sync.WaitGroup{}
-	updateNotificationPreferencesStatusCode := http.StatusOK
-	updateNotificationPreferencesError := error(nil)
-
-	wg.Add(1)
-
-	updateNotificationPreferences := func() {
-		defer wg.Done()
-
-		_, updateNotificationPreferencesStatusCode, updateNotificationPreferencesError = handleUpdateNotificationPreferencesRequests(c, r.DB, user, r.EventBus, req.NotificationPreferences)
-	}
-	go updateNotificationPreferences()
-
 	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
 	if err != nil {
 		sendError(c, http.StatusBadRequest, "error starting create user transaction: "+err.Error())
@@ -302,6 +288,27 @@ func (r *Router) createUser(c *gin.Context) {
 		return
 	}
 
+	updateNotificationPublishEventErr := error(nil)
+
+	_, status, err := handleUpdateNotificationPreferencesRequests(
+		c, tx, user, r.EventBus, req.NotificationPreferences,
+	)
+	if err != nil && !errors.Is(err, ErrNotificationPreferencesEmptyInput) {
+		if errors.Is(err, ErrPublishUpdateNotificationPreferences) {
+			updateNotificationPublishEventErr = err
+		} else {
+			msg := err.Error()
+
+			if err := tx.Rollback(); err != nil {
+				msg += "error rolling back transaction: " + err.Error()
+			}
+
+			sendError(c, status, msg)
+
+			return
+		}
+	}
+
 	if err := tx.Commit(); err != nil {
 		msg := "error committing user create, rolling back: " + err.Error()
 
@@ -314,16 +321,14 @@ func (r *Router) createUser(c *gin.Context) {
 		return
 	}
 
-	wg.Wait()
-
-	if updateNotificationPreferencesError != nil {
-		sendError(c, updateNotificationPreferencesStatusCode, updateNotificationPreferencesError.Error())
-		return
-	}
-
 	// only publish events for active users
 	if !isActiveUser(user) {
 		c.JSON(http.StatusAccepted, user)
+		return
+	}
+
+	if updateNotificationPublishEventErr != nil {
+		sendError(c, http.StatusBadRequest, updateNotificationPublishEventErr.Error())
 		return
 	}
 
@@ -424,19 +429,6 @@ func (r *Router) updateUser(c *gin.Context) {
 		user.GithubUsername = null.StringFrom(req.GithubUsername)
 	}
 
-	wg := &sync.WaitGroup{}
-	updateNotificationPreferencesStatusCode := http.StatusOK
-	updateNotificationPreferencesError := error(nil)
-
-	wg.Add(1)
-
-	updateNotificationPreferences := func() {
-		defer wg.Done()
-
-		_, updateNotificationPreferencesStatusCode, updateNotificationPreferencesError = handleUpdateNotificationPreferencesRequests(c, r.DB, user, r.EventBus, req.NotificationPreferences)
-	}
-	go updateNotificationPreferences()
-
 	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
 	if err != nil {
 		sendError(c, http.StatusBadRequest, "error starting update transaction: "+err.Error())
@@ -480,6 +472,27 @@ func (r *Router) updateUser(c *gin.Context) {
 		return
 	}
 
+	updateNotificationPublishEventErr := error(nil)
+
+	_, status, err := handleUpdateNotificationPreferencesRequests(
+		c, tx, user, r.EventBus, req.NotificationPreferences,
+	)
+	if err != nil && !errors.Is(err, ErrNotificationPreferencesEmptyInput) {
+		if errors.Is(err, ErrPublishUpdateNotificationPreferences) {
+			updateNotificationPublishEventErr = err
+		} else {
+			msg := err.Error()
+
+			if err := tx.Rollback(); err != nil {
+				msg += "error rolling back transaction: " + err.Error()
+			}
+
+			sendError(c, status, msg)
+
+			return
+		}
+	}
+
 	if err := tx.Commit(); err != nil {
 		msg := "error committing user update, rolling back: " + err.Error()
 
@@ -492,16 +505,14 @@ func (r *Router) updateUser(c *gin.Context) {
 		return
 	}
 
-	wg.Wait()
-
-	if updateNotificationPreferencesError != nil {
-		sendError(c, updateNotificationPreferencesStatusCode, updateNotificationPreferencesError.Error())
-		return
-	}
-
 	// only publish events for active users
 	if !isActiveUser(user) {
 		c.JSON(http.StatusAccepted, user)
+		return
+	}
+
+	if updateNotificationPublishEventErr != nil {
+		sendError(c, http.StatusBadRequest, updateNotificationPublishEventErr.Error())
 		return
 	}
 

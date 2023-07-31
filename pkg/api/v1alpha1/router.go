@@ -145,7 +145,7 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 	rg.PUT(
 		"/users/:id/notification-preferences",
 		r.AuditMW.AuditWithType("UpdateUserNotificationPreferences"),
-		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:users")),
+		r.AuthMW.AuthRequired(updateScopesWithOpenID("governor:users")),
 		r.updateUserNotificationPreferences,
 	)
 
@@ -532,14 +532,14 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 	rg.PUT(
 		"/notification-types/:id",
 		r.AuditMW.AuditWithType("UpdateNotificationType"),
-		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:notifications")),
+		r.AuthMW.AuthRequired(updateScopesWithOpenID("governor:notifications")),
 		r.updateNotificationType,
 	)
 
 	rg.DELETE(
 		"/notification-types/:id",
 		r.AuditMW.AuditWithType("DeleteNotificationType"),
-		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:notifications")),
+		r.AuthMW.AuthRequired(deleteScopesWithOpenID("governor:notifications")),
 		r.mwUserAuthRequired(AuthRoleAdmin),
 		r.deleteNotificationType,
 	)
@@ -569,14 +569,14 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 	rg.PUT(
 		"/notification-targets/:id",
 		r.AuditMW.AuditWithType("UpdateNotificationTarget"),
-		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:notifications")),
+		r.AuthMW.AuthRequired(updateScopesWithOpenID("governor:notifications")),
 		r.updateNotificationTarget,
 	)
 
 	rg.DELETE(
 		"/notification-targets/:id",
 		r.AuditMW.AuditWithType("DeleteNotificationTarget"),
-		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:notifications")),
+		r.AuthMW.AuthRequired(deleteScopesWithOpenID("governor:notifications")),
 		r.mwUserAuthRequired(AuthRoleAdmin),
 		r.deleteNotificationTarget,
 	)

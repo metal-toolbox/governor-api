@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
-	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -514,19 +513,6 @@ func (r *Router) updateAuthenticatedUser(c *gin.Context) {
 		return
 	}
 
-	wg := &sync.WaitGroup{}
-	updateNotificationPreferencesStatusCode := http.StatusOK
-	updateNotificationPreferencesError := error(nil)
-
-	wg.Add(1)
-
-	updateNotificationPreferences := func() {
-		defer wg.Done()
-
-		_, updateNotificationPreferencesStatusCode, updateNotificationPreferencesError = handleUpdateNotificationPreferencesRequests(c, r.DB, ctxUser, r.EventBus, req.NotificationPreferences)
-	}
-	go updateNotificationPreferences()
-
 	if req.AvatarURL != nil {
 		ctxUser.AvatarURL = null.StringFrom(*req.AvatarURL)
 	}
@@ -578,6 +564,27 @@ func (r *Router) updateAuthenticatedUser(c *gin.Context) {
 		return
 	}
 
+	updateNotificationPublishEventErr := error(nil)
+
+	_, status, err := handleUpdateNotificationPreferencesRequests(
+		c, tx, ctxUser, r.EventBus, req.NotificationPreferences,
+	)
+	if err != nil && !errors.Is(err, ErrNotificationPreferencesEmptyInput) {
+		if errors.Is(err, ErrPublishUpdateNotificationPreferences) {
+			updateNotificationPublishEventErr = err
+		} else {
+			msg := err.Error()
+
+			if err := tx.Rollback(); err != nil {
+				msg += "error rolling back transaction: " + err.Error()
+			}
+
+			sendError(c, status, msg)
+
+			return
+		}
+	}
+
 	if err := tx.Commit(); err != nil {
 		msg := "error committing user update, rolling back: " + err.Error()
 
@@ -590,10 +597,8 @@ func (r *Router) updateAuthenticatedUser(c *gin.Context) {
 		return
 	}
 
-	wg.Wait()
-
-	if updateNotificationPreferencesError != nil {
-		sendError(c, updateNotificationPreferencesStatusCode, updateNotificationPreferencesError.Error())
+	if updateNotificationPublishEventErr != nil {
+		sendError(c, http.StatusBadRequest, updateNotificationPublishEventErr.Error())
 		return
 	}
 

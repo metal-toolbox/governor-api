@@ -212,7 +212,7 @@ func (s *NotificationPreferencesTestSuite) TestNotificationPreferences() {
 						NotificationType: "alert",
 						Enabled:          true,
 					}},
-					sqlxdb, sqlxdb, s.auditID, u,
+					sqlxdb, s.auditID, u,
 				)
 
 				return e
@@ -245,7 +245,7 @@ func (s *NotificationPreferencesTestSuite) TestNotificationPreferences() {
 							Enabled: false,
 						}},
 					}},
-					sqlxdb, sqlxdb, s.auditID, u,
+					sqlxdb, s.auditID, u,
 				)
 
 				return e
@@ -277,7 +277,7 @@ func (s *NotificationPreferencesTestSuite) TestNotificationPreferences() {
 						NotificationType: "invalid-type",
 						Enabled:          true,
 					}},
-					sqlxdb, sqlxdb, s.auditID, u,
+					sqlxdb, s.auditID, u,
 				)
 
 				return e
@@ -299,7 +299,7 @@ func (s *NotificationPreferencesTestSuite) TestNotificationPreferences() {
 							Enabled: false,
 						}},
 					}},
-					sqlxdb, sqlxdb, s.auditID, u,
+					sqlxdb, s.auditID, u,
 				)
 
 				return e

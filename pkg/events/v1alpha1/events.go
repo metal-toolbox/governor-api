@@ -36,11 +36,11 @@ const (
 	// GovernorApplicationTypesEventSubject is the subject name for application type events (minus the subject prefix)
 	GovernorApplicationTypesEventSubject = "applicationtypes"
 	// GovernorNotificationTypesEventSubject is the subject name for notification type events (minus the subject prefix)
-	GovernorNotificationTypesEventSubject = "notificationtypes"
+	GovernorNotificationTypesEventSubject = "notification.types"
 	// GovernorNotificationTargetsEventSubject is the subject name for notification target events (minus the subject prefix)
-	GovernorNotificationTargetsEventSubject = "notificationtarget"
+	GovernorNotificationTargetsEventSubject = "notification.targets"
 	// GovernorNotificationPreferencesEventSubject is the subject name for notification preference events (minus the subject prefix)
-	GovernorNotificationPreferencesEventSubject = "notificationpreference"
+	GovernorNotificationPreferencesEventSubject = "users.notificationpreferences"
 )
 
 // Event is an event notification from Governor.
