@@ -27,7 +27,7 @@ type NotificationTarget struct {
 type NotificationTargetReq struct {
 	Name           string `json:"name"`
 	Description    string `json:"description"`
-	DefaultEnabled bool   `json:"default_enabled"`
+	DefaultEnabled *bool  `json:"default_enabled"`
 }
 
 // listNotificationTargets lists notification targets as JSON
@@ -69,10 +69,15 @@ func (r *Router) createNotificationTarget(c *gin.Context) {
 		return
 	}
 
+	if req.DefaultEnabled == nil {
+		sendError(c, http.StatusBadRequest, "notification target default enabled is required")
+		return
+	}
+
 	notificationTarget := &models.NotificationTarget{
 		Name:           req.Name,
 		Description:    req.Description,
-		DefaultEnabled: req.DefaultEnabled,
+		DefaultEnabled: *req.DefaultEnabled,
 	}
 
 	notificationTarget.Slug = slug.Make(notificationTarget.Name)
@@ -364,7 +369,12 @@ func (r *Router) updateNotificationTarget(c *gin.Context) {
 		n.Description = req.Description
 	}
 
-	n.DefaultEnabled = req.DefaultEnabled
+	if req.DefaultEnabled == nil {
+		sendError(c, http.StatusBadRequest, "notification target default enabled is required")
+		return
+	}
+
+	n.DefaultEnabled = *req.DefaultEnabled
 
 	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
 	if err != nil {

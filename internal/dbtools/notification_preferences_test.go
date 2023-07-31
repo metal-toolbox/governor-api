@@ -21,6 +21,9 @@ type NotificationPreferencesTestSuite struct {
 	db      *sql.DB
 	uid     string
 	auditID string
+
+	trueptr  *bool
+	falseptr *bool
 }
 
 func (s *NotificationPreferencesTestSuite) seedTestDB() error {
@@ -67,6 +70,11 @@ func (s *NotificationPreferencesTestSuite) SetupSuite() {
 
 	s.uid = "00000001-0000-0000-0000-000000000001"
 	s.auditID = "10000001-0000-0000-0000-000000000001"
+
+	s.trueptr = new(bool)
+	s.falseptr = new(bool)
+	*s.trueptr = true
+	*s.falseptr = false
 }
 
 func (s *NotificationPreferencesTestSuite) TestNotificationDefaults() {
@@ -82,7 +90,7 @@ func (s *NotificationPreferencesTestSuite) TestNotificationDefaults() {
 			q:    `INSERT INTO notification_types (id, name, slug, description, default_enabled) VALUES ('00000000-0000-0000-0000-000000000001', 'Alert', 'alert', 'aleeeeeeeert', 'false')`,
 			want: UserNotificationPreferences{{
 				NotificationType:    "alert",
-				Enabled:             false,
+				Enabled:             s.falseptr,
 				NotificationTargets: UserNotificationPreferenceTargets{},
 			}},
 			wantQueryErr: false,
@@ -100,7 +108,7 @@ func (s *NotificationPreferencesTestSuite) TestNotificationDefaults() {
 			q:    `UPDATE notification_types SET default_enabled = 'true' WHERE id = '00000000-0000-0000-0000-000000000001'`,
 			want: UserNotificationPreferences{{
 				NotificationType:    "alert",
-				Enabled:             true,
+				Enabled:             s.trueptr,
 				NotificationTargets: UserNotificationPreferenceTargets{},
 			}},
 			wantQueryErr: false,
@@ -111,10 +119,10 @@ func (s *NotificationPreferencesTestSuite) TestNotificationDefaults() {
 			q:    `INSERT INTO notification_targets (id, name, slug, description, default_enabled) VALUES ('00000000-0000-0000-0000-000000000001', 'Slack', 'slack', 'nice', 'false')`,
 			want: UserNotificationPreferences{{
 				NotificationType: "alert",
-				Enabled:          true,
+				Enabled:          s.trueptr,
 				NotificationTargets: UserNotificationPreferenceTargets{{
 					Target:  "slack",
-					Enabled: false,
+					Enabled: s.falseptr,
 				}},
 			}},
 			wantQueryErr: false,
@@ -132,10 +140,10 @@ func (s *NotificationPreferencesTestSuite) TestNotificationDefaults() {
 			q:    `UPDATE notification_targets SET default_enabled = 'true' WHERE id = '00000000-0000-0000-0000-000000000001'`,
 			want: UserNotificationPreferences{{
 				NotificationType: "alert",
-				Enabled:          true,
+				Enabled:          s.trueptr,
 				NotificationTargets: UserNotificationPreferenceTargets{{
 					Target:  "slack",
-					Enabled: true,
+					Enabled: s.trueptr,
 				}},
 			}},
 			wantQueryErr: false,
@@ -194,10 +202,10 @@ func (s *NotificationPreferencesTestSuite) TestNotificationPreferences() {
 			action: nil,
 			wantWithDefaults: UserNotificationPreferences{{
 				NotificationType: "alert",
-				Enabled:          true,
+				Enabled:          s.trueptr,
 				NotificationTargets: UserNotificationPreferenceTargets{{
 					Target:  "slack",
-					Enabled: true,
+					Enabled: s.trueptr,
 				}},
 			}},
 			wantWithoutDefaults: UserNotificationPreferences{},
@@ -210,7 +218,7 @@ func (s *NotificationPreferencesTestSuite) TestNotificationPreferences() {
 					context.TODO(), u,
 					UserNotificationPreferences{{
 						NotificationType: "alert",
-						Enabled:          true,
+						Enabled:          s.trueptr,
 					}},
 					sqlxdb, s.auditID, u,
 				)
@@ -219,15 +227,15 @@ func (s *NotificationPreferencesTestSuite) TestNotificationPreferences() {
 			},
 			wantWithDefaults: UserNotificationPreferences{{
 				NotificationType: "alert",
-				Enabled:          true,
+				Enabled:          s.trueptr,
 				NotificationTargets: UserNotificationPreferenceTargets{{
 					Target:  "slack",
-					Enabled: true,
+					Enabled: s.trueptr,
 				}},
 			}},
 			wantWithoutDefaults: UserNotificationPreferences{{
 				NotificationType:    "alert",
-				Enabled:             true,
+				Enabled:             s.trueptr,
 				NotificationTargets: UserNotificationPreferenceTargets{},
 			}},
 			wantErr: false,
@@ -239,10 +247,10 @@ func (s *NotificationPreferencesTestSuite) TestNotificationPreferences() {
 					context.TODO(), u,
 					UserNotificationPreferences{{
 						NotificationType: "alert",
-						Enabled:          true,
+						Enabled:          s.trueptr,
 						NotificationTargets: UserNotificationPreferenceTargets{{
 							Target:  "slack",
-							Enabled: false,
+							Enabled: s.falseptr,
 						}},
 					}},
 					sqlxdb, s.auditID, u,
@@ -252,18 +260,18 @@ func (s *NotificationPreferencesTestSuite) TestNotificationPreferences() {
 			},
 			wantWithDefaults: UserNotificationPreferences{{
 				NotificationType: "alert",
-				Enabled:          true,
+				Enabled:          s.trueptr,
 				NotificationTargets: UserNotificationPreferenceTargets{{
 					Target:  "slack",
-					Enabled: false,
+					Enabled: s.falseptr,
 				}},
 			}},
 			wantWithoutDefaults: UserNotificationPreferences{{
 				NotificationType: "alert",
-				Enabled:          true,
+				Enabled:          s.trueptr,
 				NotificationTargets: UserNotificationPreferenceTargets{{
 					Target:  "slack",
-					Enabled: false,
+					Enabled: s.falseptr,
 				}},
 			}},
 			wantErr: false,
@@ -275,7 +283,7 @@ func (s *NotificationPreferencesTestSuite) TestNotificationPreferences() {
 					context.TODO(), u,
 					UserNotificationPreferences{{
 						NotificationType: "invalid-type",
-						Enabled:          true,
+						Enabled:          s.trueptr,
 					}},
 					sqlxdb, s.auditID, u,
 				)
@@ -293,10 +301,52 @@ func (s *NotificationPreferencesTestSuite) TestNotificationPreferences() {
 					context.TODO(), u,
 					UserNotificationPreferences{{
 						NotificationType: "alert",
-						Enabled:          true,
+						Enabled:          s.trueptr,
 						NotificationTargets: UserNotificationPreferenceTargets{{
 							Target:  "invalid-target",
-							Enabled: false,
+							Enabled: s.falseptr,
+						}},
+					}},
+					sqlxdb, s.auditID, u,
+				)
+
+				return e
+			},
+			wantWithDefaults:    UserNotificationPreferences{nil},
+			wantWithoutDefaults: UserNotificationPreferences{nil},
+			wantErr:             true,
+		},
+		{
+			name: "user updates notification preferences with empty target enabled value",
+			action: func() error {
+				_, e := CreateOrUpdateNotificationPreferences(
+					context.TODO(), u,
+					UserNotificationPreferences{{
+						NotificationType: "alert",
+						Enabled:          s.trueptr,
+						NotificationTargets: UserNotificationPreferenceTargets{{
+							Target: "slack",
+						}},
+					}},
+					sqlxdb, s.auditID, u,
+				)
+
+				return e
+			},
+			wantWithDefaults:    UserNotificationPreferences{nil},
+			wantWithoutDefaults: UserNotificationPreferences{nil},
+			wantErr:             true,
+		},
+		{
+			name: "user updates notification preferences with empty type enabled value",
+			action: func() error {
+				_, e := CreateOrUpdateNotificationPreferences(
+					context.TODO(), u,
+					UserNotificationPreferences{{
+						NotificationType: "alert",
+						NotificationTargets: UserNotificationPreferenceTargets{{
+							Target:  "slack",
+							Enabled: s.trueptr,
 						}},
 					}},
 					sqlxdb, s.auditID, u,

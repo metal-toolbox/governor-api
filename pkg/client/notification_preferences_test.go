@@ -158,6 +158,8 @@ func TestClient_UpdateNotificationPreferences(t *testing.T) {
 		return resp
 	}
 
+	enabled := false
+
 	type fields struct {
 		httpClient HTTPDoer
 	}
@@ -183,7 +185,7 @@ func TestClient_UpdateNotificationPreferences(t *testing.T) {
 			req: v1alpha1.UserNotificationPreferences{
 				{
 					NotificationType: "alert",
-					Enabled:          false,
+					Enabled:          &enabled,
 				},
 			},
 			want: testResp([]byte(testNotificationPreferencesResponse)),
@@ -201,7 +203,7 @@ func TestClient_UpdateNotificationPreferences(t *testing.T) {
 			req: v1alpha1.UserNotificationPreferences{
 				{
 					NotificationType: "alert",
-					Enabled:          false,
+					Enabled:          &enabled,
 				},
 			},
 			want: testResp([]byte(testNotificationPreferencesResponse)),
@@ -218,7 +220,7 @@ func TestClient_UpdateNotificationPreferences(t *testing.T) {
 			req: v1alpha1.UserNotificationPreferences{
 				{
 					NotificationType: "alert",
-					Enabled:          false,
+					Enabled:          &enabled,
 				},
 			},
 			wantErr: true,
@@ -236,7 +238,7 @@ func TestClient_UpdateNotificationPreferences(t *testing.T) {
 			req: v1alpha1.UserNotificationPreferences{
 				{
 					NotificationType: "alert",
-					Enabled:          false,
+					Enabled:          &enabled,
 				},
 			},
 			wantErr: true,
@@ -253,7 +255,7 @@ func TestClient_UpdateNotificationPreferences(t *testing.T) {
 			req: v1alpha1.UserNotificationPreferences{
 				{
 					NotificationType: "alert",
-					Enabled:          false,
+					Enabled:          &enabled,
 				},
 			},
 			wantErr: true,

@@ -27,7 +27,7 @@ type NotificationType struct {
 type NotificationTypeReq struct {
 	Name           string `json:"name"`
 	Description    string `json:"description"`
-	DefaultEnabled bool   `json:"default_enabled"`
+	DefaultEnabled *bool  `json:"default_enabled"`
 }
 
 // listNotificationTypes lists notification types as JSON
@@ -69,10 +69,15 @@ func (r *Router) createNotificationType(c *gin.Context) {
 		return
 	}
 
+	if req.DefaultEnabled == nil {
+		sendError(c, http.StatusBadRequest, "notification type default enabled is required")
+		return
+	}
+
 	notificationType := &models.NotificationType{
 		Name:           req.Name,
 		Description:    req.Description,
-		DefaultEnabled: req.DefaultEnabled,
+		DefaultEnabled: *req.DefaultEnabled,
 	}
 
 	notificationType.Slug = slug.Make(notificationType.Name)
@@ -364,7 +369,12 @@ func (r *Router) updateNotificationType(c *gin.Context) {
 		n.Description = req.Description
 	}
 
-	n.DefaultEnabled = req.DefaultEnabled
+	if req.DefaultEnabled == nil {
+		sendError(c, http.StatusBadRequest, "notification type default enabled is required")
+		return
+	}
+
+	n.DefaultEnabled = *req.DefaultEnabled
 
 	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
 	if err != nil {

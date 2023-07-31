@@ -26,7 +26,7 @@ func newErrDBUpdateNotificationPreferences(msg string) error {
 // UserNotificationPreferenceTarget is the user notification target response
 type UserNotificationPreferenceTarget struct {
 	Target  string `json:"target"`
-	Enabled bool   `json:"enabled"`
+	Enabled *bool  `json:"enabled"`
 }
 
 // UserNotificationPreferenceTargets is an alias for user notification target
@@ -36,7 +36,7 @@ type UserNotificationPreferenceTargets []*UserNotificationPreferenceTarget
 // UserNotificationPreference is the user notification preference response
 type UserNotificationPreference struct {
 	NotificationType string `json:"notification_type" boil:"notification_type"`
-	Enabled          bool   `json:"enabled"`
+	Enabled          *bool  `json:"enabled"`
 
 	NotificationTargets UserNotificationPreferenceTargets `json:"notification_targets"`
 }
@@ -65,7 +65,7 @@ func GetNotificationPreferences(ctx context.Context, uid string, ex boil.Context
 
 	type preferencesQueryRecordNotificationTarget struct {
 		Target  string `json:"f1"`
-		Enabled bool   `json:"f2"`
+		Enabled *bool  `json:"f2"`
 	}
 
 	qWithDefaults := `
@@ -218,11 +218,18 @@ func CreateOrUpdateNotificationPreferences(
 				newErrDBUpdateNotificationPreferences(fmt.Sprintf("notificationType %s not found", p.NotificationType))
 		}
 
+		if p.Enabled == nil {
+			return nil, newErrDBUpdateNotificationPreferences(fmt.Sprintf(
+				"notification type %s enabled value cannot be empty",
+				p.NotificationType,
+			))
+		}
+
 		np := &models.NotificationPreference{
 			UserID:               user.ID,
 			NotificationTypeID:   notificationTypeID,
 			NotificationTargetID: null.NewString("", false),
-			Enabled:              p.Enabled,
+			Enabled:              *p.Enabled,
 		}
 
 		if err := np.Upsert(
@@ -247,11 +254,19 @@ func CreateOrUpdateNotificationPreferences(
 					newErrDBUpdateNotificationPreferences(fmt.Sprintf("notificationTarget %s not found", t.Target))
 			}
 
+			if t.Enabled == nil {
+				return nil, newErrDBUpdateNotificationPreferences(fmt.Sprintf(
+					"notification type [%s] target [%s] enabled value cannot be empty",
+					p.NotificationType,
+					t.Target,
+				))
+			}
+
 			np := &models.NotificationPreference{
 				UserID:               user.ID,
 				NotificationTypeID:   notificationTypeID,
 				NotificationTargetID: null.NewString(notificationTargetID, true),
-				Enabled:              t.Enabled,
+				Enabled:              *t.Enabled,
 			}
 
 			if err := np.Upsert(

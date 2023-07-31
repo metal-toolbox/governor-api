@@ -245,6 +245,8 @@ func TestClient_CreateNotificationTarget(t *testing.T) {
 		return resp
 	}
 
+	enabled := true
+
 	type fields struct {
 		httpClient HTTPDoer
 	}
@@ -268,7 +270,7 @@ func TestClient_CreateNotificationTarget(t *testing.T) {
 			req: &v1alpha1.NotificationTargetReq{
 				Name:           "Slack",
 				Description:    "nice",
-				DefaultEnabled: true,
+				DefaultEnabled: &enabled,
 			},
 			want: testResp([]byte(testNotificationTargetResponse)),
 		},
@@ -284,7 +286,7 @@ func TestClient_CreateNotificationTarget(t *testing.T) {
 			req: &v1alpha1.NotificationTargetReq{
 				Name:           "Slack",
 				Description:    "nice",
-				DefaultEnabled: true,
+				DefaultEnabled: &enabled,
 			},
 			want: testResp([]byte(testNotificationTargetResponse)),
 		},
@@ -299,7 +301,7 @@ func TestClient_CreateNotificationTarget(t *testing.T) {
 			req: &v1alpha1.NotificationTargetReq{
 				Name:           "Slack",
 				Description:    "nice",
-				DefaultEnabled: true,
+				DefaultEnabled: &enabled,
 			},
 			wantErr: true,
 		},
@@ -315,7 +317,7 @@ func TestClient_CreateNotificationTarget(t *testing.T) {
 			req: &v1alpha1.NotificationTargetReq{
 				Name:           "Slack",
 				Description:    "nice",
-				DefaultEnabled: true,
+				DefaultEnabled: &enabled,
 			},
 			wantErr: true,
 		},
