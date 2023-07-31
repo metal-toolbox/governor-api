@@ -25,6 +25,8 @@ const (
 	GovernorMembersEventSubject = "members"
 	// GovernorMemberRequestsEventSubject is the subject name for member request events (minus the subject prefix)
 	GovernorMemberRequestsEventSubject = "members.requests"
+	// GovernorHierarchiesEventSubject is the subject name for group hierarchy events (minus the subject prefix)
+	GovernorHierarchiesEventSubject = "hierarchies"
 	// GovernorApplicationsEventSubject is the subject name for application events (minus the subject prefix)
 	GovernorApplicationsEventSubject = "apps"
 	// GovernorApplicationLinksEventSubject is the subject name for application link events (minus the subject prefix)

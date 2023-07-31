@@ -213,7 +213,7 @@ func GetMembersOfGroup(ctx context.Context, db *sql.DB, groupID string, shouldPo
 func GetAllGroupMemberships(ctx context.Context, db *sql.DB, shouldPopulateAllModels bool) ([]EnumeratedMembership, error) {
 	enumeratedMemberships := []EnumeratedMembership{}
 
-	err := queries.Raw(membershipsByGroupQuery).Bind(ctx, db, &enumeratedMemberships)
+	err := queries.Raw(allMembershipsQuery).Bind(ctx, db, &enumeratedMemberships)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			return []EnumeratedMembership{}, err
@@ -228,6 +228,82 @@ func GetAllGroupMemberships(ctx context.Context, db *sql.DB, shouldPopulateAllMo
 	}
 
 	return enumeratedMemberships, nil
+}
+
+// HierarchyWouldCreateCycle returns true if a given new parent->member relationship would create a cycle in the database
+func HierarchyWouldCreateCycle(ctx context.Context, db *sql.DB, parentGroupID, memberGroupID string) (bool, error) {
+	hierarchies := make(map[string][]string)
+
+	hierarchyRows, err := models.GroupHierarchies().All(ctx, db)
+	if err != nil {
+		return false, err
+	}
+
+	for _, row := range hierarchyRows {
+		hierarchies[row.ParentGroupID] = append(hierarchies[row.ParentGroupID], row.MemberGroupID)
+	}
+
+	hierarchies[parentGroupID] = append(hierarchies[parentGroupID], memberGroupID)
+
+	var walkNode func(startingID string, hierarchies map[string][]string, visited []string) bool
+	walkNode = func(startingID string, hierarchies map[string][]string, visited []string) bool {
+		if _, exists := hierarchies[startingID]; !exists {
+			return false
+		}
+
+		if contains(visited, startingID) {
+			return true
+		}
+
+		for _, e := range hierarchies[startingID] {
+			if walkNode(e, hierarchies, append(visited, startingID)) {
+				return true
+			}
+		}
+
+		return false
+	}
+
+	for i := range hierarchies {
+		if walkNode(i, hierarchies, []string{}) {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+// FindMemberDiff finds members present in the second EnumeratedMembership which are not present in the first
+func FindMemberDiff(before, after []EnumeratedMembership) []EnumeratedMembership {
+	type key struct {
+		groupID string
+		userID  string
+	}
+
+	beforeMap := make(map[key]bool)
+
+	for _, e := range before {
+		k := key{
+			groupID: e.GroupID,
+			userID:  e.UserID,
+		}
+		beforeMap[k] = true
+	}
+
+	uniqueMembersAfter := make([]EnumeratedMembership, 0)
+
+	for _, e := range after {
+		k := key{
+			groupID: e.GroupID,
+			userID:  e.UserID,
+		}
+
+		if _, exists := beforeMap[k]; !exists {
+			uniqueMembersAfter = append(uniqueMembersAfter, e)
+		}
+	}
+
+	return uniqueMembersAfter
 }
 
 func populateModels(ctx context.Context, db *sql.DB, memberships []EnumeratedMembership) ([]EnumeratedMembership, error) {
@@ -314,4 +390,14 @@ func stringMapToKeySlice(m map[string]bool) []string {
 	}
 
 	return keys
+}
+
+func contains(list []string, item string) bool {
+	for _, i := range list {
+		if i == item {
+			return true
+		}
+	}
+
+	return false
 }
