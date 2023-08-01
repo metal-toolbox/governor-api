@@ -564,7 +564,7 @@ func (r *Router) updateAuthenticatedUser(c *gin.Context) {
 		return
 	}
 
-	updateNotificationPublishEventErr := error(nil)
+	var updateNotificationPublishEventErr error
 
 	_, status, err := handleUpdateNotificationPreferencesRequests(
 		c, tx, ctxUser, r.EventBus, req.NotificationPreferences,
