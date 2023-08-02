@@ -22,6 +22,7 @@ import (
 type Group struct {
 	*models.Group
 	Members            []string `json:"members,omitempty"`
+	MembersDirect      []string `json:"members_direct,omitempty"`
 	MembershipRequests []string `json:"membership_requests,omitempty"`
 	Organizations      []string `json:"organizations"`
 	Applications       []string `json:"applications"`
@@ -109,8 +110,15 @@ func (r *Router) getGroup(c *gin.Context) {
 	}
 
 	members := make([]string, len(enumeratedMembers))
+
+	membersDirect := make([]string, 0)
+
 	for i, m := range enumeratedMembers {
 		members[i] = m.UserID
+
+		if m.Direct {
+			membersDirect = append(membersDirect, m.UserID)
+		}
 	}
 
 	requests := make([]string, len(group.R.GroupMembershipRequests))
@@ -128,7 +136,7 @@ func (r *Router) getGroup(c *gin.Context) {
 		applications[i] = o.R.Application.ID
 	}
 
-	c.JSON(http.StatusOK, Group{group, members, requests, organizations, applications})
+	c.JSON(http.StatusOK, Group{group, members, membersDirect, requests, organizations, applications})
 }
 
 func createGroupRequestValidator(group *models.Group) (string, error) {
