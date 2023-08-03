@@ -564,26 +564,19 @@ func (r *Router) updateAuthenticatedUser(c *gin.Context) {
 		return
 	}
 
-	var updateNotificationPublishEventErr error
-
 	if len(req.NotificationPreferences) > 0 {
-		_, status, err := handleUpdateNotificationPreferencesRequests(
-			c, tx, ctxUser, r.EventBus, req.NotificationPreferences,
-		)
-		if err != nil {
-			if errors.Is(err, ErrPublishUpdateNotificationPreferences) {
-				updateNotificationPublishEventErr = err
-			} else {
-				msg := err.Error()
+		if _, status, err := handleUpdateNotificationPreferencesRequests(
+			c, tx, ctxUser, req.NotificationPreferences,
+		); err != nil {
+			msg := err.Error()
 
-				if err := tx.Rollback(); err != nil {
-					msg += "error rolling back transaction: " + err.Error()
-				}
-
-				sendError(c, status, msg)
-
-				return
+			if err := tx.Rollback(); err != nil {
+				msg += "error rolling back transaction: " + err.Error()
 			}
+
+			sendError(c, status, msg)
+
+			return
 		}
 	}
 
@@ -596,11 +589,6 @@ func (r *Router) updateAuthenticatedUser(c *gin.Context) {
 
 		sendError(c, http.StatusBadRequest, msg)
 
-		return
-	}
-
-	if updateNotificationPublishEventErr != nil {
-		sendError(c, http.StatusBadRequest, updateNotificationPublishEventErr.Error())
 		return
 	}
 

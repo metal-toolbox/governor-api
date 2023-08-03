@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
-	"reflect"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -43,19 +42,13 @@ type User struct {
 
 // UserReq is a user request payload
 type UserReq struct {
-	AvatarURL               string                      `json:"avatar_url,omitempty"`
-	Email                   string                      `json:"email"`
-	ExternalID              string                      `json:"external_id"`
-	GithubID                string                      `json:"github_id,omitempty"`
-	GithubUsername          string                      `json:"github_username,omitempty"`
-	Name                    string                      `json:"name"`
-	Status                  string                      `json:"status,omitempty"`
-	NotificationPreferences UserNotificationPreferences `json:"notification_preferences,omitempty"`
-}
-
-// IsEmpty checks if a UserReq object is empty
-func (ur *UserReq) IsEmpty() bool {
-	return reflect.DeepEqual(*ur, UserReq{})
+	AvatarURL      string `json:"avatar_url,omitempty"`
+	Email          string `json:"email"`
+	ExternalID     string `json:"external_id"`
+	GithubID       string `json:"github_id,omitempty"`
+	GithubUsername string `json:"github_username,omitempty"`
+	Name           string `json:"name"`
+	Status         string `json:"status,omitempty"`
 }
 
 // listUsers responds with the list of all users
@@ -288,29 +281,6 @@ func (r *Router) createUser(c *gin.Context) {
 		return
 	}
 
-	var updateNotificationPublishEventErr error
-
-	if len(req.NotificationPreferences) > 0 {
-		_, status, err := handleUpdateNotificationPreferencesRequests(
-			c, tx, user, r.EventBus, req.NotificationPreferences,
-		)
-		if err != nil {
-			if errors.Is(err, ErrPublishUpdateNotificationPreferences) {
-				updateNotificationPublishEventErr = err
-			} else {
-				msg := err.Error()
-
-				if err := tx.Rollback(); err != nil {
-					msg += "error rolling back transaction: " + err.Error()
-				}
-
-				sendError(c, status, msg)
-
-				return
-			}
-		}
-	}
-
 	if err := tx.Commit(); err != nil {
 		msg := "error committing user create, rolling back: " + err.Error()
 
@@ -326,11 +296,6 @@ func (r *Router) createUser(c *gin.Context) {
 	// only publish events for active users
 	if !isActiveUser(user) {
 		c.JSON(http.StatusAccepted, user)
-		return
-	}
-
-	if updateNotificationPublishEventErr != nil {
-		sendError(c, http.StatusBadRequest, updateNotificationPublishEventErr.Error())
 		return
 	}
 
@@ -378,7 +343,7 @@ func (r *Router) updateUser(c *gin.Context) {
 		return
 	}
 
-	if req.IsEmpty() {
+	if req == (UserReq{}) {
 		sendError(c, http.StatusBadRequest, "missing user request parameters")
 		return
 	}
@@ -474,29 +439,6 @@ func (r *Router) updateUser(c *gin.Context) {
 		return
 	}
 
-	updateNotificationPublishEventErr := error(nil)
-
-	if len(req.NotificationPreferences) > 0 {
-		_, status, err := handleUpdateNotificationPreferencesRequests(
-			c, tx, user, r.EventBus, req.NotificationPreferences,
-		)
-		if err != nil && !errors.Is(err, ErrNotificationPreferencesEmptyInput) {
-			if errors.Is(err, ErrPublishUpdateNotificationPreferences) {
-				updateNotificationPublishEventErr = err
-			} else {
-				msg := err.Error()
-
-				if err := tx.Rollback(); err != nil {
-					msg += "error rolling back transaction: " + err.Error()
-				}
-
-				sendError(c, status, msg)
-
-				return
-			}
-		}
-	}
-
 	if err := tx.Commit(); err != nil {
 		msg := "error committing user update, rolling back: " + err.Error()
 
@@ -512,11 +454,6 @@ func (r *Router) updateUser(c *gin.Context) {
 	// only publish events for active users
 	if !isActiveUser(user) {
 		c.JSON(http.StatusAccepted, user)
-		return
-	}
-
-	if updateNotificationPublishEventErr != nil {
-		sendError(c, http.StatusBadRequest, updateNotificationPublishEventErr.Error())
 		return
 	}
 

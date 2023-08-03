@@ -68,7 +68,7 @@ func GetNotificationPreferences(ctx context.Context, uid string, ex boil.Context
 		Enabled *bool  `json:"f2"`
 	}
 
-	qWithDefaults := `
+	np := `
 		WITH np as (
 			SELECT 
 				user_id,
@@ -82,34 +82,30 @@ func GetNotificationPreferences(ctx context.Context, uid string, ex boil.Context
 			LEFT JOIN notification_types ON notification_type_id = notification_types.id
 			WHERE notification_preferences.user_id = $1
 		)
+	`
+
+	qWithDefaults := fmt.Sprintf(
+		"%s\n%s", np,
+		`
 		SELECT
 			nd.type_slug AS notification_type,
 			jsonb_agg((nd.target_slug, IFNULL(np.enabled, nd.default_enabled))) AS notification_targets
 		FROM notification_defaults as nd
 		FULL OUTER JOIN np on (np.target_id = nd.target_id AND np.type_id = nd.type_id)
 		GROUP BY nd.type_slug
-		`
+		`,
+	)
 
-	qWithoutDefaults := `
-		WITH np as (
-			SELECT 
-				user_id,
-				notification_types.id as type_id,
-				notification_types.slug as type_slug,
-				notification_preferences.notification_target_id_null_string as target_id,
-				notification_targets.slug as target_slug,
-				enabled
-			FROM notification_preferences
-			LEFT JOIN notification_targets ON notification_target_id = notification_targets.id
-			LEFT JOIN notification_types ON notification_type_id = notification_types.id
-			WHERE notification_preferences.user_id = $1
-		)
+	qWithoutDefaults := fmt.Sprintf(
+		"%s\n%s", np,
+		`
 		SELECT
 			np.type_slug AS notification_type,
 			jsonb_agg((np.target_slug, np.enabled)) AS notification_targets
 		FROM np
 		GROUP BY np.type_slug
-		`
+		`,
+	)
 
 	var q *queries.Query
 	if withDefaults {
