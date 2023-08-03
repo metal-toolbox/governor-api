@@ -142,7 +142,9 @@ func (r *Router) getOrganization(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, Organization{org})
+	c.JSON(http.StatusOK, Organization{
+		Organization: org,
+	})
 }
 
 // createOrganization creates an org in the database

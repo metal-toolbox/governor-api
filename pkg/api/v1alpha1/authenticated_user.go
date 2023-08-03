@@ -110,7 +110,12 @@ func (r *Router) getAuthenticatedUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, AuthenticatedUser{
-		User:  &User{ctxUser, memberships, membershipsDirect, requests},
+		User: &User{
+			User:               ctxUser,
+			Memberships:        memberships,
+			MembershipsDirect:  membershipsDirect,
+			MembershipRequests: requests,
+		},
 		Admin: *ctxAdmin,
 	})
 }
@@ -171,7 +176,13 @@ func (r *Router) getAuthenticatedUserGroups(c *gin.Context) {
 			apps = append(apps, a.R.Application)
 		}
 
-		userGroups = append(userGroups, AuthenticatedUserGroup{g, orgs, apps, contains(userAdminGroups, g.ID), contains(userDirectGroups, g.ID)})
+		userGroups = append(userGroups, AuthenticatedUserGroup{
+			Group:         g,
+			Organizations: orgs,
+			Applications:  apps,
+			Admin:         contains(userAdminGroups, g.ID),
+			Direct:        contains(userDirectGroups, g.ID),
+		})
 	}
 
 	c.JSON(http.StatusOK, userGroups)
@@ -319,7 +330,10 @@ func (r *Router) getAuthenticatedUserGroupRequests(c *gin.Context) {
 			Note:          m.Note,
 		}
 
-		memberRequests[i] = AuthenticatedUserGroupMemberRequest{&gmr, false}
+		memberRequests[i] = AuthenticatedUserGroupMemberRequest{
+			GroupMemberRequest: &gmr,
+			Admin:              false,
+		}
 	}
 
 	applicationRequests := make([]AuthenticatedUserGroupApplicationRequest, len(ctxUser.R.RequesterUserGroupApplicationRequests))
@@ -345,7 +359,9 @@ func (r *Router) getAuthenticatedUserGroupRequests(c *gin.Context) {
 			UpdatedAt:              a.UpdatedAt,
 		}
 
-		applicationRequests[i] = AuthenticatedUserGroupApplicationRequest{&gar}
+		applicationRequests[i] = AuthenticatedUserGroupApplicationRequest{
+			GroupApplicationRequest: &gar,
+		}
 	}
 
 	c.JSON(http.StatusOK, AuthenticatedUserRequests{

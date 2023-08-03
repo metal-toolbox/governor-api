@@ -147,7 +147,9 @@ func (r *Router) getApplicationType(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, ApplicationType{app})
+	c.JSON(http.StatusOK, ApplicationType{
+		ApplicationType: app,
+	})
 }
 
 // createApplicationType creates an application type in the database

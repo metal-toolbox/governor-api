@@ -152,7 +152,12 @@ func (r *Router) getUser(c *gin.Context) {
 		requests[i] = r.GroupID
 	}
 
-	c.JSON(http.StatusOK, User{user, memberships, membershipsDirect, requests})
+	c.JSON(http.StatusOK, User{
+		User:               user,
+		Memberships:        memberships,
+		MembershipsDirect:  membershipsDirect,
+		MembershipRequests: requests,
+	})
 }
 
 // createUser creates a user in the database

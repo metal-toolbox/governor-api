@@ -151,7 +151,10 @@ func (r *Router) getApplication(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, Application{app, app.R.Type})
+	c.JSON(http.StatusOK, Application{
+		Application: app,
+		Type:        app.R.Type,
+	})
 }
 
 // createApplication creates an application in the database

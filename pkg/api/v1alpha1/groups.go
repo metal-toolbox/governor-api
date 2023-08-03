@@ -136,7 +136,14 @@ func (r *Router) getGroup(c *gin.Context) {
 		applications[i] = o.R.Application.ID
 	}
 
-	c.JSON(http.StatusOK, Group{group, members, membersDirect, requests, organizations, applications})
+	c.JSON(http.StatusOK, Group{
+		Group:              group,
+		Members:            members,
+		MembersDirect:      membersDirect,
+		MembershipRequests: requests,
+		Organizations:      organizations,
+		Applications:       applications,
+	})
 }
 
 func createGroupRequestValidator(group *models.Group) (string, error) {
