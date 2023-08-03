@@ -37,30 +37,29 @@ CREATE TABLE notification_preferences (
   enabled BOOL NOT NULL DEFAULT false,
 
   CONSTRAINT unique_user_type_target UNIQUE (user_id, notification_type_id, notification_target_id_null_string),
-  INDEX (user_id) STORING (notification_type_id, notification_target_id, notification_target_id_null_string, enabled),
-  INDEX (user_id, notification_target_id, notification_type_id) STORING (enabled)
+  INDEX (user_id, notification_target_id, notification_type_id) STORING (enabled,  notification_target_id_null_string)
 );
 
 CREATE MATERIALIZED VIEW notification_defaults AS 
 SELECT
-  targets.id as target_id,
-  targets.slug as target_slug,
-  types.id as type_id,
-  types.slug as type_slug,
-  targets.default_enabled as default_enabled
+  targets.id AS target_id,
+  targets.slug AS target_slug,
+  types.id AS type_id,
+  types.slug AS type_slug,
+  targets.default_enabled AS default_enabled
 FROM
-  notification_types as types
-CROSS JOIN notification_targets as targets
+  notification_types AS types
+CROSS JOIN notification_targets AS targets
 WHERE types.deleted_at IS NULL AND targets.deleted_at IS NULL
 UNION (
   SELECT
-    '00000000-0000-0000-0000-000000000000' as target_id,
-    '' as target_slug,
-    types.id as type_id,
-    types.slug as type_slug,
-    types.default_enabled as default_enabled
+    '00000000-0000-0000-0000-000000000000' AS target_id,
+    '' AS target_slug,
+    types.id AS type_id,
+    types.slug AS type_slug,
+    types.default_enabled AS default_enabled
   FROM
-    notification_types as types
+    notification_types AS types
   WHERE types.deleted_at IS NULL
 );
 
