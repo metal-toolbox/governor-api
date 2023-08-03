@@ -74,7 +74,12 @@ func (r *Router) getAuthenticatedUser(c *gin.Context) {
 
 	if ctxUser.R == nil {
 		c.JSON(http.StatusOK, AuthenticatedUser{
-			User:  &User{ctxUser, []string{}, []string{}, []string{}},
+			User: &User{
+				User:               ctxUser,
+				Memberships:        []string{},
+				MembershipsDirect:  []string{},
+				MembershipRequests: []string{},
+			},
 			Admin: *ctxAdmin,
 		})
 
