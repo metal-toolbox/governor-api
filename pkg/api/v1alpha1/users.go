@@ -35,6 +35,7 @@ var permittedListUsersParams = []string{"external_id", "email"}
 type User struct {
 	*models.User
 	Memberships        []string `json:"memberships,omitempty"`
+	MembershipsDirect  []string `json:"memberships_direct,omitempty"`
 	MembershipRequests []string `json:"membership_requests,omitempty"`
 }
 
@@ -135,8 +136,15 @@ func (r *Router) getUser(c *gin.Context) {
 	}
 
 	memberships := make([]string, len(enumeratedMemberships))
+
+	membershipsDirect := make([]string, 0)
+
 	for i, m := range enumeratedMemberships {
 		memberships[i] = m.GroupID
+
+		if m.Direct {
+			membershipsDirect = append(membershipsDirect, m.GroupID)
+		}
 	}
 
 	requests := make([]string, len(user.R.GroupMembershipRequests))
@@ -144,7 +152,12 @@ func (r *Router) getUser(c *gin.Context) {
 		requests[i] = r.GroupID
 	}
 
-	c.JSON(http.StatusOK, User{user, memberships, requests})
+	c.JSON(http.StatusOK, User{
+		User:               user,
+		Memberships:        memberships,
+		MembershipsDirect:  membershipsDirect,
+		MembershipRequests: requests,
+	})
 }
 
 // createUser creates a user in the database

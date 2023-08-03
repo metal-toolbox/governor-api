@@ -35,6 +35,7 @@ type AuthenticatedUserGroup struct {
 	Organizations models.OrganizationSlice `json:"organizations"`
 	Applications  models.ApplicationSlice  `json:"applications"`
 	Admin         bool                     `json:"admin"`
+	Direct        bool                     `json:"direct"`
 }
 
 // AuthenticatedUserRequests is a list of application and member requests for the authenticated user
@@ -73,7 +74,12 @@ func (r *Router) getAuthenticatedUser(c *gin.Context) {
 
 	if ctxUser.R == nil {
 		c.JSON(http.StatusOK, AuthenticatedUser{
-			User:  &User{ctxUser, []string{}, []string{}},
+			User: &User{
+				User:               ctxUser,
+				Memberships:        []string{},
+				MembershipsDirect:  []string{},
+				MembershipRequests: []string{},
+			},
 			Admin: *ctxAdmin,
 		})
 
@@ -87,8 +93,15 @@ func (r *Router) getAuthenticatedUser(c *gin.Context) {
 	}
 
 	memberships := make([]string, len(enumeratedMemberships))
+
+	membershipsDirect := make([]string, 0)
+
 	for i, m := range enumeratedMemberships {
 		memberships[i] = m.GroupID
+
+		if m.Direct {
+			membershipsDirect = append(membershipsDirect, m.GroupID)
+		}
 	}
 
 	requests := make([]string, len(ctxUser.R.GroupMembershipRequests))
@@ -97,7 +110,12 @@ func (r *Router) getAuthenticatedUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, AuthenticatedUser{
-		User:  &User{ctxUser, memberships, requests},
+		User: &User{
+			User:               ctxUser,
+			Memberships:        memberships,
+			MembershipsDirect:  membershipsDirect,
+			MembershipRequests: requests,
+		},
 		Admin: *ctxAdmin,
 	})
 }
@@ -112,6 +130,8 @@ func (r *Router) getAuthenticatedUserGroups(c *gin.Context) {
 
 	var userAdminGroups []string
 
+	var userDirectGroups []string
+
 	enumeratedMemberships, err := dbtools.GetMembershipsForUser(c, r.DB.DB, ctxUser.ID, false)
 	if err != nil {
 		sendError(c, http.StatusInternalServerError, "error enumerating group membership: "+err.Error())
@@ -124,6 +144,10 @@ func (r *Router) getAuthenticatedUserGroups(c *gin.Context) {
 
 		if g.IsAdmin {
 			userAdminGroups = append(userAdminGroups, g.GroupID)
+		}
+
+		if g.Direct {
+			userDirectGroups = append(userDirectGroups, g.GroupID)
 		}
 	}
 
@@ -152,7 +176,13 @@ func (r *Router) getAuthenticatedUserGroups(c *gin.Context) {
 			apps = append(apps, a.R.Application)
 		}
 
-		userGroups = append(userGroups, AuthenticatedUserGroup{g, orgs, apps, contains(userAdminGroups, g.ID)})
+		userGroups = append(userGroups, AuthenticatedUserGroup{
+			Group:         g,
+			Organizations: orgs,
+			Applications:  apps,
+			Admin:         contains(userAdminGroups, g.ID),
+			Direct:        contains(userDirectGroups, g.ID),
+		})
 	}
 
 	c.JSON(http.StatusOK, userGroups)
@@ -300,7 +330,10 @@ func (r *Router) getAuthenticatedUserGroupRequests(c *gin.Context) {
 			Note:          m.Note,
 		}
 
-		memberRequests[i] = AuthenticatedUserGroupMemberRequest{&gmr, false}
+		memberRequests[i] = AuthenticatedUserGroupMemberRequest{
+			GroupMemberRequest: &gmr,
+			Admin:              false,
+		}
 	}
 
 	applicationRequests := make([]AuthenticatedUserGroupApplicationRequest, len(ctxUser.R.RequesterUserGroupApplicationRequests))
@@ -326,7 +359,9 @@ func (r *Router) getAuthenticatedUserGroupRequests(c *gin.Context) {
 			UpdatedAt:              a.UpdatedAt,
 		}
 
-		applicationRequests[i] = AuthenticatedUserGroupApplicationRequest{&gar}
+		applicationRequests[i] = AuthenticatedUserGroupApplicationRequest{
+			GroupApplicationRequest: &gar,
+		}
 	}
 
 	c.JSON(http.StatusOK, AuthenticatedUserRequests{
