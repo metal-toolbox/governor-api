@@ -6,13 +6,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
+	"sync"
 
 	"github.com/metal-toolbox/governor-api/internal/models"
 	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
-	"golang.org/x/sync/errgroup"
 )
 
 // ErrDBUpdateNotificationPreferences is returned when there's an error occurred
@@ -21,6 +22,14 @@ var ErrDBUpdateNotificationPreferences = errors.New("an error occurred while upd
 
 func newErrDBUpdateNotificationPreferences(msg string) error {
 	return fmt.Errorf("%w: %s", ErrDBUpdateNotificationPreferences, msg)
+}
+
+// ErrDBGetNotificationPreferences is returned when there's an error occurred
+// while fetching the user notification preferences on database
+var ErrDBGetNotificationPreferences = errors.New("an error occurred while fetching the user notification preferences")
+
+func newErrDBGetNotificationPreferences(msg string) error {
+	return fmt.Errorf("%w: %s", ErrDBGetNotificationPreferences, msg)
 }
 
 // UserNotificationPreferenceTarget is the user notification target response
@@ -120,41 +129,47 @@ func GetNotificationPreferences(ctx context.Context, uid string, ex boil.Context
 		return nil, err
 	}
 
-	eg := &errgroup.Group{}
+	wg := &sync.WaitGroup{}
 	preferences := make(UserNotificationPreferences, len(records))
+	errs := make([]string, len(records))
+	buildNotificationPreferenceRecord := func(i int, r *preferencesQueryRecord) {
+		defer wg.Done()
 
-	for i, r := range records {
-		i, r := i, r // https://golang.org/doc/faq#closures_and_goroutines
+		targets := []*preferencesQueryRecordNotificationTarget{}
+		if err := json.Unmarshal(r.NotificationTargetsJSON, &targets); err != nil {
+			errs[i] = fmt.Sprintf("%s\n", err.Error())
+		}
 
-		eg.Go(func() error {
-			targets := []*preferencesQueryRecordNotificationTarget{}
-			if err := json.Unmarshal(r.NotificationTargetsJSON, &targets); err != nil {
-				return err
+		p := new(UserNotificationPreference)
+		p.NotificationType = r.NotificationType
+		p.NotificationTargets = UserNotificationPreferenceTargets{}
+
+		for _, t := range targets {
+			// for rows with NULL target indicates configs are for the parent notification type
+			if t.Target == "" {
+				p.Enabled = t.Enabled
+				continue
 			}
 
-			p := new(UserNotificationPreference)
-			p.NotificationType = r.NotificationType
-			p.NotificationTargets = UserNotificationPreferenceTargets{}
+			target := new(UserNotificationPreferenceTarget)
+			*target = UserNotificationPreferenceTarget(*t)
+			p.NotificationTargets = append(p.NotificationTargets, target)
+		}
 
-			for _, t := range targets {
-				// for rows with NULL target indicates configs are for the parent notification type
-				if t.Target == "" {
-					p.Enabled = t.Enabled
-					continue
-				}
-
-				target := new(UserNotificationPreferenceTarget)
-				*target = UserNotificationPreferenceTarget(*t)
-				p.NotificationTargets = append(p.NotificationTargets, target)
-			}
-
-			preferences[i] = p
-			return nil
-		})
+		preferences[i] = p
 	}
 
-	if err := eg.Wait(); err != nil {
-		return nil, newErrDBUpdateNotificationPreferences(err.Error())
+	for i, r := range records {
+		wg.Add(1)
+
+		go buildNotificationPreferenceRecord(i, r)
+	}
+
+	wg.Wait()
+
+	errStr := strings.Join(errs, " ")
+	if strings.TrimSpace(errStr) != "" {
+		return nil, newErrDBGetNotificationPreferences(errStr)
 	}
 
 	return preferences, nil

@@ -1,8 +1,6 @@
 package v1alpha1
 
 import (
-	"database/sql"
-	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -49,31 +47,6 @@ func handleUpdateNotificationPreferencesRequests(
 	}
 
 	return np, http.StatusAccepted, nil
-}
-
-// getUserNotificationPreferences returns the user's notification preferences
-func (r *Router) getUserNotificationPreferences(c *gin.Context) {
-	id := c.Param("id")
-
-	user, err := models.FindUser(c.Request.Context(), r.DB, id)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			sendError(c, http.StatusNotFound, "user not found: "+err.Error())
-			return
-		}
-
-		sendError(c, http.StatusInternalServerError, "error getting user "+err.Error())
-
-		return
-	}
-
-	np, err := dbtools.GetNotificationPreferences(c.Request.Context(), user.ID, r.DB, true)
-	if err != nil {
-		sendError(c, http.StatusInternalServerError, "error getting notification preferences: "+err.Error())
-		return
-	}
-
-	c.JSON(http.StatusOK, np)
 }
 
 // getUserNotificationPreferences returns the authenticated user's notification
