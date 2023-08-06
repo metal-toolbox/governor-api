@@ -226,6 +226,40 @@ var (
 	"github_username": "johnnyTog"
 }
 `)
+
+	testGroupHierarchiesResponse = []byte(`
+[
+	{
+		"id": "31bcb9c0-95e0-4c78-b9af-8b998c8bd21c",
+		"parent_group_id": "186c5a52-4421-4573-8bbf-78d85d3c277e",
+		"parent_group_slug": "test-1",
+		"member_group_id": "f94c8cc2-375b-4043-863d-1dcd57ff60c7",
+		"member_group_slug": "test-2",
+		"expires_at": null
+	},
+	{
+		"id": "622b27f2-c1b6-4b91-aed7-784c8bf76736",
+		"parent_group_id": "f94c8cc2-375b-4043-863d-1dcd57ff60c7",
+		"parent_group_slug": "test-2",
+		"member_group_id": "fa606133-18f0-4ff4-b92e-d344398ed05b",
+		"member_group_slug": "test-3",
+		"expires_at": null
+	}
+]
+`)
+
+	testMemberGroupsResponse = []byte(`
+[
+	{
+		"id": "31bcb9c0-95e0-4c78-b9af-8b998c8bd21c",
+		"parent_group_id": "186c5a52-4421-4573-8bbf-78d85d3c277e",
+		"parent_group_slug": "test-1",
+		"member_group_id": "f94c8cc2-375b-4043-863d-1dcd57ff60c7",
+		"member_group_slug": "test-2",
+		"expires_at": null
+	}
+]
+`)
 )
 
 func TestClient_newGovernorRequest(t *testing.T) {
