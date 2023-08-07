@@ -32,6 +32,7 @@ var (
 type User struct {
 	*models.User
 	Memberships        []string `json:"memberships,omitempty"`
+	MembershipsDirect  []string `json:"memberships_direct,omitempty"`
 	MembershipRequests []string `json:"membership_requests,omitempty"`
 }
 
