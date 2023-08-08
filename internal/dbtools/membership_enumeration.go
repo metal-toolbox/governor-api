@@ -7,6 +7,7 @@ import (
 
 	"github.com/metal-toolbox/governor-api/internal/models"
 	"github.com/volatiletech/null/v8"
+	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
@@ -168,7 +169,7 @@ type EnumeratedMembership struct {
 }
 
 // GetMembershipsForUser returns a fully enumerated list of memberships for a user, optionally with sqlboiler's generated models populated
-func GetMembershipsForUser(ctx context.Context, db *sql.DB, userID string, shouldPopulateAllModels bool) ([]EnumeratedMembership, error) {
+func GetMembershipsForUser(ctx context.Context, db boil.ContextExecutor, userID string, shouldPopulateAllModels bool) ([]EnumeratedMembership, error) {
 	enumeratedMemberships := []EnumeratedMembership{}
 
 	err := queries.Raw(membershipsByUserQuery, userID).Bind(ctx, db, &enumeratedMemberships)
@@ -189,7 +190,7 @@ func GetMembershipsForUser(ctx context.Context, db *sql.DB, userID string, shoul
 }
 
 // GetMembersOfGroup returns a fully enumerated list of memberships in a group, optionally with sqlboiler's generated models populated
-func GetMembersOfGroup(ctx context.Context, db *sql.DB, groupID string, shouldPopulateAllModels bool) ([]EnumeratedMembership, error) {
+func GetMembersOfGroup(ctx context.Context, db boil.ContextExecutor, groupID string, shouldPopulateAllModels bool) ([]EnumeratedMembership, error) {
 	enumeratedMemberships := []EnumeratedMembership{}
 
 	err := queries.Raw(membershipsByGroupQuery, groupID).Bind(ctx, db, &enumeratedMemberships)
@@ -210,7 +211,7 @@ func GetMembersOfGroup(ctx context.Context, db *sql.DB, groupID string, shouldPo
 }
 
 // GetAllGroupMemberships returns a fully enumerated list of all memberships in the database, optionally with sqlboiler's generated models populated (use with caution, potentially lots of data)
-func GetAllGroupMemberships(ctx context.Context, db *sql.DB, shouldPopulateAllModels bool) ([]EnumeratedMembership, error) {
+func GetAllGroupMemberships(ctx context.Context, db boil.ContextExecutor, shouldPopulateAllModels bool) ([]EnumeratedMembership, error) {
 	enumeratedMemberships := []EnumeratedMembership{}
 
 	err := queries.Raw(allMembershipsQuery).Bind(ctx, db, &enumeratedMemberships)
@@ -231,7 +232,7 @@ func GetAllGroupMemberships(ctx context.Context, db *sql.DB, shouldPopulateAllMo
 }
 
 // HierarchyWouldCreateCycle returns true if a given new parent->member relationship would create a cycle in the database
-func HierarchyWouldCreateCycle(ctx context.Context, db *sql.DB, parentGroupID, memberGroupID string) (bool, error) {
+func HierarchyWouldCreateCycle(ctx context.Context, db boil.ContextExecutor, parentGroupID, memberGroupID string) (bool, error) {
 	hierarchies := make(map[string][]string)
 
 	hierarchyRows, err := models.GroupHierarchies().All(ctx, db)
@@ -306,7 +307,7 @@ func FindMemberDiff(before, after []EnumeratedMembership) []EnumeratedMembership
 	return uniqueMembersAfter
 }
 
-func populateModels(ctx context.Context, db *sql.DB, memberships []EnumeratedMembership) ([]EnumeratedMembership, error) {
+func populateModels(ctx context.Context, db boil.ContextExecutor, memberships []EnumeratedMembership) ([]EnumeratedMembership, error) {
 	groupIDSet := make(map[string]bool)
 	userIDSet := make(map[string]bool)
 
