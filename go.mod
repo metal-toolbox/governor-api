@@ -15,7 +15,7 @@ require (
 	github.com/gosimple/slug v1.13.1
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/lib/pq v1.10.9
-	github.com/metal-toolbox/auditevent v0.7.0
+	github.com/metal-toolbox/auditevent v0.8.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/nats-io/nats.go v1.25.0
 	github.com/pressly/goose/v3 v3.10.0
