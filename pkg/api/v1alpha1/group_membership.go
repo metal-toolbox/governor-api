@@ -182,7 +182,7 @@ func (r *Router) addGroupMember(c *gin.Context) {
 		return
 	}
 
-	membershipsBefore, err := dbtools.GetMembershipsForUser(c, r.DB.DB, user.ID, false)
+	membershipsBefore, err := dbtools.GetMembershipsForUser(c, tx, user.ID, false)
 	if err != nil {
 		msg := "failed to compute new effective memberships: " + err.Error()
 
@@ -232,7 +232,7 @@ func (r *Router) addGroupMember(c *gin.Context) {
 		return
 	}
 
-	membershipsAfter, err := dbtools.GetMembershipsForUser(c, r.DB.DB, user.ID, false)
+	membershipsAfter, err := dbtools.GetMembershipsForUser(c, tx, user.ID, false)
 	if err != nil {
 		msg := "failed to compute new effective memberships: " + err.Error()
 
@@ -518,7 +518,7 @@ func (r *Router) removeGroupMember(c *gin.Context) {
 		return
 	}
 
-	membershipsBefore, err := dbtools.GetMembershipsForUser(c, r.DB.DB, user.ID, false)
+	membershipsBefore, err := dbtools.GetMembershipsForUser(c, tx, user.ID, false)
 	if err != nil {
 		msg := "failed to compute new effective memberships: " + err.Error()
 
@@ -568,7 +568,7 @@ func (r *Router) removeGroupMember(c *gin.Context) {
 		return
 	}
 
-	membershipsAfter, err := dbtools.GetMembershipsForUser(c, r.DB.DB, user.ID, false)
+	membershipsAfter, err := dbtools.GetMembershipsForUser(c, tx, user.ID, false)
 	if err != nil {
 		msg := "failed to compute new effective memberships: " + err.Error()
 
@@ -1028,7 +1028,7 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 			return
 		}
 
-		membershipsBefore, err := dbtools.GetMembershipsForUser(c, r.DB.DB, user.ID, false)
+		membershipsBefore, err := dbtools.GetMembershipsForUser(c, tx, user.ID, false)
 		if err != nil {
 			msg := "failed to compute new effective memberships: " + err.Error()
 
@@ -1090,7 +1090,7 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 			return
 		}
 
-		membershipsAfter, err := dbtools.GetMembershipsForUser(c, r.DB.DB, user.ID, false)
+		membershipsAfter, err := dbtools.GetMembershipsForUser(c, tx, user.ID, false)
 		if err != nil {
 			msg := "failed to compute new effective memberships: " + err.Error()
 
