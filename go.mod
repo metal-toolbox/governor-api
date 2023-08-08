@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/XSAM/otelsql v0.23.0
 	github.com/cockroachdb/cockroach-go/v2 v2.3.5
-	github.com/coreos/go-oidc/v3 v3.5.0
+	github.com/coreos/go-oidc/v3 v3.6.0
 	github.com/friendsofgo/errors v0.9.2
 	github.com/gin-contrib/cors v1.4.0
 	github.com/gin-contrib/zap v0.1.0
