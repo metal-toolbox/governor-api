@@ -7,3 +7,5 @@ coverage.txt
 audit.log
 .devcontainer/nats/resolver.conf
 .devcontainer/nsc
+
+tmp/**

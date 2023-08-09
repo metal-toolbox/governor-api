@@ -34,9 +34,10 @@ var permittedListUsersParams = []string{"external_id", "email"}
 // User is a user response
 type User struct {
 	*models.User
-	Memberships        []string `json:"memberships,omitempty"`
-	MembershipsDirect  []string `json:"memberships_direct,omitempty"`
-	MembershipRequests []string `json:"membership_requests,omitempty"`
+	Memberships             []string                            `json:"memberships,omitempty"`
+	MembershipsDirect       []string                            `json:"memberships_direct,omitempty"`
+	MembershipRequests      []string                            `json:"membership_requests,omitempty"`
+	NotificationPreferences dbtools.UserNotificationPreferences `json:"notification_preferences,omitempty"`
 }
 
 // UserReq is a user request payload
@@ -152,11 +153,18 @@ func (r *Router) getUser(c *gin.Context) {
 		requests[i] = r.GroupID
 	}
 
+	notificationPreferences, err := dbtools.GetNotificationPreferences(c.Request.Context(), id, r.DB, true)
+	if err != nil {
+		sendError(c, http.StatusInternalServerError, "error getting notification preferences: "+err.Error())
+		return
+	}
+
 	c.JSON(http.StatusOK, User{
-		User:               user,
-		Memberships:        memberships,
-		MembershipsDirect:  membershipsDirect,
-		MembershipRequests: requests,
+		User:                    user,
+		Memberships:             memberships,
+		MembershipsDirect:       membershipsDirect,
+		MembershipRequests:      requests,
+		NotificationPreferences: notificationPreferences,
 	})
 }
 

@@ -25,8 +25,9 @@ type AuthenticatedUser struct {
 
 // AuthenticatedUserReq is an authenticated user request payload for updating selected details
 type AuthenticatedUserReq struct {
-	AvatarURL      *string `json:"avatar_url"`
-	GithubUsername *string `json:"github_username"`
+	AvatarURL               *string                     `json:"avatar_url"`
+	GithubUsername          *string                     `json:"github_username"`
+	NotificationPreferences UserNotificationPreferences `json:"notification_preferences,omitempty"`
 }
 
 // AuthenticatedUserGroup is an authenticated user group response
@@ -72,13 +73,20 @@ func (r *Router) getAuthenticatedUser(c *gin.Context) {
 		return
 	}
 
+	notificationPreferences, err := dbtools.GetNotificationPreferences(c.Request.Context(), ctxUser.ID, r.DB, true)
+	if err != nil {
+		sendError(c, http.StatusInternalServerError, "error getting notification preferences: "+err.Error())
+		return
+	}
+
 	if ctxUser.R == nil {
 		c.JSON(http.StatusOK, AuthenticatedUser{
 			User: &User{
-				User:               ctxUser,
-				Memberships:        []string{},
-				MembershipsDirect:  []string{},
-				MembershipRequests: []string{},
+				User:                    ctxUser,
+				Memberships:             []string{},
+				MembershipsDirect:       []string{},
+				MembershipRequests:      []string{},
+				NotificationPreferences: notificationPreferences,
 			},
 			Admin: *ctxAdmin,
 		})
@@ -111,10 +119,11 @@ func (r *Router) getAuthenticatedUser(c *gin.Context) {
 
 	c.JSON(http.StatusOK, AuthenticatedUser{
 		User: &User{
-			User:               ctxUser,
-			Memberships:        memberships,
-			MembershipsDirect:  membershipsDirect,
-			MembershipRequests: requests,
+			User:                    ctxUser,
+			Memberships:             memberships,
+			MembershipsDirect:       membershipsDirect,
+			MembershipRequests:      requests,
+			NotificationPreferences: notificationPreferences,
 		},
 		Admin: *ctxAdmin,
 	})
@@ -553,6 +562,22 @@ func (r *Router) updateAuthenticatedUser(c *gin.Context) {
 		sendError(c, http.StatusBadRequest, msg)
 
 		return
+	}
+
+	if len(req.NotificationPreferences) > 0 {
+		if _, status, err := handleUpdateNotificationPreferencesRequests(
+			c, tx, ctxUser, req.NotificationPreferences,
+		); err != nil {
+			msg := err.Error()
+
+			if err := tx.Rollback(); err != nil {
+				msg += "error rolling back transaction: " + err.Error()
+			}
+
+			sendError(c, status, msg)
+
+			return
+		}
 	}
 
 	if err := tx.Commit(); err != nil {

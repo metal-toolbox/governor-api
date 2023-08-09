@@ -82,6 +82,22 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 	)
 
 	rg.GET(
+		"/user/notification-preferences",
+		r.AuditMW.AuditWithType("GetUserNotificationPreferences"),
+		r.AuthMW.AuthRequired([]string{oidcScope}),
+		r.mwUserAuthRequired(AuthRoleUser),
+		r.getAuthenticatedUserNotificationPreferences,
+	)
+
+	rg.PUT(
+		"/user/notification-preferences",
+		r.AuditMW.AuditWithType("UpdateUserNotificationPreferences"),
+		r.AuthMW.AuthRequired([]string{oidcScope}),
+		r.mwUserAuthRequired(AuthRoleUser),
+		r.updateAuthenticatedUserNotificationPreferences,
+	)
+
+	rg.GET(
 		"/users",
 		r.AuditMW.AuditWithType("ListUsers"),
 		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:users")),
@@ -475,6 +491,80 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		r.AuditMW.AuditWithType("GetApplicationTypeApps"),
 		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:applications")),
 		r.listApplicationTypeApps,
+	)
+
+	rg.GET(
+		"/notification-types",
+		r.AuditMW.AuditWithType("ListNotificationTypes"),
+		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:notifications")),
+		r.listNotificationTypes,
+	)
+
+	rg.GET(
+		"/notification-types/:id",
+		r.AuditMW.AuditWithType("GetNotificationType"),
+		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:notifications")),
+		r.getNotificationType,
+	)
+
+	rg.POST(
+		"/notification-types",
+		r.AuditMW.AuditWithType("CreateNotificationType"),
+		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:notifications")),
+		r.mwUserAuthRequired(AuthRoleAdmin),
+		r.createNotificationType,
+	)
+
+	rg.PUT(
+		"/notification-types/:id",
+		r.AuditMW.AuditWithType("UpdateNotificationType"),
+		r.AuthMW.AuthRequired(updateScopesWithOpenID("governor:notifications")),
+		r.updateNotificationType,
+	)
+
+	rg.DELETE(
+		"/notification-types/:id",
+		r.AuditMW.AuditWithType("DeleteNotificationType"),
+		r.AuthMW.AuthRequired(deleteScopesWithOpenID("governor:notifications")),
+		r.mwUserAuthRequired(AuthRoleAdmin),
+		r.deleteNotificationType,
+	)
+
+	rg.GET(
+		"/notification-targets",
+		r.AuditMW.AuditWithType("ListNotificationTargets"),
+		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:notifications")),
+		r.listNotificationTargets,
+	)
+
+	rg.GET(
+		"/notification-targets/:id",
+		r.AuditMW.AuditWithType("GetNotificationTarget"),
+		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:notifications")),
+		r.getNotificationTarget,
+	)
+
+	rg.POST(
+		"/notification-targets",
+		r.AuditMW.AuditWithType("CreateNotificationTarget"),
+		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:notifications")),
+		r.mwUserAuthRequired(AuthRoleAdmin),
+		r.createNotificationTarget,
+	)
+
+	rg.PUT(
+		"/notification-targets/:id",
+		r.AuditMW.AuditWithType("UpdateNotificationTarget"),
+		r.AuthMW.AuthRequired(updateScopesWithOpenID("governor:notifications")),
+		r.updateNotificationTarget,
+	)
+
+	rg.DELETE(
+		"/notification-targets/:id",
+		r.AuditMW.AuditWithType("DeleteNotificationTarget"),
+		r.AuthMW.AuthRequired(deleteScopesWithOpenID("governor:notifications")),
+		r.mwUserAuthRequired(AuthRoleAdmin),
+		r.deleteNotificationTarget,
 	)
 }
 

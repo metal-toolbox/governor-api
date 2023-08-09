@@ -2,6 +2,7 @@ package dbtools
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"time"
@@ -811,6 +812,157 @@ func AuditGroupApplicationRequestRevoked(ctx context.Context, exec boil.ContextE
 		Action:               "group.application.request.revoked",
 		Changeset:            []string{},
 		Message:              "Request was revoked.",
+	}
+
+	return &event, event.Insert(ctx, exec, boil.Infer())
+}
+
+// AuditNotificationTypeCreated inserts an event representing a notification type being created
+func AuditNotificationTypeCreated(ctx context.Context, exec boil.ContextExecutor, pID string, actor *models.User, a *models.NotificationType) (*models.AuditEvent, error) {
+	// TODO non-user API actors don't exist in the governor database,
+	// we need to figure out how to handle that relationship in the audit table
+	var actorID null.String
+	if actor != nil {
+		actorID = null.StringFrom(actor.ID)
+	}
+
+	event := models.AuditEvent{
+		ParentID:  null.StringFrom(pID),
+		ActorID:   actorID,
+		Action:    "notification_type.created",
+		Changeset: calculateChangeset(&models.NotificationType{}, a),
+	}
+
+	return &event, event.Insert(ctx, exec, boil.Infer())
+}
+
+// AuditNotificationTypeDeleted inserts an event representing an notification type being deleted
+func AuditNotificationTypeDeleted(ctx context.Context, exec boil.ContextExecutor, pID string, actor *models.User, a *models.NotificationType) (*models.AuditEvent, error) {
+	// TODO non-user API actors don't exist in the governor database,
+	// we need to figure out how to handle that relationship in the audit table
+	var actorID null.String
+	if actor != nil {
+		actorID = null.StringFrom(actor.ID)
+	}
+
+	event := models.AuditEvent{
+		ParentID:  null.StringFrom(pID),
+		ActorID:   actorID,
+		Action:    "notification_type.deleted",
+		Changeset: calculateChangeset(a, &models.NotificationType{}),
+	}
+
+	return &event, event.Insert(ctx, exec, boil.Infer())
+}
+
+// AuditNotificationTypeUpdated inserts an event representing notification type update into the events table
+func AuditNotificationTypeUpdated(ctx context.Context, exec boil.ContextExecutor, pID string, actor *models.User, o, a *models.NotificationType) (*models.AuditEvent, error) {
+	// TODO non-user API actors don't exist in the governor database,
+	// we need to figure out how to handle that relationship in the audit table
+	var actorID null.String
+	if actor != nil {
+		actorID = null.StringFrom(actor.ID)
+	}
+
+	event := models.AuditEvent{
+		ParentID:  null.StringFrom(pID),
+		ActorID:   actorID,
+		Action:    "notification_type.updated",
+		Changeset: calculateChangeset(o, a),
+	}
+
+	return &event, event.Insert(ctx, exec, boil.Infer())
+}
+
+// AuditNotificationTargetCreated inserts an event representing a notification target being created
+func AuditNotificationTargetCreated(ctx context.Context, exec boil.ContextExecutor, pID string, actor *models.User, a *models.NotificationTarget) (*models.AuditEvent, error) {
+	// TODO non-user API actors don't exist in the governor database,
+	// we need to figure out how to handle that relationship in the audit table
+	var actorID null.String
+	if actor != nil {
+		actorID = null.StringFrom(actor.ID)
+	}
+
+	event := models.AuditEvent{
+		ParentID:  null.StringFrom(pID),
+		ActorID:   actorID,
+		Action:    "notification_target.created",
+		Changeset: calculateChangeset(&models.NotificationTarget{}, a),
+	}
+
+	return &event, event.Insert(ctx, exec, boil.Infer())
+}
+
+// AuditNotificationTargetDeleted inserts an event representing an notification target being deleted
+func AuditNotificationTargetDeleted(ctx context.Context, exec boil.ContextExecutor, pID string, actor *models.User, a *models.NotificationTarget) (*models.AuditEvent, error) {
+	// TODO non-user API actors don't exist in the governor database,
+	// we need to figure out how to handle that relationship in the audit table
+	var actorID null.String
+	if actor != nil {
+		actorID = null.StringFrom(actor.ID)
+	}
+
+	event := models.AuditEvent{
+		ParentID:  null.StringFrom(pID),
+		ActorID:   actorID,
+		Action:    "notification_target.deleted",
+		Changeset: calculateChangeset(a, &models.NotificationTarget{}),
+	}
+
+	return &event, event.Insert(ctx, exec, boil.Infer())
+}
+
+// AuditNotificationTargetUpdated inserts an event representing notification target update into the events table
+func AuditNotificationTargetUpdated(ctx context.Context, exec boil.ContextExecutor, pID string, actor *models.User, o, a *models.NotificationTarget) (*models.AuditEvent, error) {
+	// TODO non-user API actors don't exist in the governor database,
+	// we need to figure out how to handle that relationship in the audit table
+	var actorID null.String
+	if actor != nil {
+		actorID = null.StringFrom(actor.ID)
+	}
+
+	event := models.AuditEvent{
+		ParentID:  null.StringFrom(pID),
+		ActorID:   actorID,
+		Action:    "notification_target.updated",
+		Changeset: calculateChangeset(o, a),
+	}
+
+	return &event, event.Insert(ctx, exec, boil.Infer())
+}
+
+// AuditNotificationPreferencesUpdated inserts an event representing notification preferences update into the events table
+func AuditNotificationPreferencesUpdated(ctx context.Context, exec boil.ContextExecutor, pID string, actor *models.User, userID string, o, a UserNotificationPreferences) (*models.AuditEvent, error) {
+	// TODO non-user API actors don't exist in the governor database,
+	// we need to figure out how to handle that relationship in the audit table
+	type userNotificationPreferencesAuditRecord struct {
+		Preferences string `json:"preferences"`
+	}
+
+	beforeJSON, err := json.Marshal(o)
+	if err != nil {
+		return nil, err
+	}
+
+	afterJSON, err := json.Marshal(a)
+	if err != nil {
+		return nil, err
+	}
+
+	before := &userNotificationPreferencesAuditRecord{Preferences: string(beforeJSON)}
+	after := &userNotificationPreferencesAuditRecord{Preferences: string(afterJSON)}
+
+	var actorID null.String
+	if actor != nil {
+		actorID = null.StringFrom(actor.ID)
+	}
+
+	event := models.AuditEvent{
+		ParentID:      null.StringFrom(pID),
+		ActorID:       actorID,
+		Action:        "notification_preferences.updated",
+		SubjectUserID: null.NewString(userID, true),
+		Changeset:     calculateChangeset(before, after),
 	}
 
 	return &event, event.Insert(ctx, exec, boil.Infer())
