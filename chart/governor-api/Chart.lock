@@ -4,6 +4,6 @@ dependencies:
   version: 2.4.0
 - name: k8s-otel-collector
   repository: https://helm.equinixmetal.com
-  version: 0.6.1
-digest: sha256:9c3675256c0a44716b9d6f62e6e31684635e16fb32bc0673e351a10db5882f26
-generated: "2023-07-11T14:28:04.047272-04:00"
+  version: 0.9.1
+digest: sha256:c75a46913c1d0108107eb78418d978267ae34c89585cbb290b1215537f6a9967
+generated: "2023-08-10T22:26:34.700467034Z"

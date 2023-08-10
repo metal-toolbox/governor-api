@@ -13,4 +13,4 @@ dependencies:
     version: 2.4.0
   - name: k8s-otel-collector
     repository: https://helm.equinixmetal.com
-    version: 0.6.1
+    version: 0.9.1
