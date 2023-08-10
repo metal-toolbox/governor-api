@@ -1,0 +1,128 @@
+---
+apiVersion: {{ include "common.capabilities.deployment.apiVersion" . }}
+kind: Deployment
+metadata:
+  name: {{ template "common.names.fullname" . }}-api
+  labels: {{- include "common.labels.standard" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  replicas: {{ .Values.api.replicaCount }}
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels: {{- include "common.labels.matchLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels: {{- include "common.labels.standard" . | nindent 8 }}
+        app.kubernetes.io/component: api
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yml") . | sha256sum }}
+    spec:
+      initContainers:
+      # Optional: Pre-creates the `/app-audit/audit.log` named pipe.
+      - image: "{{ .Values.audit.auditImage.repository }}:{{ .Values.audit.auditImage.tag | default .Chart.AppVersion }}"
+        args:
+          - 'init'
+          - '-f'
+          - '/app-audit/audit.log'
+        name: init-audit-logs-api
+        resources:
+{{ toYaml .Values.audit.initContainer.resources | indent 10 }}
+        imagePullPolicy: {{ .Values.audit.auditImage.pullPolicy }}
+        volumeMounts:
+          - mountPath: /app-audit
+            name: audit-logs-api
+      containers:
+      - name: {{ template "common.names.fullname" . }}-api
+        args:
+          - serve
+          - "--config=/config/.governor.yaml"
+        envFrom:
+        - secretRef:
+            name: {{ .Values.dbURI.existingSecret }}
+        {{- if .Values.tracing.enabled }}
+        env:
+          - name: OTEL_EXPORTER_OTLP_ENDPOINT
+            value: http://opentelemetry-collector:4317
+          - name: OTEL_EXPORTER_OTLP_INSECURE
+            value: "true"
+        {{- end }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        securityContext:
+          runAsNonRoot: true
+        ports:
+        - name: http
+          containerPort: 3001
+        livenessProbe:
+          httpGet:
+            path: /healthz/liveness
+            port: http
+        readinessProbe:
+          httpGet:
+            path: /healthz/readiness
+            port: http
+          {{- if .Values.api.readinessProbe.initialDelaySeconds }}
+          initialDelaySeconds: {{ .Values.api.readinessProbe.initialDelaySeconds }}
+          {{- else }}
+          initialDelaySeconds: 5
+          {{- end }}
+          {{- if .Values.api.readinessProbe.periodSeconds }}
+          periodSeconds: {{ .Values.api.readinessProbe.periodSeconds }}
+          {{- else }}
+          periodSeconds: 20
+          {{- end }}
+          {{- if .Values.api.readinessProbe.timeoutSeconds }}
+          timeoutSeconds: {{ .Values.api.readinessProbe.timeoutSeconds }}
+          {{- else }}
+          timeoutSeconds: 2
+          {{- end }}
+          {{- if .Values.api.readinessProbe.successThreshold }}
+          successThreshold: {{ .Values.api.readinessProbe.successThreshold }}
+          {{- else }}
+          successThreshold: 1
+          {{- end }}
+          {{- if .Values.api.readinessProbe.failureThreshold }}
+          failureThreshold: {{ .Values.api.readinessProbe.failureThreshold }}
+          {{- else }}
+          failureThreshold: 3
+          {{- end }}
+        resources:
+{{ toYaml .Values.resources | indent 10 }}
+        volumeMounts:
+        - name: config-volume
+          mountPath: /config
+          readOnly: true
+        - name: dbcerts
+          mountPath: "/dbcerts"
+          readOnly: true
+        - name: natscreds
+          mountPath: "/nats"
+          readOnly: true
+        - name: audit-logs-api
+          mountPath: /app-audit
+      - name: audit-{{ template "common.names.fullname" . }}-api
+        args:
+          - -f
+          - /app-audit/audit.log
+        image: "{{ .Values.audit.auditImage.registry }}/{{ .Values.audit.auditImage.repository }}:{{ .Values.audit.auditImage.tag | default .Chart.AppVersion }}"
+        resources:
+{{ toYaml .Values.audit.resources | indent 10 }}
+        volumeMounts:
+        - name: audit-logs-api
+          mountPath: /app-audit
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: config-volume
+        configMap:
+          name: {{ template "common.names.fullname" . }}-config
+      - name: dbcerts
+        secret:
+          secretName: {{ template "common.names.fullname" . }}-crdb-ca
+          defaultMode: 0444
+      - name: audit-logs-api
+        emptyDir: {}
+      - name: natscreds
+        secret:
+          secretName: {{ template "common.names.fullname" . }}-nats-creds
+          defaultMode: 0444

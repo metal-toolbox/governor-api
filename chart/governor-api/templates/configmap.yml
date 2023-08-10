@@ -1,0 +1,51 @@
+{{- $root := . -}}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "common.names.fullname" . }}-config
+  annotations:
+    argocd.argoproj.io/sync-wave: '-1'
+data:
+  .governor.yaml: |
+    admin-groups:
+      - {{ .Values.governor.adminGroups }}
+
+    nats:
+      url: {{ .Values.nats.url }}
+      creds-file: {{ .Values.nats.credsPath }}/{{ template "common.names.fullname" . }}-nats-client-creds
+      subject-prefix: {{ .Values.nats.subjectPrefix }}
+
+    oidc:
+    {{- range .Values.api.oidc }}
+      - issuer:  {{ .issuer }}
+        audience: {{ .audience }}
+        jwksuri: {{ .jwksuri }}
+        enabled: {{ .enabled }}
+        {{- if or .rolesClaim .userClaim }}
+        claims:
+        {{- end }}
+          {{- if .rolesClaim }}
+          roles: {{ .rolesClaim }}
+          {{- end }}
+          {{- if .userClaim }}
+          username: {{ .userClaim }}
+          {{- end }}
+    {{- end }}
+
+    {{- if .Values.debug }}
+    logging:
+      debug: true
+      pretty: true
+    {{- end }}
+
+    {{- if .Values.tracing.enabled }}
+    tracing:
+      enabled: true
+    {{- end }}
+
+    db:
+      connections:
+        max_open: {{ .Values.db.connections.max_open }}
+        max_idle: {{ .Values.db.connections.max_idle }}
+        max_lifetime: {{ .Values.db.connections.max_lifetime }}
