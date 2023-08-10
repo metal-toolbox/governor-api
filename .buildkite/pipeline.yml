@@ -74,19 +74,6 @@ steps:
       plugins:
           equinixmetal-buildkite/helm-tar-update#v0.0.1: {}
 
-    - label: ":helm: docs"
-      plugins:
-        - docker#v5.7.0:
-            image: "jnorwood/helm-docs:latest"
-            volume: ["`pwd`:/helm-docs"]
-            entrypoint: "/usr/bin/helm-docs"
-            command: ["helm", "docs", "--output-file", "DOC.md", "--document-dependency-values"]
-        - thedyrt/git-commit#v0.3.0:
-            message: "Updated helm docs"
-            user:
-              name: buildkite-agent
-              email: buildkite-agent
-
     - label: ":helm: lint"
       depends_on:
         - helm-dep-up
