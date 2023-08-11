@@ -78,6 +78,6 @@ steps:
       depends_on:
         - helm-dep-up
       plugins:
-        - docker#v5.7.0:
+        - docker#v5.8.0:
             image: "alpine/helm"
             command: ["lint", "chart/governor-api"]
