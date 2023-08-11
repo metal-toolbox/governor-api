@@ -77,7 +77,7 @@ func (c *Client) Publish(_ context.Context, sub string, event *events.Event) err
 
 	subject := c.prefix + "." + sub
 
-	c.logger.Debug("publishing event on subject", zap.String("subject", subject), zap.Any("event", event))
+	c.logger.Info("publishing event to the event bus", zap.String("subject", subject), zap.Any("action", event.Action))
 
 	j, err := json.Marshal(event)
 	if err != nil {
