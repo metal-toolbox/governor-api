@@ -1233,7 +1233,7 @@ func (r *Router) getGroupMembershipsAll(c *gin.Context) {
 		qm.Load("Group"),
 	}
 
-	var response []string
+	var response []GroupMembership
 
 	if _, ok := c.GetQuery("expired"); ok {
 		queryMods = append(queryMods, qm.Where("expires_at <= NOW()"))
@@ -1246,7 +1246,7 @@ func (r *Router) getGroupMembershipsAll(c *gin.Context) {
 			}
 		}
 
-		response := make([]GroupMembership, len(groupMemberships))
+		response = make([]GroupMembership, len(groupMemberships))
 		for i, m := range groupMemberships {
 			response[i] = GroupMembership{
 				ID:        m.ID,
@@ -1265,7 +1265,8 @@ func (r *Router) getGroupMembershipsAll(c *gin.Context) {
 				return
 			}
 		}
-		response := make([]GroupMembership, len(enumeratedMemberships))
+
+		response = make([]GroupMembership, len(enumeratedMemberships))
 		for i, m := range enumeratedMemberships {
 			response[i] = GroupMembership{
 				ID:        "",
