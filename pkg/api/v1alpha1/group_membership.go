@@ -27,6 +27,7 @@ type GroupMember struct {
 	Status    string    `json:"status"`
 	IsAdmin   bool      `json:"is_admin"`
 	ExpiresAt null.Time `json:"expires_at"`
+	Direct    bool      `json:"direct"`
 }
 
 // GroupMembership is the relationship between user and groups
@@ -104,6 +105,7 @@ func (r *Router) listGroupMembers(c *gin.Context) {
 			Status:    m.User.Status.String,
 			IsAdmin:   m.IsAdmin,
 			ExpiresAt: m.ExpiresAt,
+			Direct:    m.Direct,
 		}
 	}
 
