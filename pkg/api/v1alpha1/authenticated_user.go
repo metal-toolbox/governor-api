@@ -231,6 +231,7 @@ func (r *Router) getAuthenticatedUserGroupApprovals(c *gin.Context) {
 	membershipRequests, err := models.GroupMembershipRequests(
 		qm.Load("User"),
 		qm.Load("Group"),
+		qm.Load("Group.GroupMemberships"),
 	).All(c.Request.Context(), r.DB)
 	if err != nil {
 		sendError(c, http.StatusInternalServerError, "error getting group membership requests: "+err.Error())
@@ -257,7 +258,15 @@ func (r *Router) getAuthenticatedUserGroupApprovals(c *gin.Context) {
 
 		isGroupAdmin := contains(userAdminGroups, m.GroupID)
 
-		if *ctxAdmin || isGroupAdmin {
+		groupHasNoAdmins := true
+
+		for _, groupMember := range m.R.Group.R.GroupMemberships {
+			if groupMember.IsAdmin {
+				groupHasNoAdmins = false
+			}
+		}
+
+		if (*ctxAdmin && groupHasNoAdmins) || isGroupAdmin {
 			memberApprovals = append(memberApprovals, AuthenticatedUserGroupMemberRequest{&GroupMemberRequest{
 				ID:            m.ID,
 				GroupID:       m.GroupID,
