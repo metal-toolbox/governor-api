@@ -120,14 +120,34 @@ func (r *Router) addMemberGroup(c *gin.Context) {
 		return
 	}
 
-	createsCycle, err := dbtools.HierarchyWouldCreateCycle(c, r.DB.DB, parentGroup.ID, memberGroup.ID)
+	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
 	if err != nil {
-		sendError(c, http.StatusInternalServerError, "could not determine whether the desired hierarchy creates a cycle")
+		sendError(c, http.StatusBadRequest, "error starting add group hierarchy transaction: "+err.Error())
+		return
+	}
+
+	createsCycle, err := dbtools.HierarchyWouldCreateCycle(c, tx, parentGroup.ID, memberGroup.ID)
+	if err != nil {
+		msg := "could not determine whether the desired hierarchy creates a cycle: " + err.Error()
+
+		if err := tx.Rollback(); err != nil {
+			msg += "error rolling back transaction: " + err.Error()
+		}
+
+		sendError(c, http.StatusInternalServerError, msg)
+
 		return
 	}
 
 	if createsCycle {
-		sendError(c, http.StatusBadRequest, "invalid relationship: hierarchy would create a cycle")
+		msg := "invalid relationship: hierarchy would create a cycle"
+
+		if err := tx.Rollback(); err != nil {
+			msg += "error rolling back transaction: " + err.Error()
+		}
+
+		sendError(c, http.StatusBadRequest, msg)
+
 		return
 	}
 
@@ -137,13 +157,7 @@ func (r *Router) addMemberGroup(c *gin.Context) {
 		ExpiresAt:     req.ExpiresAt,
 	}
 
-	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
-	if err != nil {
-		sendError(c, http.StatusBadRequest, "error starting add group hierarchy transaction: "+err.Error())
-		return
-	}
-
-	membershipsBefore, err := dbtools.GetAllGroupMemberships(c, r.DB.DB, false)
+	membershipsBefore, err := dbtools.GetAllGroupMemberships(c, tx, false)
 	if err != nil {
 		msg := "failed to compute new effective memberships: " + err.Error()
 
@@ -193,7 +207,7 @@ func (r *Router) addMemberGroup(c *gin.Context) {
 		return
 	}
 
-	membershipsAfter, err := dbtools.GetAllGroupMemberships(c, r.DB.DB, false)
+	membershipsAfter, err := dbtools.GetAllGroupMemberships(c, tx, false)
 	if err != nil {
 		msg := "failed to compute new effective memberships: " + err.Error()
 
@@ -376,7 +390,7 @@ func (r *Router) removeMemberGroup(c *gin.Context) {
 		return
 	}
 
-	membershipsBefore, err := dbtools.GetAllGroupMemberships(c, r.DB.DB, false)
+	membershipsBefore, err := dbtools.GetAllGroupMemberships(c, tx, false)
 	if err != nil {
 		msg := "failed to compute new effective memberships: " + err.Error()
 
@@ -426,7 +440,7 @@ func (r *Router) removeMemberGroup(c *gin.Context) {
 		return
 	}
 
-	membershipsAfter, err := dbtools.GetAllGroupMemberships(c, r.DB.DB, false)
+	membershipsAfter, err := dbtools.GetAllGroupMemberships(c, tx, false)
 	if err != nil {
 		msg := "failed to compute new effective memberships: " + err.Error()
 
