@@ -170,7 +170,7 @@ func (r *Router) addMemberGroup(c *gin.Context) {
 		return
 	}
 
-	if err := groupHierarchy.Insert(c.Request.Context(), r.DB, boil.Infer()); err != nil {
+	if err := groupHierarchy.Insert(c.Request.Context(), tx, boil.Infer()); err != nil {
 		msg := "failed to update group hierarchy: " + err.Error()
 
 		if err := tx.Rollback(); err != nil {
@@ -299,7 +299,7 @@ func (r *Router) updateMemberGroup(c *gin.Context) {
 		return
 	}
 
-	if _, err := hierarchy.Update(c.Request.Context(), r.DB, boil.Infer()); err != nil {
+	if _, err := hierarchy.Update(c.Request.Context(), tx, boil.Infer()); err != nil {
 		msg := "failed to update hierarchy: " + err.Error()
 
 		if err := tx.Rollback(); err != nil {
@@ -403,7 +403,7 @@ func (r *Router) removeMemberGroup(c *gin.Context) {
 		return
 	}
 
-	if _, err := hierarchy.Delete(c.Request.Context(), r.DB); err != nil {
+	if _, err := hierarchy.Delete(c.Request.Context(), tx); err != nil {
 		msg := "error removing hierarchy: " + err.Error()
 
 		if err := tx.Rollback(); err != nil {
