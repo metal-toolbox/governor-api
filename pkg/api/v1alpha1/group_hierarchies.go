@@ -82,26 +82,37 @@ func (r *Router) addMemberGroup(c *gin.Context) {
 		return
 	}
 
-	parentGroup, err := models.FindGroup(c.Request.Context(), r.DB, parentGroupID)
+	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
+	if err != nil {
+		sendError(c, http.StatusBadRequest, "error starting add group hierarchy transaction: "+err.Error())
+		return
+	}
+
+	parentGroup, err := models.Groups(
+		qm.Where("id = ?", parentGroupID),
+		qm.For("UPDATE"),
+	).One(c.Request.Context(), tx)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			sendError(c, http.StatusNotFound, "group not found: "+err.Error())
+			rollbackWithError(c, tx, err, http.StatusNotFound, "group not found")
+
 			return
 		}
 
-		sendError(c, http.StatusInternalServerError, "error getting group"+err.Error())
+		rollbackWithError(c, tx, err, http.StatusInternalServerError, "error getting group")
 
 		return
 	}
 
-	memberGroup, err := models.FindGroup(c.Request.Context(), r.DB, req.MemberGroupID)
+	memberGroup, err := models.FindGroup(c.Request.Context(), tx, req.MemberGroupID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			sendError(c, http.StatusNotFound, "group not found: "+err.Error())
+			rollbackWithError(c, tx, err, http.StatusNotFound, "group not found")
+
 			return
 		}
 
-		sendError(c, http.StatusInternalServerError, "error getting group"+err.Error())
+		rollbackWithError(c, tx, err, http.StatusInternalServerError, "error getting group")
 
 		return
 	}
@@ -109,25 +120,35 @@ func (r *Router) addMemberGroup(c *gin.Context) {
 	exists, err := models.GroupHierarchies(
 		qm.Where("parent_group_id = ?", parentGroup.ID),
 		qm.And("member_group_id = ?", memberGroup.ID),
-	).Exists(c.Request.Context(), r.DB)
+	).Exists(c.Request.Context(), tx)
 	if err != nil {
-		sendError(c, http.StatusInternalServerError, "error checking group hierarchy exists: "+err.Error())
+		rollbackWithError(c, tx, err, http.StatusInternalServerError, "error checking group hierarchy exists")
+
 		return
 	}
 
 	if exists {
-		sendError(c, http.StatusConflict, "group is already a member")
+		rollbackWithError(c, tx, err, http.StatusConflict, "group is already a member")
+
 		return
 	}
 
-	createsCycle, err := dbtools.HierarchyWouldCreateCycle(c, r.DB.DB, parentGroup.ID, memberGroup.ID)
+	createsCycle, err := dbtools.HierarchyWouldCreateCycle(c, tx, parentGroup.ID, memberGroup.ID)
 	if err != nil {
-		sendError(c, http.StatusInternalServerError, "could not determine whether the desired hierarchy creates a cycle")
+		rollbackWithError(c, tx, err, http.StatusInternalServerError, "could not determine whether the desired hierarchy creates a cycle")
+
 		return
 	}
 
 	if createsCycle {
-		sendError(c, http.StatusBadRequest, "invalid relationship: hierarchy would create a cycle")
+		msg := "invalid relationship: hierarchy would create a cycle"
+
+		if err := tx.Rollback(); err != nil {
+			msg += "error rolling back transaction: " + err.Error()
+		}
+
+		sendError(c, http.StatusBadRequest, msg)
+
 		return
 	}
 
@@ -137,83 +158,41 @@ func (r *Router) addMemberGroup(c *gin.Context) {
 		ExpiresAt:     req.ExpiresAt,
 	}
 
-	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
+	membershipsBefore, err := dbtools.GetAllGroupMemberships(c, tx, false)
 	if err != nil {
-		sendError(c, http.StatusBadRequest, "error starting add group hierarchy transaction: "+err.Error())
-		return
-	}
-
-	membershipsBefore, err := dbtools.GetAllGroupMemberships(c, r.DB.DB, false)
-	if err != nil {
-		msg := "failed to compute new effective memberships: " + err.Error()
-
-		if err := tx.Rollback(); err != nil {
-			msg += "error rolling back transaction: " + err.Error()
-		}
-
-		sendError(c, http.StatusBadRequest, msg)
+		rollbackWithError(c, tx, err, http.StatusBadRequest, "failed to compute new effective memberships")
 
 		return
 	}
 
-	if err := groupHierarchy.Insert(c.Request.Context(), r.DB, boil.Infer()); err != nil {
-		msg := "failed to update group hierarchy: " + err.Error()
-
-		if err := tx.Rollback(); err != nil {
-			msg += "error rolling back transaction: " + err.Error()
-		}
-
-		sendError(c, http.StatusBadRequest, msg)
+	if err := groupHierarchy.Insert(c.Request.Context(), tx, boil.Infer()); err != nil {
+		rollbackWithError(c, tx, err, http.StatusBadRequest, "failed to update group hierarchy")
 
 		return
 	}
 
 	event, err := dbtools.AuditGroupHierarchyCreated(c.Request.Context(), tx, getCtxAuditID(c), getCtxUser(c), groupHierarchy)
 	if err != nil {
-		msg := "error creating groups hierarchy (audit): " + err.Error()
-
-		if err := tx.Rollback(); err != nil {
-			msg += "error rolling back transaction: " + err.Error()
-		}
-
-		sendError(c, http.StatusBadRequest, msg)
+		rollbackWithError(c, tx, err, http.StatusBadRequest, "error creating groups hierarchy (audit)")
 
 		return
 	}
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
-		msg := "error creating groups hierarchy (audit): " + err.Error()
-
-		if err := tx.Rollback(); err != nil {
-			msg += "error rolling back transaction: " + err.Error()
-		}
-
-		sendError(c, http.StatusBadRequest, msg)
+		rollbackWithError(c, tx, err, http.StatusBadRequest, "error creating groups hierarchy (audit)")
 
 		return
 	}
 
-	membershipsAfter, err := dbtools.GetAllGroupMemberships(c, r.DB.DB, false)
+	membershipsAfter, err := dbtools.GetAllGroupMemberships(c, tx, false)
 	if err != nil {
-		msg := "failed to compute new effective memberships: " + err.Error()
-
-		if err := tx.Rollback(); err != nil {
-			msg += "error rolling back transaction: " + err.Error()
-		}
-
-		sendError(c, http.StatusBadRequest, msg)
+		rollbackWithError(c, tx, err, http.StatusBadRequest, "failed to compute new effective memberships")
 
 		return
 	}
 
 	if err := tx.Commit(); err != nil {
-		msg := "error committing groups hierarchy, rolling back: " + err.Error()
-
-		if err := tx.Rollback(); err != nil {
-			msg = msg + "error rolling back transaction: " + err.Error()
-		}
-
-		sendError(c, http.StatusBadRequest, msg)
+		rollbackWithError(c, tx, err, http.StatusBadRequest, "error committing groups hierarchy, rolling back")
 
 		return
 	}
@@ -253,21 +232,6 @@ func (r *Router) updateMemberGroup(c *gin.Context) {
 	parentGroupID := c.Param("id")
 	memberGroupID := c.Param("member_id")
 
-	hierarchy, err := models.GroupHierarchies(
-		qm.Where("parent_group_id = ?", parentGroupID),
-		qm.And("member_group_id = ?", memberGroupID),
-	).One(c.Request.Context(), r.DB)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			sendError(c, http.StatusNotFound, "hierarchy not found: "+err.Error())
-			return
-		}
-
-		sendError(c, http.StatusInternalServerError, "error getting hierarchy"+err.Error())
-
-		return
-	}
-
 	req := struct {
 		ExpiresAt null.Time `json:"expires_at"`
 	}{}
@@ -277,22 +241,32 @@ func (r *Router) updateMemberGroup(c *gin.Context) {
 		return
 	}
 
-	hierarchy.ExpiresAt = req.ExpiresAt
-
 	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
 	if err != nil {
 		sendError(c, http.StatusBadRequest, "error starting update hierarchy transaction: "+err.Error())
 		return
 	}
 
-	if _, err := hierarchy.Update(c.Request.Context(), r.DB, boil.Infer()); err != nil {
-		msg := "failed to update hierarchy: " + err.Error()
+	hierarchy, err := models.GroupHierarchies(
+		qm.Where("parent_group_id = ?", parentGroupID),
+		qm.And("member_group_id = ?", memberGroupID),
+	).One(c.Request.Context(), tx)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			rollbackWithError(c, tx, err, http.StatusBadRequest, "hierarchy not found")
 
-		if err := tx.Rollback(); err != nil {
-			msg += "error rolling back transaction: " + err.Error()
+			return
 		}
 
-		sendError(c, http.StatusBadRequest, msg)
+		rollbackWithError(c, tx, err, http.StatusBadRequest, "error getting hierarchy")
+
+		return
+	}
+
+	hierarchy.ExpiresAt = req.ExpiresAt
+
+	if _, err := hierarchy.Update(c.Request.Context(), tx, boil.Infer()); err != nil {
+		rollbackWithError(c, tx, err, http.StatusBadRequest, "failed to update hierarchy")
 
 		return
 	}
@@ -301,37 +275,19 @@ func (r *Router) updateMemberGroup(c *gin.Context) {
 
 	event, err = dbtools.AuditGroupHierarchyUpdated(c.Request.Context(), tx, getCtxAuditID(c), getCtxUser(c), hierarchy)
 	if err != nil {
-		msg := "error creating hierarchy (audit): " + err.Error()
-
-		if err := tx.Rollback(); err != nil {
-			msg += "error rolling back transaction: " + err.Error()
-		}
-
-		sendError(c, http.StatusBadRequest, msg)
+		rollbackWithError(c, tx, err, http.StatusBadRequest, "error creating hierarchy (audit)")
 
 		return
 	}
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
-		msg := "error updating hierarchy (audit): " + err.Error()
-
-		if err := tx.Rollback(); err != nil {
-			msg += "error rolling back transaction: " + err.Error()
-		}
-
-		sendError(c, http.StatusBadRequest, msg)
+		rollbackWithError(c, tx, err, http.StatusBadRequest, "error creating hierarchy (audit)")
 
 		return
 	}
 
 	if err := tx.Commit(); err != nil {
-		msg := "error committing hierarchy update, rolling back: " + err.Error()
-
-		if err := tx.Rollback(); err != nil {
-			msg = msg + "error rolling back transaction: " + err.Error()
-		}
-
-		sendError(c, http.StatusBadRequest, msg)
+		rollbackWithError(c, tx, err, http.StatusBadRequest, "error committing hierarchy update, rolling back")
 
 		return
 	}
@@ -355,98 +311,63 @@ func (r *Router) removeMemberGroup(c *gin.Context) {
 	parentGroupID := c.Param("id")
 	memberGroupID := c.Param("member_id")
 
-	hierarchy, err := models.GroupHierarchies(
-		qm.Where("parent_group_id = ?", parentGroupID),
-		qm.And("member_group_id = ?", memberGroupID),
-	).One(c.Request.Context(), r.DB)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			sendError(c, http.StatusNotFound, "hierarchy not found: "+err.Error())
-			return
-		}
-
-		sendError(c, http.StatusInternalServerError, "error getting hierarchy"+err.Error())
-
-		return
-	}
-
 	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
 	if err != nil {
 		sendError(c, http.StatusBadRequest, "error starting delete group hierarchy transaction: "+err.Error())
 		return
 	}
 
-	membershipsBefore, err := dbtools.GetAllGroupMemberships(c, r.DB.DB, false)
+	hierarchy, err := models.GroupHierarchies(
+		qm.Where("parent_group_id = ?", parentGroupID),
+		qm.And("member_group_id = ?", memberGroupID),
+	).One(c.Request.Context(), tx)
 	if err != nil {
-		msg := "failed to compute new effective memberships: " + err.Error()
+		if errors.Is(err, sql.ErrNoRows) {
+			rollbackWithError(c, tx, err, http.StatusNotFound, "hierarchy not found")
 
-		if err := tx.Rollback(); err != nil {
-			msg += "error rolling back transaction: " + err.Error()
+			return
 		}
 
-		sendError(c, http.StatusBadRequest, msg)
+		rollbackWithError(c, tx, err, http.StatusBadRequest, "error getting hierarchy")
 
 		return
 	}
 
-	if _, err := hierarchy.Delete(c.Request.Context(), r.DB); err != nil {
-		msg := "error removing hierarchy: " + err.Error()
+	membershipsBefore, err := dbtools.GetAllGroupMemberships(c, tx, false)
+	if err != nil {
+		rollbackWithError(c, tx, err, http.StatusBadRequest, "failed to compute new effective memberships")
 
-		if err := tx.Rollback(); err != nil {
-			msg += "error rolling back transaction: " + err.Error()
-		}
+		return
+	}
 
-		sendError(c, http.StatusBadRequest, msg)
+	if _, err := hierarchy.Delete(c.Request.Context(), tx); err != nil {
+		rollbackWithError(c, tx, err, http.StatusBadRequest, "error removing hierarchy")
 
 		return
 	}
 
 	event, err := dbtools.AuditGroupHierarchyDeleted(c.Request.Context(), tx, getCtxAuditID(c), getCtxUser(c), hierarchy)
 	if err != nil {
-		msg := "error deleting groups hierarchy (audit): " + err.Error()
-
-		if err := tx.Rollback(); err != nil {
-			msg += "error rolling back transaction: " + err.Error()
-		}
-
-		sendError(c, http.StatusBadRequest, msg)
+		rollbackWithError(c, tx, err, http.StatusBadRequest, "error deleting groups hierarchy (audit)")
 
 		return
 	}
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
-		msg := "error deleting group hierarchy (audit): " + err.Error()
-
-		if err := tx.Rollback(); err != nil {
-			msg += "error rolling back transaction: " + err.Error()
-		}
-
-		sendError(c, http.StatusBadRequest, msg)
+		rollbackWithError(c, tx, err, http.StatusBadRequest, "error deleting groups hierarchy (audit)")
 
 		return
 	}
 
-	membershipsAfter, err := dbtools.GetAllGroupMemberships(c, r.DB.DB, false)
+	membershipsAfter, err := dbtools.GetAllGroupMemberships(c, tx, false)
 	if err != nil {
-		msg := "failed to compute new effective memberships: " + err.Error()
-
-		if err := tx.Rollback(); err != nil {
-			msg += "error rolling back transaction: " + err.Error()
-		}
-
-		sendError(c, http.StatusBadRequest, msg)
+		rollbackWithError(c, tx, err, http.StatusBadRequest, "failed to compute new effective memberships")
 
 		return
 	}
 
 	if err := tx.Commit(); err != nil {
-		msg := "error committing hierarchy delete, rolling back: " + err.Error()
-
-		if err := tx.Rollback(); err != nil {
-			msg = msg + "error rolling back transaction: " + err.Error()
-		}
-
-		sendError(c, http.StatusBadRequest, msg)
+		rollbackWithError(c, tx, err, http.StatusBadRequest, "error committing hierarchy delete, rolling back")
 
 		return
 	}
@@ -508,4 +429,14 @@ func (r *Router) getGroupHierarchiesAll(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, hierarchiesResponse)
+}
+
+func rollbackWithError(c *gin.Context, tx *sql.Tx, err error, code int, initialMsg string) {
+	msg := initialMsg + err.Error()
+
+	if err := tx.Rollback(); err != nil {
+		msg = msg + "error rolling back transaction: " + err.Error()
+	}
+
+	sendError(c, code, msg)
 }
