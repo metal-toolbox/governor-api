@@ -82,7 +82,18 @@ func (r *Router) addMemberGroup(c *gin.Context) {
 		return
 	}
 
-	parentGroup, err := models.FindGroup(c.Request.Context(), r.DB, parentGroupID)
+	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
+	if err != nil {
+		sendError(c, http.StatusBadRequest, "error starting add group hierarchy transaction: "+err.Error())
+		return
+	}
+
+	parentGroup, err := models.Groups(
+		qm.Where("id = ?", parentGroupID),
+		qm.For("UPDATE"),
+	).One(c.Request.Context(), tx)
+
+	// parentGroup, err := models.FindGroup(c.Request.Context(), tx, parentGroupID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			sendError(c, http.StatusNotFound, "group not found: "+err.Error())
@@ -94,7 +105,7 @@ func (r *Router) addMemberGroup(c *gin.Context) {
 		return
 	}
 
-	memberGroup, err := models.FindGroup(c.Request.Context(), r.DB, req.MemberGroupID)
+	memberGroup, err := models.FindGroup(c.Request.Context(), tx, req.MemberGroupID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			sendError(c, http.StatusNotFound, "group not found: "+err.Error())
@@ -109,7 +120,7 @@ func (r *Router) addMemberGroup(c *gin.Context) {
 	exists, err := models.GroupHierarchies(
 		qm.Where("parent_group_id = ?", parentGroup.ID),
 		qm.And("member_group_id = ?", memberGroup.ID),
-	).Exists(c.Request.Context(), r.DB)
+	).Exists(c.Request.Context(), tx)
 	if err != nil {
 		sendError(c, http.StatusInternalServerError, "error checking group hierarchy exists: "+err.Error())
 		return
@@ -117,12 +128,6 @@ func (r *Router) addMemberGroup(c *gin.Context) {
 
 	if exists {
 		sendError(c, http.StatusConflict, "group is already a member")
-		return
-	}
-
-	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
-	if err != nil {
-		sendError(c, http.StatusBadRequest, "error starting add group hierarchy transaction: "+err.Error())
 		return
 	}
 
