@@ -101,6 +101,7 @@ func (r *Router) addMemberGroup(c *gin.Context) {
 			}
 
 			sendError(c, http.StatusNotFound, msg)
+
 			return
 		}
 
@@ -125,6 +126,7 @@ func (r *Router) addMemberGroup(c *gin.Context) {
 			}
 
 			sendError(c, http.StatusNotFound, msg)
+
 			return
 		}
 
@@ -151,6 +153,7 @@ func (r *Router) addMemberGroup(c *gin.Context) {
 		}
 
 		sendError(c, http.StatusInternalServerError, msg)
+
 		return
 	}
 
@@ -162,6 +165,7 @@ func (r *Router) addMemberGroup(c *gin.Context) {
 		}
 
 		sendError(c, http.StatusConflict, msg)
+
 		return
 	}
 
@@ -334,6 +338,7 @@ func (r *Router) updateMemberGroup(c *gin.Context) {
 			}
 
 			sendError(c, http.StatusBadRequest, msg)
+
 			return
 		}
 
@@ -344,6 +349,7 @@ func (r *Router) updateMemberGroup(c *gin.Context) {
 		}
 
 		sendError(c, http.StatusBadRequest, msg)
+
 		return
 	}
 
@@ -438,6 +444,7 @@ func (r *Router) removeMemberGroup(c *gin.Context) {
 			}
 
 			sendError(c, http.StatusBadRequest, msg)
+
 			return
 		}
 
