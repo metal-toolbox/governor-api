@@ -92,15 +92,25 @@ func (r *Router) addMemberGroup(c *gin.Context) {
 		qm.Where("id = ?", parentGroupID),
 		qm.For("UPDATE"),
 	).One(c.Request.Context(), tx)
-
-	// parentGroup, err := models.FindGroup(c.Request.Context(), tx, parentGroupID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			sendError(c, http.StatusNotFound, "group not found: "+err.Error())
+			msg := "group not found: " + err.Error()
+
+			if err := tx.Rollback(); err != nil {
+				msg += "error rolling back transaction: " + err.Error()
+			}
+
+			sendError(c, http.StatusNotFound, msg)
 			return
 		}
 
-		sendError(c, http.StatusInternalServerError, "error getting group"+err.Error())
+		msg := "error getting group: " + err.Error()
+
+		if err := tx.Rollback(); err != nil {
+			msg += "error rolling back transaction: " + err.Error()
+		}
+
+		sendError(c, http.StatusInternalServerError, msg)
 
 		return
 	}
@@ -108,11 +118,23 @@ func (r *Router) addMemberGroup(c *gin.Context) {
 	memberGroup, err := models.FindGroup(c.Request.Context(), tx, req.MemberGroupID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			sendError(c, http.StatusNotFound, "group not found: "+err.Error())
+			msg := "group not found: " + err.Error()
+
+			if err := tx.Rollback(); err != nil {
+				msg += "error rolling back transaction: " + err.Error()
+			}
+
+			sendError(c, http.StatusNotFound, msg)
 			return
 		}
 
-		sendError(c, http.StatusInternalServerError, "error getting group"+err.Error())
+		msg := "error getting group: " + err.Error()
+
+		if err := tx.Rollback(); err != nil {
+			msg += "error rolling back transaction: " + err.Error()
+		}
+
+		sendError(c, http.StatusInternalServerError, msg)
 
 		return
 	}
@@ -122,12 +144,24 @@ func (r *Router) addMemberGroup(c *gin.Context) {
 		qm.And("member_group_id = ?", memberGroup.ID),
 	).Exists(c.Request.Context(), tx)
 	if err != nil {
-		sendError(c, http.StatusInternalServerError, "error checking group hierarchy exists: "+err.Error())
+		msg := "error checking group hierarchy exists: " + err.Error()
+
+		if err := tx.Rollback(); err != nil {
+			msg += "error rolling back transaction: " + err.Error()
+		}
+
+		sendError(c, http.StatusInternalServerError, msg)
 		return
 	}
 
 	if exists {
-		sendError(c, http.StatusConflict, "group is already a member")
+		msg := "group is already a member: " + err.Error()
+
+		if err := tx.Rollback(); err != nil {
+			msg += "error rolling back transaction: " + err.Error()
+		}
+
+		sendError(c, http.StatusConflict, msg)
 		return
 	}
 
@@ -272,21 +306,6 @@ func (r *Router) updateMemberGroup(c *gin.Context) {
 	parentGroupID := c.Param("id")
 	memberGroupID := c.Param("member_id")
 
-	hierarchy, err := models.GroupHierarchies(
-		qm.Where("parent_group_id = ?", parentGroupID),
-		qm.And("member_group_id = ?", memberGroupID),
-	).One(c.Request.Context(), r.DB)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			sendError(c, http.StatusNotFound, "hierarchy not found: "+err.Error())
-			return
-		}
-
-		sendError(c, http.StatusInternalServerError, "error getting hierarchy"+err.Error())
-
-		return
-	}
-
 	req := struct {
 		ExpiresAt null.Time `json:"expires_at"`
 	}{}
@@ -296,13 +315,39 @@ func (r *Router) updateMemberGroup(c *gin.Context) {
 		return
 	}
 
-	hierarchy.ExpiresAt = req.ExpiresAt
-
 	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
 	if err != nil {
 		sendError(c, http.StatusBadRequest, "error starting update hierarchy transaction: "+err.Error())
 		return
 	}
+
+	hierarchy, err := models.GroupHierarchies(
+		qm.Where("parent_group_id = ?", parentGroupID),
+		qm.And("member_group_id = ?", memberGroupID),
+	).One(c.Request.Context(), tx)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			msg := "hierarchy not found: " + err.Error()
+
+			if err := tx.Rollback(); err != nil {
+				msg += "error rolling back transaction: " + err.Error()
+			}
+
+			sendError(c, http.StatusBadRequest, msg)
+			return
+		}
+
+		msg := "error getting hierarchy: " + err.Error()
+
+		if err := tx.Rollback(); err != nil {
+			msg += "error rolling back transaction: " + err.Error()
+		}
+
+		sendError(c, http.StatusBadRequest, msg)
+		return
+	}
+
+	hierarchy.ExpiresAt = req.ExpiresAt
 
 	if _, err := hierarchy.Update(c.Request.Context(), tx, boil.Infer()); err != nil {
 		msg := "failed to update hierarchy: " + err.Error()
@@ -374,24 +419,36 @@ func (r *Router) removeMemberGroup(c *gin.Context) {
 	parentGroupID := c.Param("id")
 	memberGroupID := c.Param("member_id")
 
-	hierarchy, err := models.GroupHierarchies(
-		qm.Where("parent_group_id = ?", parentGroupID),
-		qm.And("member_group_id = ?", memberGroupID),
-	).One(c.Request.Context(), r.DB)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			sendError(c, http.StatusNotFound, "hierarchy not found: "+err.Error())
-			return
-		}
-
-		sendError(c, http.StatusInternalServerError, "error getting hierarchy"+err.Error())
-
-		return
-	}
-
 	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
 	if err != nil {
 		sendError(c, http.StatusBadRequest, "error starting delete group hierarchy transaction: "+err.Error())
+		return
+	}
+
+	hierarchy, err := models.GroupHierarchies(
+		qm.Where("parent_group_id = ?", parentGroupID),
+		qm.And("member_group_id = ?", memberGroupID),
+	).One(c.Request.Context(), tx)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			msg := "hierarchy not found: " + err.Error()
+
+			if err := tx.Rollback(); err != nil {
+				msg = msg + "error rolling back transaction: " + err.Error()
+			}
+
+			sendError(c, http.StatusBadRequest, msg)
+			return
+		}
+
+		msg := "error getting hierarchy: " + err.Error()
+
+		if err := tx.Rollback(); err != nil {
+			msg = msg + "error rolling back transaction: " + err.Error()
+		}
+
+		sendError(c, http.StatusBadRequest, msg)
+
 		return
 	}
 
