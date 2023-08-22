@@ -197,7 +197,7 @@ func (r *Router) addGroupMember(c *gin.Context) {
 		return
 	}
 
-	if err := groupMem.Insert(c.Request.Context(), r.DB, boil.Infer()); err != nil {
+	if err := groupMem.Insert(c.Request.Context(), tx, boil.Infer()); err != nil {
 		msg := "failed to update group membership: " + err.Error()
 
 		if err := tx.Rollback(); err != nil {
@@ -360,7 +360,7 @@ func (r *Router) updateGroupMember(c *gin.Context) {
 		return
 	}
 
-	if _, err := membership.Update(c.Request.Context(), r.DB, boil.Infer()); err != nil {
+	if _, err := membership.Update(c.Request.Context(), tx, boil.Infer()); err != nil {
 		msg := "failed to update group member admin flag: " + err.Error()
 
 		if err := tx.Rollback(); err != nil {
@@ -533,7 +533,7 @@ func (r *Router) removeGroupMember(c *gin.Context) {
 		return
 	}
 
-	if _, err := membership.Delete(c.Request.Context(), r.DB); err != nil {
+	if _, err := membership.Delete(c.Request.Context(), tx); err != nil {
 		msg := "error removing membership: " + err.Error()
 
 		if err := tx.Rollback(); err != nil {
