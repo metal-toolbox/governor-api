@@ -170,11 +170,10 @@ func (r *Router) createApplication(c *gin.Context) {
 		return
 	}
 
-	// TODO: make required after this is fully integrated
-	// if req.TypeID == "" {
-	// sendError(c, http.StatusBadRequest, "application type_id is required")
-	// return
-	// }
+	if req.TypeID == "" {
+		sendError(c, http.StatusBadRequest, "application type_id is required")
+		return
+	}
 
 	if req.TypeID != "" {
 		if _, err := uuid.Parse(req.TypeID); err != nil {
@@ -185,15 +184,7 @@ func (r *Router) createApplication(c *gin.Context) {
 
 	app := &models.Application{
 		Name: req.Name,
-	}
-
-	// TODO: remove when type_id is working
-	if req.Kind != "" {
-		app.Kind = req.Kind
-	}
-
-	if req.TypeID != "" {
-		app.TypeID = null.StringFrom(req.TypeID)
+		TypeID: null.StringFrom(req.TypeID),
 	}
 
 	if req.ApproverGroupID != nil {
