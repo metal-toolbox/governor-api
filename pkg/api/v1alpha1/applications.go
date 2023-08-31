@@ -183,7 +183,7 @@ func (r *Router) createApplication(c *gin.Context) {
 	}
 
 	app := &models.Application{
-		Name: req.Name,
+		Name:   req.Name,
 		TypeID: null.StringFrom(req.TypeID),
 	}
 
