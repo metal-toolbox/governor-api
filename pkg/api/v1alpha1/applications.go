@@ -126,18 +126,27 @@ func (r *Router) getApplication(c *gin.Context) {
 		queryMods = append(queryMods, qm.WithDeleted())
 	}
 
-	q := qm.Where("id = ?", id)
+	q := []qm.QueryMod{qm.Where("id = ?", id)}
 
 	if _, err := uuid.Parse(id); err != nil {
+		type_id, type_exists := c.GetQuery("type_id")
+		if !type_exists {
+			sendError(c, http.StatusBadRequest, "type_id is required when fetching an application by slug")
+			return
+		}
+
 		if deleted {
 			sendError(c, http.StatusBadRequest, "unable to get deleted application by slug, use the id")
 			return
 		}
 
-		q = qm.Where("slug = ?", id)
+		q = []qm.QueryMod{
+			qm.Where("slug = ?", id),
+			qm.Where("type_id = ?", type_id),
+		}
 	}
 
-	queryMods = append(queryMods, q)
+	queryMods = append(queryMods, q...)
 
 	app, err := models.Applications(queryMods...).One(c.Request.Context(), r.DB)
 	if err != nil {
@@ -275,16 +284,24 @@ func (r *Router) createApplication(c *gin.Context) {
 func (r *Router) deleteApplication(c *gin.Context) {
 	id := c.Param("id")
 
-	q := qm.Where("id = ?", id)
+	q := []qm.QueryMod{qm.Where("id = ?", id)}
 
 	if _, err := uuid.Parse(id); err != nil {
-		q = qm.Where("slug = ?", id)
+		type_id, type_exists := c.GetQuery("type_id")
+		if !type_exists {
+			sendError(c, http.StatusBadRequest, "type_id is required when fetching an application by slug")
+			return
+		}
+
+		q = []qm.QueryMod{
+			qm.Where("slug = ?", id),
+			qm.Where("type_id = ?", type_id),
+		}
 	}
 
-	app, err := models.Applications(
-		q,
-		qm.Load("GroupApplications"),
-	).One(c.Request.Context(), r.DB)
+	q = append(q, qm.Load("GroupApplications"))
+
+	app, err := models.Applications(q...).One(c.Request.Context(), r.DB)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			sendError(c, http.StatusNotFound, "application not found: "+err.Error())
@@ -382,13 +399,22 @@ func (r *Router) deleteApplication(c *gin.Context) {
 func (r *Router) updateApplication(c *gin.Context) {
 	id := c.Param("id")
 
-	q := qm.Where("id = ?", id)
+	q := []qm.QueryMod{qm.Where("id = ?", id)}
 
 	if _, err := uuid.Parse(id); err != nil {
-		q = qm.Where("slug = ?", id)
+		type_id, type_exists := c.GetQuery("type_id")
+		if !type_exists {
+			sendError(c, http.StatusBadRequest, "type_id is required when fetching an application by slug")
+			return
+		}
+
+		q = []qm.QueryMod{
+			qm.Where("slug = ?", id),
+			qm.Where("type_id = ?", type_id),
+		}
 	}
 
-	app, err := models.Applications(q).One(c.Request.Context(), r.DB)
+	app, err := models.Applications(q...).One(c.Request.Context(), r.DB)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			sendError(c, http.StatusNotFound, "application not found: "+err.Error())

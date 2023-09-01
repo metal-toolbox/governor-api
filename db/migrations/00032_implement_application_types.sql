@@ -26,10 +26,18 @@ WHERE
 	applications.kind = application_types.slug;
 
 ALTER TABLE applications DROP COLUMN kind;
+
+DROP INDEX IF EXISTS applications_slug_key CASCADE;
+
+ALTER TABLE applications ADD CONSTRAINT applications_slug_type_key UNIQUE (slug, type_id) WHERE deleted_at IS NULL;
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
+DROP INDEX IF EXISTS applications_slug_type_key CASCADE;
+
+ALTER TABLE applications ADD CONSTRAINT applications_slug_key UNIQUE (slug) WHERE deleted_at IS NULL;
+
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS kind STRING NOT NULL;
 
 UPDATE
@@ -40,4 +48,8 @@ FROM
 	application_types
 WHERE
 	applications.type_id = application_types.id;
+
+-- not deleting from application_types here because there isn't a good way to know if manual changes have been made
+-- to the rows and the above transaction should be replayable anyway
+
 -- +goose StatementEnd
