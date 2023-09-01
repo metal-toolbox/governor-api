@@ -129,8 +129,8 @@ func (r *Router) getApplication(c *gin.Context) {
 	q := []qm.QueryMod{qm.Where("id = ?", id)}
 
 	if _, err := uuid.Parse(id); err != nil {
-		type_id, type_exists := c.GetQuery("type_id")
-		if !type_exists {
+		typeID, typeExists := c.GetQuery("type_id")
+		if !typeExists {
 			sendError(c, http.StatusBadRequest, "type_id is required when fetching an application by slug")
 			return
 		}
@@ -142,7 +142,7 @@ func (r *Router) getApplication(c *gin.Context) {
 
 		q = []qm.QueryMod{
 			qm.Where("slug = ?", id),
-			qm.Where("type_id = ?", type_id),
+			qm.Where("type_id = ?", typeID),
 		}
 	}
 
@@ -287,15 +287,15 @@ func (r *Router) deleteApplication(c *gin.Context) {
 	q := []qm.QueryMod{qm.Where("id = ?", id)}
 
 	if _, err := uuid.Parse(id); err != nil {
-		type_id, type_exists := c.GetQuery("type_id")
-		if !type_exists {
+		typeID, typeExists := c.GetQuery("type_id")
+		if !typeExists {
 			sendError(c, http.StatusBadRequest, "type_id is required when fetching an application by slug")
 			return
 		}
 
 		q = []qm.QueryMod{
 			qm.Where("slug = ?", id),
-			qm.Where("type_id = ?", type_id),
+			qm.Where("type_id = ?", typeID),
 		}
 	}
 
@@ -402,15 +402,15 @@ func (r *Router) updateApplication(c *gin.Context) {
 	q := []qm.QueryMod{qm.Where("id = ?", id)}
 
 	if _, err := uuid.Parse(id); err != nil {
-		type_id, type_exists := c.GetQuery("type_id")
-		if !type_exists {
+		typeID, typeExists := c.GetQuery("type_id")
+		if !typeExists {
 			sendError(c, http.StatusBadRequest, "type_id is required when fetching an application by slug")
 			return
 		}
 
 		q = []qm.QueryMod{
 			qm.Where("slug = ?", id),
-			qm.Where("type_id = ?", type_id),
+			qm.Where("type_id = ?", typeID),
 		}
 	}
 
