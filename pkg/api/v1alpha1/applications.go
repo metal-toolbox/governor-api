@@ -27,7 +27,6 @@ type Application struct {
 // ApplicationReq is a request to create an application
 type ApplicationReq struct {
 	Name            string  `json:"name"`
-	Kind            string  `json:"kind"` // TODO: remove after type_id is fully integrated
 	TypeID          string  `json:"type_id"`
 	ApproverGroupID *string `json:"approver_group_id"`
 }
