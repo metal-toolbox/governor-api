@@ -5,6 +5,11 @@ import (
 	"encoding/json"
 
 	"github.com/nats-io/nats.go"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 
 	events "github.com/metal-toolbox/governor-api/pkg/events/v1alpha1"
@@ -12,6 +17,7 @@ import (
 
 const (
 	defaultSubject = "events"
+	natsTracerName = "github.com/metal-toolbox/governor-api:nats"
 )
 
 type conn interface {
@@ -24,6 +30,7 @@ type Client struct {
 	conn   conn
 	logger *zap.Logger
 	prefix string
+	tracer trace.Tracer
 }
 
 // Option is a functional configuration option for governor eventing
@@ -34,6 +41,7 @@ func NewClient(opts ...Option) *Client {
 	client := Client{
 		logger: zap.NewNop(),
 		prefix: defaultSubject,
+		tracer: otel.GetTracerProvider().Tracer(natsTracerName),
 	}
 
 	for _, opt := range opts {
@@ -70,7 +78,7 @@ func (c *Client) Shutdown() error {
 }
 
 // Publish an event on the event bus
-func (c *Client) Publish(_ context.Context, sub string, event *events.Event) error {
+func (c *Client) Publish(ctx context.Context, sub string, event *events.Event) error {
 	if event == nil {
 		return ErrEmptyEvent
 	}
@@ -79,8 +87,25 @@ func (c *Client) Publish(_ context.Context, sub string, event *events.Event) err
 
 	c.logger.Info("publishing event to the event bus", zap.String("subject", subject), zap.Any("action", event.Action))
 
+	ctx, span := c.tracer.Start(ctx, "events.nats.PublishEvent", trace.WithAttributes(
+		attribute.String("events.action", event.Action),
+		attribute.String("event.subject", subject),
+	))
+
+	defer span.End()
+
+	// Propagate trace context into the message for the subscriber
+	var mapCarrier propagation.MapCarrier = make(map[string]string)
+
+	otel.GetTextMapPropagator().Inject(ctx, mapCarrier)
+
+	event.TraceContext = mapCarrier
+
 	j, err := json.Marshal(event)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+
 		return err
 	}
 

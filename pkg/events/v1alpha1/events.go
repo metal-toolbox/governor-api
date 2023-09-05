@@ -53,4 +53,7 @@ type Event struct {
 	ApplicationTypeID    string `json:"application_type_id,omitempty"`
 	NotificationTypeID   string `json:"notification_type_id,omitempty"`
 	NotificationTargetID string `json:"notification_target_id,omitempty"`
+
+	// TraceContext is a map of values used for OpenTelemetry context propagation.
+	TraceContext map[string]string `json:"traceContext"`
 }
