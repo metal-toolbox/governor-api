@@ -38,7 +38,7 @@ DROP INDEX IF EXISTS applications_slug_type_key CASCADE;
 
 ALTER TABLE applications ADD CONSTRAINT applications_slug_key UNIQUE (slug) WHERE deleted_at IS NULL;
 
-ALTER TABLE applications ADD COLUMN IF NOT EXISTS kind STRING NOT NULL;
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS kind STRING;
 
 UPDATE
 	applications
@@ -48,6 +48,8 @@ FROM
 	application_types
 WHERE
 	applications.type_id = application_types.id;
+
+ALTER TABLE applications ALTER COLUMN kind SET NOT NULL;
 
 -- not deleting from application_types here because there isn't a good way to know if manual changes have been made
 -- to the rows and the above transaction should be replayable anyway
