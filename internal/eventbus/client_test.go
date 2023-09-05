@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 
 	events "github.com/metal-toolbox/governor-api/pkg/events/v1alpha1"
@@ -90,7 +91,7 @@ func TestClient_Publish(t *testing.T) {
 				GroupID: "phoenix",
 				UserID:  "meta",
 			},
-			data: []byte(`{"version":"v1alpha1","action":"CREATE","audit_id":"0123-abcd","group_id":"phoenix","user_id":"meta"}`),
+			data: []byte(`{"version":"v1alpha1","action":"CREATE","audit_id":"0123-abcd","group_id":"phoenix","user_id":"meta","traceContext":{}}`),
 		},
 		{
 			name: "example event with actor",
@@ -103,7 +104,7 @@ func TestClient_Publish(t *testing.T) {
 				UserID:  "meta",
 				ActorID: "actor",
 			},
-			data: []byte(`{"version":"v1alpha1","action":"CREATE","audit_id":"0123-abcd","group_id":"phoenix","user_id":"meta","actor_id":"actor"}`),
+			data: []byte(`{"version":"v1alpha1","action":"CREATE","audit_id":"0123-abcd","group_id":"phoenix","user_id":"meta","actor_id":"actor","traceContext":{}}`),
 		},
 		{
 			name: "example event empty user_id",
@@ -115,7 +116,7 @@ func TestClient_Publish(t *testing.T) {
 				GroupID: "phoenix",
 				UserID:  "",
 			},
-			data: []byte(`{"version":"v1alpha1","action":"CREATE","audit_id":"0123-abcd","group_id":"phoenix"}`),
+			data: []byte(`{"version":"v1alpha1","action":"CREATE","audit_id":"0123-abcd","group_id":"phoenix","traceContext":{}}`),
 		},
 		{
 			name: "example event empty group_id",
@@ -127,7 +128,7 @@ func TestClient_Publish(t *testing.T) {
 				GroupID: "",
 				UserID:  "meta",
 			},
-			data: []byte(`{"version":"v1alpha1","action":"CREATE","audit_id":"0123-abcd","user_id":"meta"}`),
+			data: []byte(`{"version":"v1alpha1","action":"CREATE","audit_id":"0123-abcd","user_id":"meta","traceContext":{}}`),
 		},
 		{
 			name: "publish error",
@@ -149,6 +150,7 @@ func TestClient_Publish(t *testing.T) {
 				logger: zap.NewNop(),
 				conn:   &mockConn{t, tt.err, tt.data},
 				prefix: "test",
+				tracer: otel.GetTracerProvider().Tracer("test"),
 			}
 			err := c.Publish(context.TODO(), tt.sub, tt.event)
 			if tt.wantErr {
