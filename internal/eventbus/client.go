@@ -90,6 +90,7 @@ func (c *Client) Publish(ctx context.Context, sub string, event *events.Event) e
 	ctx, span := c.tracer.Start(ctx, "events.nats.PublishEvent", trace.WithAttributes(
 		attribute.String("events.action", event.Action),
 		attribute.String("event.subject", subject),
+		attribute.String("event.actor_id", event.ActorID),
 	))
 
 	defer span.End()
