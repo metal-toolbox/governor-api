@@ -319,13 +319,6 @@ func (r *Router) updateGroupMember(c *gin.Context) {
 		return
 	}
 
-	// if there is user in the context, check that they are not trying to promote themselves
-	ctxUser := getCtxUser(c)
-	if ctxUser != nil && ctxUser.ID == user.ID {
-		sendError(c, http.StatusBadRequest, "unable to change own membership")
-		return
-	}
-
 	req := struct {
 		IsAdmin bool `json:"is_admin"`
 	}{}
@@ -350,6 +343,14 @@ func (r *Router) updateGroupMember(c *gin.Context) {
 		return
 	}
 
+	// if there is user in the context, check that they are not trying to promote themselves
+	// (but they are allowed to step down as admin)
+	ctxUser := getCtxUser(c)
+	if ctxUser != nil && ctxUser.ID == user.ID && !(membership.IsAdmin && !req.IsAdmin) {
+		sendError(c, http.StatusBadRequest, "unable to change own membership")
+		return
+	}
+
 	original := *membership
 
 	membership.IsAdmin = req.IsAdmin
@@ -361,13 +362,7 @@ func (r *Router) updateGroupMember(c *gin.Context) {
 	}
 
 	if _, err := membership.Update(c.Request.Context(), tx, boil.Infer()); err != nil {
-		msg := "failed to update group member admin flag: " + err.Error()
-
-		if err := tx.Rollback(); err != nil {
-			msg += "error rolling back transaction: " + err.Error()
-		}
-
-		sendError(c, http.StatusBadRequest, msg)
+		rollbackWithError(c, tx, err, http.StatusBadRequest, "failed to update group member admin flag")
 
 		return
 	}
@@ -381,13 +376,7 @@ func (r *Router) updateGroupMember(c *gin.Context) {
 		// user is promoted
 		event, err = dbtools.AuditGroupMemberPromoted(c.Request.Context(), tx, getCtxAuditID(c), getCtxUser(c), membership)
 		if err != nil {
-			msg := "error updating groups membership (audit): " + err.Error()
-
-			if err := tx.Rollback(); err != nil {
-				msg += "error rolling back transaction: " + err.Error()
-			}
-
-			sendError(c, http.StatusBadRequest, msg)
+			rollbackWithError(c, tx, err, http.StatusBadRequest, "error updating groups membership (audit)")
 
 			return
 		}
@@ -397,13 +386,7 @@ func (r *Router) updateGroupMember(c *gin.Context) {
 		// user is demoted
 		event, err = dbtools.AuditGroupMemberDemoted(c.Request.Context(), tx, getCtxAuditID(c), getCtxUser(c), membership)
 		if err != nil {
-			msg := "error updating groups membership (audit): " + err.Error()
-
-			if err := tx.Rollback(); err != nil {
-				msg += "error rolling back transaction: " + err.Error()
-			}
-
-			sendError(c, http.StatusBadRequest, msg)
+			rollbackWithError(c, tx, err, http.StatusBadRequest, "error updating groups membership (audit)")
 
 			return
 		}
@@ -413,38 +396,20 @@ func (r *Router) updateGroupMember(c *gin.Context) {
 		// something else was updated
 		event, err = dbtools.AuditGroupMembershipUpdated(c.Request.Context(), tx, getCtxAuditID(c), getCtxUser(c), &original, membership)
 		if err != nil {
-			msg := "error updating groups membership (audit): " + err.Error()
-
-			if err := tx.Rollback(); err != nil {
-				msg += "error rolling back transaction: " + err.Error()
-			}
-
-			sendError(c, http.StatusBadRequest, msg)
+			rollbackWithError(c, tx, err, http.StatusBadRequest, "error updating groups membership (audit)")
 
 			return
 		}
 	}
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
-		msg := "error updating group membership (audit): " + err.Error()
-
-		if err := tx.Rollback(); err != nil {
-			msg += "error rolling back transaction: " + err.Error()
-		}
-
-		sendError(c, http.StatusBadRequest, msg)
+		rollbackWithError(c, tx, err, http.StatusBadRequest, "error updating groups membership (audit)")
 
 		return
 	}
 
 	if err := tx.Commit(); err != nil {
-		msg := "error committing membership update, rolling back: " + err.Error()
-
-		if err := tx.Rollback(); err != nil {
-			msg = msg + "error rolling back transaction: " + err.Error()
-		}
-
-		sendError(c, http.StatusBadRequest, msg)
+		rollbackWithError(c, tx, err, http.StatusBadRequest, "error committing membership update, rolling back")
 
 		return
 	}
