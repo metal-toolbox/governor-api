@@ -11,6 +11,7 @@ import (
 	"github.com/metal-toolbox/governor-api/internal/models"
 	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/suite"
+	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
 // NotificationPreferencesTestSuite is a test suite to run unit tests on
@@ -357,6 +358,86 @@ func (s *NotificationPreferencesTestSuite) TestNotificationPreferences() {
 			wantWithDefaults:    UserNotificationPreferences{nil},
 			wantWithoutDefaults: UserNotificationPreferences{nil},
 			wantErr:             true,
+		},
+		{
+			name: "notification type deleted after user updates",
+			action: func() error {
+				_, err := s.db.Query(`INSERT INTO notification_types (id, name, slug, description, default_enabled) VALUES ('00000000-0000-0000-0000-000000000002', 'Notice', 'notice', 'notice', 'false')`)
+				if err != nil {
+					return err
+				}
+
+				if _, err := CreateOrUpdateNotificationPreferences(
+					context.TODO(), u,
+					UserNotificationPreferences{{
+						NotificationType: "notice",
+						Enabled:          s.trueptr,
+					}},
+					sqlxdb, s.auditID, u,
+				); err != nil {
+					return err
+				}
+
+				nt, err := models.
+					NotificationTypes(qm.Where("slug = ?", "notice")).
+					One(context.TODO(), sqlxdb)
+				if err != nil {
+					return err
+				}
+
+				_, err = nt.Delete(context.TODO(), sqlxdb, false)
+				if err != nil {
+					return err
+				}
+
+				return RefreshNotificationDefaults(context.TODO(), sqlxdb)
+			},
+			wantWithDefaults: UserNotificationPreferences{{
+				NotificationType: "alert",
+				Enabled:          s.trueptr,
+				NotificationTargets: UserNotificationPreferenceTargets{{
+					Target:  "slack",
+					Enabled: s.falseptr,
+				}},
+			}},
+			wantWithoutDefaults: UserNotificationPreferences{{
+				NotificationType: "alert",
+				Enabled:          s.trueptr,
+				NotificationTargets: UserNotificationPreferenceTargets{{
+					Target:  "slack",
+					Enabled: s.falseptr,
+				}},
+			}},
+			wantErr: false,
+		},
+		{
+			name: "notification target deleted after user updates",
+			action: func() error {
+				nt, err := models.
+					NotificationTargets(qm.Where("slug = ?", "slack")).
+					One(context.TODO(), sqlxdb)
+				if err != nil {
+					return err
+				}
+
+				_, err = nt.Delete(context.TODO(), sqlxdb, false)
+				if err != nil {
+					return err
+				}
+
+				return RefreshNotificationDefaults(context.TODO(), sqlxdb)
+			},
+			wantWithDefaults: UserNotificationPreferences{{
+				NotificationType:    "alert",
+				Enabled:             s.trueptr,
+				NotificationTargets: UserNotificationPreferenceTargets{},
+			}},
+			wantWithoutDefaults: UserNotificationPreferences{{
+				NotificationType:    "alert",
+				Enabled:             s.trueptr,
+				NotificationTargets: UserNotificationPreferenceTargets{},
+			}},
+			wantErr: false,
 		},
 	}
 

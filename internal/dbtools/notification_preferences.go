@@ -90,6 +90,8 @@ func GetNotificationPreferences(ctx context.Context, uid string, ex boil.Context
 			LEFT JOIN notification_targets ON notification_target_id = notification_targets.id
 			LEFT JOIN notification_types ON notification_type_id = notification_types.id
 			WHERE notification_preferences.user_id = $1
+      AND notification_types.deleted_at is NULL
+      AND notification_targets.deleted_at is NULL
 		)
 	`
 
@@ -101,6 +103,7 @@ func GetNotificationPreferences(ctx context.Context, uid string, ex boil.Context
 			jsonb_agg((nd.target_slug, IFNULL(np.enabled, nd.default_enabled))) AS notification_targets
 		FROM notification_defaults as nd
 		FULL OUTER JOIN np on (np.target_id = nd.target_id AND np.type_id = nd.type_id)
+		WHERE nd.type_slug IS NOT NULL
 		GROUP BY nd.type_slug
 		`,
 	)
