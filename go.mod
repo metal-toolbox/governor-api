@@ -32,7 +32,7 @@ require (
 	go.opentelemetry.io/otel v1.16.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.16.0
 	go.opentelemetry.io/otel/sdk v1.16.0
-	go.uber.org/zap v1.24.0
+	go.uber.org/zap v1.26.0
 	golang.org/x/oauth2 v0.10.0
 	gopkg.in/square/go-jose.v2 v2.6.0
 )
