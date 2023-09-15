@@ -29,7 +29,7 @@ services:
       - governor
 
   create-databases:
-    image: cockroachdb/cockroach:v22.1.11
+    image: cockroachdb/cockroach:v23.1.10
     restart: on-failure:5
     command: "sql --insecure -e 'CREATE DATABASE IF NOT EXISTS hydra_dev; CREATE DATABASE IF NOT EXISTS governor_dev;'"
     env_file:
@@ -40,7 +40,7 @@ services:
       - governor
 
   crdb:
-    image: cockroachdb/cockroach:v22.1.11
+    image: cockroachdb/cockroach:v23.1.10
     volumes:
       - crdb-data:/cockroach/cockroach-data
     command: start-single-node --insecure
