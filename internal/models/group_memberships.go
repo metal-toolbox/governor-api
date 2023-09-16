@@ -24,72 +24,79 @@ import (
 
 // GroupMembership is an object representing the database table.
 type GroupMembership struct {
-	ID        string    `boil:"id" json:"id" toml:"id" yaml:"id"`
-	GroupID   string    `boil:"group_id" json:"group_id" toml:"group_id" yaml:"group_id"`
-	UserID    string    `boil:"user_id" json:"user_id" toml:"user_id" yaml:"user_id"`
-	IsAdmin   bool      `boil:"is_admin" json:"is_admin" toml:"is_admin" yaml:"is_admin"`
-	CreatedAt time.Time `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
-	UpdatedAt time.Time `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
-	ExpiresAt null.Time `boil:"expires_at" json:"expires_at,omitempty" toml:"expires_at" yaml:"expires_at,omitempty"`
+	ID             string    `boil:"id" json:"id" toml:"id" yaml:"id"`
+	GroupID        string    `boil:"group_id" json:"group_id" toml:"group_id" yaml:"group_id"`
+	UserID         string    `boil:"user_id" json:"user_id" toml:"user_id" yaml:"user_id"`
+	IsAdmin        bool      `boil:"is_admin" json:"is_admin" toml:"is_admin" yaml:"is_admin"`
+	CreatedAt      time.Time `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
+	UpdatedAt      time.Time `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
+	ExpiresAt      null.Time `boil:"expires_at" json:"expires_at,omitempty" toml:"expires_at" yaml:"expires_at,omitempty"`
+	AdminExpiresAt null.Time `boil:"admin_expires_at" json:"admin_expires_at,omitempty" toml:"admin_expires_at" yaml:"admin_expires_at,omitempty"`
 
 	R *groupMembershipR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L groupMembershipL  `boil:"-" json:"-" toml:"-" yaml:"-"`
 }
 
 var GroupMembershipColumns = struct {
-	ID        string
-	GroupID   string
-	UserID    string
-	IsAdmin   string
-	CreatedAt string
-	UpdatedAt string
-	ExpiresAt string
+	ID             string
+	GroupID        string
+	UserID         string
+	IsAdmin        string
+	CreatedAt      string
+	UpdatedAt      string
+	ExpiresAt      string
+	AdminExpiresAt string
 }{
-	ID:        "id",
-	GroupID:   "group_id",
-	UserID:    "user_id",
-	IsAdmin:   "is_admin",
-	CreatedAt: "created_at",
-	UpdatedAt: "updated_at",
-	ExpiresAt: "expires_at",
+	ID:             "id",
+	GroupID:        "group_id",
+	UserID:         "user_id",
+	IsAdmin:        "is_admin",
+	CreatedAt:      "created_at",
+	UpdatedAt:      "updated_at",
+	ExpiresAt:      "expires_at",
+	AdminExpiresAt: "admin_expires_at",
 }
 
 var GroupMembershipTableColumns = struct {
-	ID        string
-	GroupID   string
-	UserID    string
-	IsAdmin   string
-	CreatedAt string
-	UpdatedAt string
-	ExpiresAt string
+	ID             string
+	GroupID        string
+	UserID         string
+	IsAdmin        string
+	CreatedAt      string
+	UpdatedAt      string
+	ExpiresAt      string
+	AdminExpiresAt string
 }{
-	ID:        "group_memberships.id",
-	GroupID:   "group_memberships.group_id",
-	UserID:    "group_memberships.user_id",
-	IsAdmin:   "group_memberships.is_admin",
-	CreatedAt: "group_memberships.created_at",
-	UpdatedAt: "group_memberships.updated_at",
-	ExpiresAt: "group_memberships.expires_at",
+	ID:             "group_memberships.id",
+	GroupID:        "group_memberships.group_id",
+	UserID:         "group_memberships.user_id",
+	IsAdmin:        "group_memberships.is_admin",
+	CreatedAt:      "group_memberships.created_at",
+	UpdatedAt:      "group_memberships.updated_at",
+	ExpiresAt:      "group_memberships.expires_at",
+	AdminExpiresAt: "group_memberships.admin_expires_at",
 }
 
 // Generated where
 
 var GroupMembershipWhere = struct {
-	ID        whereHelperstring
-	GroupID   whereHelperstring
-	UserID    whereHelperstring
-	IsAdmin   whereHelperbool
-	CreatedAt whereHelpertime_Time
-	UpdatedAt whereHelpertime_Time
-	ExpiresAt whereHelpernull_Time
+	ID             whereHelperstring
+	GroupID        whereHelperstring
+	UserID         whereHelperstring
+	IsAdmin        whereHelperbool
+	CreatedAt      whereHelpertime_Time
+	UpdatedAt      whereHelpertime_Time
+	ExpiresAt      whereHelpernull_Time
+	AdminExpiresAt whereHelpernull_Time
 }{
-	ID:        whereHelperstring{field: "\"group_memberships\".\"id\""},
-	GroupID:   whereHelperstring{field: "\"group_memberships\".\"group_id\""},
-	UserID:    whereHelperstring{field: "\"group_memberships\".\"user_id\""},
-	IsAdmin:   whereHelperbool{field: "\"group_memberships\".\"is_admin\""},
-	CreatedAt: whereHelpertime_Time{field: "\"group_memberships\".\"created_at\""},
-	UpdatedAt: whereHelpertime_Time{field: "\"group_memberships\".\"updated_at\""},
-	ExpiresAt: whereHelpernull_Time{field: "\"group_memberships\".\"expires_at\""},
+	ID:             whereHelperstring{field: "\"group_memberships\".\"id\""},
+	GroupID:        whereHelperstring{field: "\"group_memberships\".\"group_id\""},
+	UserID:         whereHelperstring{field: "\"group_memberships\".\"user_id\""},
+	IsAdmin:        whereHelperbool{field: "\"group_memberships\".\"is_admin\""},
+	CreatedAt:      whereHelpertime_Time{field: "\"group_memberships\".\"created_at\""},
+	UpdatedAt:      whereHelpertime_Time{field: "\"group_memberships\".\"updated_at\""},
+	ExpiresAt:      whereHelpernull_Time{field: "\"group_memberships\".\"expires_at\""},
+	AdminExpiresAt: whereHelpernull_Time{field: "\"group_memberships\".\"admin_expires_at\""},
 }
 
 // GroupMembershipRels is where relationship names are stored.
@@ -130,9 +137,9 @@ func (r *groupMembershipR) GetGroup() *Group {
 type groupMembershipL struct{}
 
 var (
-	groupMembershipAllColumns            = []string{"id", "group_id", "user_id", "is_admin", "created_at", "updated_at", "expires_at"}
+	groupMembershipAllColumns            = []string{"id", "group_id", "user_id", "is_admin", "created_at", "updated_at", "expires_at", "admin_expires_at"}
 	groupMembershipColumnsWithoutDefault = []string{"group_id", "user_id", "created_at", "updated_at"}
-	groupMembershipColumnsWithDefault    = []string{"id", "is_admin", "expires_at"}
+	groupMembershipColumnsWithDefault    = []string{"id", "is_admin", "expires_at", "admin_expires_at"}
 	groupMembershipPrimaryKeyColumns     = []string{"id"}
 	groupMembershipGeneratedColumns      = []string{}
 )

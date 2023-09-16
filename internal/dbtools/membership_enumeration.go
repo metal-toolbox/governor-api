@@ -41,6 +41,7 @@ const (
 			group_id,
 			user_id,
 			expires_at,
+			admin_expires_at,
 			is_admin,
 			TRUE AS direct
 		FROM
@@ -50,6 +51,7 @@ const (
 			b.parent_group_id,
 			a.user_id,
 			b.expires_at,
+			b.admin_expires_at,
 			FALSE AS is_admin,
 			FALSE AS direct
 		FROM
@@ -64,6 +66,11 @@ const (
 		ELSE
 			NULL
 		END AS expires_at,
+		CASE WHEN BOOL_OR(direct) THEN
+			MAX(admin_expires_at)
+		ELSE
+			NULL
+		END AS admin_expires_at,
 		BOOL_OR(is_admin) as is_admin,
 		BOOL_OR(direct) as direct
 	FROM
@@ -77,6 +84,7 @@ const (
 			user_id,
 			is_admin,
 			expires_at,
+			admin_expires_at,
 			TRUE AS direct
 		FROM
 			group_memberships
@@ -87,6 +95,7 @@ const (
 			a.user_id,
 			FALSE AS is_admin,
 			NULL as expires_at,
+			NULL as admin_expires_at,
 			FALSE AS direct
 		FROM
 			membership_query AS a
@@ -100,6 +109,11 @@ const (
 		ELSE
 			NULL
 		END AS expires_at,
+		CASE WHEN BOOL_OR(direct) THEN
+			MAX(admin_expires_at)
+		ELSE
+			NULL
+		END AS admin_expires_at,
 		BOOL_OR(is_admin) as is_admin,
 		BOOL_OR(direct) as direct
 	FROM
@@ -149,6 +163,11 @@ const (
 		ELSE
 			NULL
 		END AS expires_at,
+		CASE WHEN BOOL_OR(direct) THEN
+			MAX(group_memberships.admin_expires_at)
+		ELSE
+			NULL
+		END AS admin_expires_at,
 		BOOL_OR(direct) as direct
 	FROM
 		ensure_root
@@ -159,13 +178,14 @@ const (
 
 // EnumeratedMembership represents a single user-to-group membership, which may be direct or indirect
 type EnumeratedMembership struct {
-	GroupID   string
-	Group     *models.Group
-	UserID    string
-	User      *models.User
-	IsAdmin   bool
-	ExpiresAt null.Time
-	Direct    bool
+	GroupID        string
+	Group          *models.Group
+	UserID         string
+	User           *models.User
+	IsAdmin        bool
+	ExpiresAt      null.Time
+	AdminExpiresAt null.Time
+	Direct         bool
 }
 
 // GetMembershipsForUser returns a fully enumerated list of memberships for a user, optionally with sqlboiler's generated models populated
