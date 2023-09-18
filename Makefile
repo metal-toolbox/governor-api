@@ -47,14 +47,22 @@ clean: docker-clean
 	@rm -rf coverage.out
 	@rm -f governor-api
 	@go clean -testcache
+	@rm -rf nsc/
+	@rm -f nats/resolver.conf
 
 vendor:
 	@go mod download
 	@go mod tidy
 
-docker-up: build
+docker-up: build 
 	@docker-compose -f docker-compose.yml up -d crdb
-	@docker-compose -f docker-compose.yml up -d nats-server
+	@docker-compose -f docker-compose.yml up -d nats-init
+	@docker-compose -f docker-compose.yml up -d nats
+	@docker-compose -f docker-compose.yml up -d hydra
+
+	bash .devcontainer/scripts/nats_init.sh 
+	bash .devcontainer/scripts/nats_account.sh
+
 	@docker-compose -f docker-compose.yml up --build -d api
 
 docker-down:
@@ -62,6 +70,8 @@ docker-down:
 
 docker-clean:
 	@docker-compose -f docker-compose.yml down --volumes
+	@rm -rf nsc/
+	@rm -f nats/resolver.conf
 
 dev-database: | vendor
 	@cockroach sql --insecure -e "drop database if exists ${DB_NAME}"

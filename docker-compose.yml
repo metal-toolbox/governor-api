@@ -9,9 +9,13 @@ services:
       - serve
       - --development
       - "--config=/.governor.yaml"
+      - "--nats-creds-file=/user.creds"
     depends_on:
       - crdb
+      - nats
+      - nats-init
       - audit
+      - hydra
     volumes:
       - type: volume
         source: audit-log
@@ -21,12 +25,24 @@ services:
         source: .governor-dev.yaml
         target: /.governor.yaml
         read_only: true
+      -  /tmp/user.creds:/user.creds
     ports:
       - "3001:3001"
     restart: unless-stopped
     networks:
       - governor
-
+  
+  nats-init:
+    image: natsio/nats-box
+    environment:
+      - NSC_HOME=/nsc
+    volumes:
+      - ./nsc:/nsc
+      - ./nats:/nats
+      - ./scripts:/scripts
+    command:
+      - /scripts/nats_init.sh
+   
   crdb:
     image: cockroachdb/cockroach:v22.1.11
     volumes:
@@ -90,7 +106,7 @@ services:
         read_only: false
     restart: unless-stopped
 
-  nats-server:
+  nats:
     image: nats:latest
     command:
       - -D

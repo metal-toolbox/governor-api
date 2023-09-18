@@ -5,6 +5,7 @@ db:
   uri: "postgresql://root@crdb:26257/defaultdb?sslmode=disable"
 nats:
   url: "nats://nats:4222"
+  creds-file: /user.creds
 oidc:
   -
     name: "dev hydra"

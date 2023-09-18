@@ -6,6 +6,8 @@ coverage.txt
 .governor.yaml
 audit.log
 .devcontainer/nats/resolver.conf
+nats/resolver.conf
 .devcontainer/nsc
+nsc/
 
 tmp/**
