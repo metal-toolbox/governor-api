@@ -26,6 +26,13 @@ If you are editing models, you will need to install the sqlboiler-crdb tool by r
 go install github.com/glerchundi/sqlboiler-crdb/v4
 ```
 
+#### nsc tool for nats
+
+```
+brew tap nats-io/nats-tools
+brew install nats-io/nats-tools/nsc
+```
+
 ### Running Governor API Locally
 
 To start, run `make docker-up`.
