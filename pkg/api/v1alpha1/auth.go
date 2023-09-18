@@ -334,7 +334,13 @@ func (r *Router) mwGroupAuthRequired(authRole mwAuthRole) gin.HandlerFunc {
 
 			if id == groupID {
 				isGroupMember = true
-				isGroupAdmin = m.IsAdmin
+				if m.AdminExpiresAt.Valid {
+					if time.Now().Before(m.AdminExpiresAt.Time) {
+						isGroupAdmin = m.IsAdmin
+					}
+				} else {
+					isGroupAdmin = m.IsAdmin
+				}
 
 				break
 			}

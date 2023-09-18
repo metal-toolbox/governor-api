@@ -392,7 +392,7 @@ func AuditGroupMemberPromoted(ctx context.Context, exec boil.ContextExecutor, pI
 }
 
 // AuditGroupMembershipApproved inserts an event representing group membership approval into the events table
-func AuditGroupMembershipApproved(ctx context.Context, exec boil.ContextExecutor, pID string, actor *models.User, m *models.GroupMembership) ([]*models.AuditEvent, error) {
+func AuditGroupMembershipApproved(ctx context.Context, exec boil.ContextExecutor, pID string, actor *models.User, m *models.GroupMembership, kind string) ([]*models.AuditEvent, error) {
 	// TODO non-user API actors don't exist in the governor database,
 	// we need to figure out how to handle that relationship in the audit table
 	var actorID null.String
@@ -400,12 +400,23 @@ func AuditGroupMembershipApproved(ctx context.Context, exec boil.ContextExecutor
 		actorID = null.StringFrom(actor.ID)
 	}
 
+	var action string
+
+	switch kind {
+	case "new_member":
+		action = "group.member.request.approved"
+	case "admin_elevation":
+		action = "admin.elevation.request.approved"
+	default:
+		return nil, ErrUnknownRequestKind
+	}
+
 	event := models.AuditEvent{
 		ParentID:       null.StringFrom(pID),
 		ActorID:        actorID,
 		SubjectGroupID: null.StringFrom(m.GroupID),
 		SubjectUserID:  null.StringFrom(m.UserID),
-		Action:         "group.member.request.approved",
+		Action:         action,
 		Changeset:      calculateGroupMembershipChangeset(&models.GroupMembership{}, m),
 		Message:        "Request was approved.",
 	}
@@ -431,12 +442,23 @@ func AuditGroupMembershipRevoked(ctx context.Context, exec boil.ContextExecutor,
 		actorID = null.StringFrom(actor.ID)
 	}
 
+	var action string
+
+	switch r.Kind {
+	case "new_member":
+		action = "group.member.request.revoked"
+	case "admin_elevation":
+		action = "admin.elevation.request.revoked"
+	default:
+		return nil, ErrUnknownRequestKind
+	}
+
 	event := models.AuditEvent{
 		ParentID:       null.StringFrom(pID),
 		ActorID:        actorID,
 		SubjectGroupID: null.StringFrom(r.GroupID),
 		SubjectUserID:  null.StringFrom(r.UserID),
-		Action:         "group.member.request.revoked",
+		Action:         action,
 		Changeset:      []string{},
 		Message:        "Request was revoked.",
 	}
@@ -453,12 +475,23 @@ func AuditGroupMembershipDenied(ctx context.Context, exec boil.ContextExecutor, 
 		actorID = null.StringFrom(actor.ID)
 	}
 
+	var action string
+
+	switch r.Kind {
+	case "new_member":
+		action = "group.member.request.denied"
+	case "admin_elevation":
+		action = "admin.elevation.request.denied"
+	default:
+		return nil, ErrUnknownRequestKind
+	}
+
 	event := models.AuditEvent{
 		ParentID:       null.StringFrom(pID),
 		ActorID:        actorID,
 		SubjectGroupID: null.StringFrom(r.GroupID),
 		SubjectUserID:  null.StringFrom(r.UserID),
-		Action:         "group.member.request.denied",
+		Action:         action,
 		Changeset:      []string{},
 		Message:        "Request was denied.",
 	}
@@ -475,14 +508,25 @@ func AuditGroupMembershipRequestCreated(ctx context.Context, exec boil.ContextEx
 		actorID = null.StringFrom(actor.ID)
 	}
 
+	var action string
+
+	switch r.Kind {
+	case "new_member":
+		action = "group.member.request.created"
+	case "admin_elevation":
+		action = "admin.elevation.request.created"
+	default:
+		return nil, ErrUnknownRequestKind
+	}
+
 	event := models.AuditEvent{
 		ParentID:       null.StringFrom(pID),
 		ActorID:        actorID,
 		SubjectGroupID: null.StringFrom(r.GroupID),
 		SubjectUserID:  null.StringFrom(r.UserID),
-		Action:         "group.member.request.created",
+		Action:         action,
 		Changeset:      []string{},
-		Message:        "User requested to join group.",
+		Message:        "Request was created.",
 	}
 
 	return &event, event.Insert(ctx, exec, boil.Infer())

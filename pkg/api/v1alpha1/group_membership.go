@@ -337,7 +337,8 @@ func (r *Router) updateGroupMember(c *gin.Context) {
 	}
 
 	req := struct {
-		IsAdmin bool `json:"is_admin"`
+		IsAdmin        bool      `json:"is_admin"`
+		AdminExpiresAt null.Time `json:"admin_expires_at"`
 	}{}
 
 	if err := c.BindJSON(&req); err != nil {
@@ -371,6 +372,8 @@ func (r *Router) updateGroupMember(c *gin.Context) {
 	original := *membership
 
 	membership.IsAdmin = req.IsAdmin
+
+	membership.AdminExpiresAt = req.AdminExpiresAt
 
 	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
 	if err != nil {
@@ -619,6 +622,14 @@ func (r *Router) createGroupRequest(c *gin.Context) {
 	// kind is not required but will be defaulted to new member if not set
 	if req.Kind == "" {
 		req.Kind = NewMemberRequest
+	}
+
+	switch req.Kind {
+	case NewMemberRequest:
+	case AdminElevationRequest:
+	default:
+		sendError(c, http.StatusBadRequest, "request kind is unrecognized: "+ErrUnknownRequestKind.Error())
+		return
 	}
 
 	gid := c.Param("id")
@@ -1094,7 +1105,6 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 		// Process the approval
 		switch request.Kind {
 		case "new_member":
-
 			if err := groupMem.Insert(c.Request.Context(), tx, boil.Infer()); err != nil {
 				msg := "error approving group membership request , rolling back: " + err.Error()
 
@@ -1135,7 +1145,7 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 			return
 		}
 
-		event, err := dbtools.AuditGroupMembershipApproved(c.Request.Context(), tx, getCtxAuditID(c), ctxUser, groupMem)
+		event, err := dbtools.AuditGroupMembershipApproved(c.Request.Context(), tx, getCtxAuditID(c), ctxUser, groupMem, request.Kind)
 		if err != nil {
 			msg := "error approving group request (audit): " + err.Error()
 

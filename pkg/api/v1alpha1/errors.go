@@ -11,6 +11,8 @@ var (
 	ErrInvalidChar = errors.New("invalid characters in group name string")
 	// ErrEmptyInput is returned when user input is empty
 	ErrEmptyInput = errors.New("name or description cannot be empty")
+	// ErrUnknownRequestKind is returned a request kind is unknown
+	ErrUnknownRequestKind = errors.New("request kind is unrecognized")
 )
 
 func sendError(c *gin.Context, code int, msg string) {
