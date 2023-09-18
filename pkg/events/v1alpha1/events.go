@@ -25,10 +25,10 @@ const (
 	GovernorMembersEventSubject = "members"
 	// GovernorMemberRequestsNewEventSubject is the subject name for member request events (minus the subject prefix)
 	GovernorMemberRequestsNewEventSubject = "members.requests.new"
-	// GovernorMemberRequestsElevateEventSubject is the subject name for admin elevation request events (minus the subject prefix)
-	GovernorMemberRequestsElevateEventSubject = "members.requests.elevate"
-	// GovernorMemberRequestsAllEventSubject is the wildcard subject name for all group request events (minus the subject prefix)
-	GovernorMemberRequestsAllEventSubject = "members.requests.*"
+	// GovernorMemberRequestsPromotionEventSubject is the subject name for admin promotion request events (minus the subject prefix)
+	GovernorMemberRequestsPromotionEventSubject = "members.requests.promote"
+	// GovernorMemberRequestsAllEventSubject is the subject name for all group request events (minus the subject prefix)
+	GovernorMemberRequestsAllEventSubject = "members.requests"
 	// GovernorHierarchiesEventSubject is the subject name for group hierarchy events (minus the subject prefix)
 	GovernorHierarchiesEventSubject = "hierarchies"
 	// GovernorApplicationsEventSubject is the subject name for application events (minus the subject prefix)

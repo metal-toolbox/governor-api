@@ -405,8 +405,8 @@ func AuditGroupMembershipApproved(ctx context.Context, exec boil.ContextExecutor
 	switch kind {
 	case "new_member":
 		action = "group.member.request.approved"
-	case "admin_elevation":
-		action = "admin.elevation.request.approved"
+	case "admin_promotion":
+		action = "admin.promotion.request.approved"
 	default:
 		return nil, ErrUnknownRequestKind
 	}
@@ -447,8 +447,8 @@ func AuditGroupMembershipRevoked(ctx context.Context, exec boil.ContextExecutor,
 	switch r.Kind {
 	case "new_member":
 		action = "group.member.request.revoked"
-	case "admin_elevation":
-		action = "admin.elevation.request.revoked"
+	case "admin_promotion":
+		action = "admin.promotion.request.revoked"
 	default:
 		return nil, ErrUnknownRequestKind
 	}
@@ -480,8 +480,8 @@ func AuditGroupMembershipDenied(ctx context.Context, exec boil.ContextExecutor, 
 	switch r.Kind {
 	case "new_member":
 		action = "group.member.request.denied"
-	case "admin_elevation":
-		action = "admin.elevation.request.denied"
+	case "admin_promotion":
+		action = "admin.promotion.request.denied"
 	default:
 		return nil, ErrUnknownRequestKind
 	}
@@ -513,8 +513,8 @@ func AuditGroupMembershipRequestCreated(ctx context.Context, exec boil.ContextEx
 	switch r.Kind {
 	case "new_member":
 		action = "group.member.request.created"
-	case "admin_elevation":
-		action = "admin.elevation.request.created"
+	case "admin_promotion":
+		action = "admin.promotion.request.created"
 	default:
 		return nil, ErrUnknownRequestKind
 	}

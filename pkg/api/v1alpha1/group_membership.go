@@ -21,8 +21,8 @@ import (
 const (
 	// NewMemberRequest represents requests from non-members to join a group
 	NewMemberRequest string = "new_member"
-	// AdminElevationRequest represents requests from members to elevate to admin access
-	AdminElevationRequest string = "admin_elevation"
+	// AdminPromotionRequest represents requests from members to promote to admin access
+	AdminPromotionRequest string = "admin_promotion"
 )
 
 // GroupMember is a group member (user)
@@ -626,7 +626,7 @@ func (r *Router) createGroupRequest(c *gin.Context) {
 
 	switch req.Kind {
 	case NewMemberRequest:
-	case AdminElevationRequest:
+	case AdminPromotionRequest:
 	default:
 		sendError(c, http.StatusBadRequest, "request kind is unrecognized: "+ErrUnknownRequestKind.Error())
 		return
@@ -669,13 +669,13 @@ func (r *Router) createGroupRequest(c *gin.Context) {
 		}
 
 		eventSubject = events.GovernorMemberRequestsNewEventSubject
-	case AdminElevationRequest:
+	case AdminPromotionRequest:
 		if !foundExistingGroupMember {
 			sendError(c, http.StatusBadRequest, "user must be a member before making this request")
 			return
 		}
 
-		eventSubject = events.GovernorMemberRequestsElevateEventSubject
+		eventSubject = events.GovernorMemberRequestsPromotionEventSubject
 	}
 
 	for _, r := range ctxUser.R.GroupMembershipRequests {
@@ -807,8 +807,8 @@ func (r *Router) deleteGroupRequest(c *gin.Context) {
 	switch request.Kind {
 	case NewMemberRequest:
 		eventSubject = events.GovernorMemberRequestsNewEventSubject
-	case AdminElevationRequest:
-		eventSubject = events.GovernorMemberRequestsElevateEventSubject
+	case AdminPromotionRequest:
+		eventSubject = events.GovernorMemberRequestsPromotionEventSubject
 	}
 
 	if request.GroupID != group.ID {
@@ -997,8 +997,8 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 	switch request.Kind {
 	case NewMemberRequest:
 		eventSubject = events.GovernorMemberRequestsNewEventSubject
-	case AdminElevationRequest:
-		eventSubject = events.GovernorMemberRequestsElevateEventSubject
+	case AdminPromotionRequest:
+		eventSubject = events.GovernorMemberRequestsPromotionEventSubject
 	}
 
 	if request.GroupID != group.ID {
@@ -1061,7 +1061,7 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 
 				return
 			}
-		case "admin_elevation":
+		case "admin_promotion":
 			if existingMembership.IsAdmin {
 				// if the user is already an admin, we can just delete the request
 				if _, err := request.Delete(c.Request.Context(), r.DB); err != nil {
@@ -1116,12 +1116,12 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 
 				return
 			}
-		case "admin_elevation":
+		case "admin_promotion":
 			existingMembership.IsAdmin = true
 			existingMembership.AdminExpiresAt = request.AdminExpiresAt
 
 			if _, err := existingMembership.Update(c.Request.Context(), tx, boil.Infer()); err != nil {
-				msg := "error approving admin elevation request , rolling back: " + err.Error()
+				msg := "error approving admin promotion request , rolling back: " + err.Error()
 
 				if err := tx.Rollback(); err != nil {
 					msg += "error rolling back transaction: " + err.Error()
