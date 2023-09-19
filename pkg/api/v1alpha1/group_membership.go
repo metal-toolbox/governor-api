@@ -18,49 +18,63 @@ import (
 	events "github.com/metal-toolbox/governor-api/pkg/events/v1alpha1"
 )
 
+const (
+	// NewMemberRequest represents requests from non-members to join a group
+	NewMemberRequest string = "new_member"
+	// AdminPromotionRequest represents requests from members to promote to admin access
+	AdminPromotionRequest string = "admin_promotion"
+)
+
 // GroupMember is a group member (user)
 type GroupMember struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	Email     string    `json:"email"`
-	AvatarURL string    `json:"avatar_url"`
-	Status    string    `json:"status"`
-	IsAdmin   bool      `json:"is_admin"`
-	ExpiresAt null.Time `json:"expires_at"`
-	Direct    bool      `json:"direct"`
+	ID             string    `json:"id"`
+	Name           string    `json:"name"`
+	Email          string    `json:"email"`
+	AvatarURL      string    `json:"avatar_url"`
+	Status         string    `json:"status"`
+	IsAdmin        bool      `json:"is_admin"`
+	ExpiresAt      null.Time `json:"expires_at"`
+	AdminExpiresAt null.Time `json:"admin_expires_at"`
+	Direct         bool      `json:"direct"`
 }
 
 // GroupMembership is the relationship between user and groups
 type GroupMembership struct {
-	ID        string    `json:"id"`
-	GroupID   string    `json:"group_id"`
-	GroupSlug string    `json:"group_slug"`
-	UserID    string    `json:"user_id"`
-	UserEmail string    `json:"user_email"`
-	ExpiresAt null.Time `json:"expires_at"`
+	ID             string    `json:"id"`
+	GroupID        string    `json:"group_id"`
+	GroupSlug      string    `json:"group_slug"`
+	UserID         string    `json:"user_id"`
+	UserEmail      string    `json:"user_email"`
+	ExpiresAt      null.Time `json:"expires_at"`
+	IsAdmin        bool      `json:"is_admin"`
+	AdminExpiresAt null.Time `json:"admin_expires_at"`
 }
 
 // GroupMemberRequest is a pending user request for group membership
 type GroupMemberRequest struct {
-	ID            string    `json:"id"`
-	GroupID       string    `json:"group_id"`
-	GroupName     string    `json:"group_name"`
-	GroupSlug     string    `json:"group_slug"`
-	UserID        string    `json:"user_id"`
-	UserName      string    `json:"user_name"`
-	UserEmail     string    `json:"user_email"`
-	UserAvatarURL string    `json:"user_avatar_url"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
-	IsAdmin       bool      `json:"is_admin"`
-	Note          string    `json:"note"`
-	ExpiresAt     null.Time `json:"expires_at"`
+	ID             string    `json:"id"`
+	GroupID        string    `json:"group_id"`
+	GroupName      string    `json:"group_name"`
+	GroupSlug      string    `json:"group_slug"`
+	UserID         string    `json:"user_id"`
+	UserName       string    `json:"user_name"`
+	UserEmail      string    `json:"user_email"`
+	UserAvatarURL  string    `json:"user_avatar_url"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+	IsAdmin        bool      `json:"is_admin"`
+	Note           string    `json:"note"`
+	ExpiresAt      null.Time `json:"expires_at"`
+	AdminExpiresAt null.Time `json:"admin_expires_at"`
+	Kind           string    `json:"kind"`
 }
 
 type createGroupMemberReq struct {
-	IsAdmin   bool      `json:"is_admin"`
-	Note      string    `json:"note"`
-	ExpiresAt null.Time `json:"expires_at"`
+	IsAdmin        bool      `json:"is_admin"`
+	Note           string    `json:"note"`
+	ExpiresAt      null.Time `json:"expires_at"`
+	AdminExpiresAt null.Time `json:"admin_expires_at"`
+	Kind           string    `json:"kind"`
 }
 
 // listGroupMembers returns a list of users in a group
@@ -98,14 +112,15 @@ func (r *Router) listGroupMembers(c *gin.Context) {
 	members := make([]GroupMember, len(enumeratedMembers))
 	for i, m := range enumeratedMembers {
 		members[i] = GroupMember{
-			ID:        m.User.ID,
-			Name:      m.User.Name,
-			Email:     m.User.Email,
-			AvatarURL: m.User.AvatarURL.String,
-			Status:    m.User.Status.String,
-			IsAdmin:   m.IsAdmin,
-			ExpiresAt: m.ExpiresAt,
-			Direct:    m.Direct,
+			ID:             m.User.ID,
+			Name:           m.User.Name,
+			Email:          m.User.Email,
+			AvatarURL:      m.User.AvatarURL.String,
+			Status:         m.User.Status.String,
+			IsAdmin:        m.IsAdmin,
+			ExpiresAt:      m.ExpiresAt,
+			AdminExpiresAt: m.AdminExpiresAt,
+			Direct:         m.Direct,
 		}
 	}
 
@@ -148,8 +163,9 @@ func (r *Router) addGroupMember(c *gin.Context) {
 	}
 
 	req := struct {
-		IsAdmin   bool      `json:"is_admin"`
-		ExpiresAt null.Time `json:"expires_at"`
+		IsAdmin        bool      `json:"is_admin"`
+		ExpiresAt      null.Time `json:"expires_at"`
+		AdminExpiresAt null.Time `json:"admin_expires_at"`
 	}{}
 
 	if err := c.BindJSON(&req); err != nil {
@@ -172,10 +188,11 @@ func (r *Router) addGroupMember(c *gin.Context) {
 	}
 
 	groupMem := &models.GroupMembership{
-		GroupID:   group.ID,
-		UserID:    user.ID,
-		IsAdmin:   req.IsAdmin,
-		ExpiresAt: req.ExpiresAt,
+		GroupID:        group.ID,
+		UserID:         user.ID,
+		IsAdmin:        req.IsAdmin,
+		ExpiresAt:      req.ExpiresAt,
+		AdminExpiresAt: req.AdminExpiresAt,
 	}
 
 	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
@@ -320,7 +337,8 @@ func (r *Router) updateGroupMember(c *gin.Context) {
 	}
 
 	req := struct {
-		IsAdmin bool `json:"is_admin"`
+		IsAdmin        bool      `json:"is_admin"`
+		AdminExpiresAt null.Time `json:"admin_expires_at"`
 	}{}
 
 	if err := c.BindJSON(&req); err != nil {
@@ -354,6 +372,8 @@ func (r *Router) updateGroupMember(c *gin.Context) {
 	original := *membership
 
 	membership.IsAdmin = req.IsAdmin
+
+	membership.AdminExpiresAt = req.AdminExpiresAt
 
 	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
 	if err != nil {
@@ -599,6 +619,19 @@ func (r *Router) createGroupRequest(c *gin.Context) {
 		return
 	}
 
+	// kind is not required but will be defaulted to new member if not set
+	if req.Kind == "" {
+		req.Kind = NewMemberRequest
+	}
+
+	switch req.Kind {
+	case NewMemberRequest:
+	case AdminPromotionRequest:
+	default:
+		sendError(c, http.StatusBadRequest, "request kind is unrecognized: "+ErrUnknownRequestKind.Error())
+		return
+	}
+
 	gid := c.Param("id")
 
 	q := qm.Where("id = ?", gid)
@@ -618,9 +651,23 @@ func (r *Router) createGroupRequest(c *gin.Context) {
 		return
 	}
 
+	foundExistingGroupMember := false
+
 	for _, m := range ctxUser.R.GroupMemberships {
 		if m.GroupID == group.ID {
+			foundExistingGroupMember = true
+		}
+	}
+
+	switch req.Kind {
+	case NewMemberRequest:
+		if foundExistingGroupMember {
 			sendError(c, http.StatusBadRequest, "user already member of the group")
+			return
+		}
+	case AdminPromotionRequest:
+		if !foundExistingGroupMember {
+			sendError(c, http.StatusBadRequest, "user must be a member before making this request")
 			return
 		}
 	}
@@ -633,11 +680,13 @@ func (r *Router) createGroupRequest(c *gin.Context) {
 	}
 
 	groupMembershipRequest := &models.GroupMembershipRequest{
-		GroupID:   group.ID,
-		UserID:    ctxUser.ID,
-		IsAdmin:   req.IsAdmin,
-		Note:      req.Note,
-		ExpiresAt: req.ExpiresAt,
+		GroupID:        group.ID,
+		UserID:         ctxUser.ID,
+		IsAdmin:        req.IsAdmin,
+		Note:           req.Note,
+		ExpiresAt:      req.ExpiresAt,
+		AdminExpiresAt: req.AdminExpiresAt,
+		Kind:           req.Kind,
 	}
 
 	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
@@ -864,19 +913,21 @@ func (r *Router) getGroupRequests(c *gin.Context) {
 	requests := make([]GroupMemberRequest, len(group.R.GroupMembershipRequests))
 	for i, m := range group.R.GroupMembershipRequests {
 		requests[i] = GroupMemberRequest{
-			ID:            m.ID,
-			GroupID:       m.GroupID,
-			GroupName:     m.R.Group.Name,
-			GroupSlug:     m.R.Group.Slug,
-			UserID:        m.UserID,
-			UserName:      m.R.User.Name,
-			UserEmail:     m.R.User.Email,
-			UserAvatarURL: m.R.User.AvatarURL.String,
-			CreatedAt:     m.CreatedAt,
-			UpdatedAt:     m.UpdatedAt,
-			IsAdmin:       m.IsAdmin,
-			Note:          m.Note,
-			ExpiresAt:     m.ExpiresAt,
+			ID:             m.ID,
+			GroupID:        m.GroupID,
+			GroupName:      m.R.Group.Name,
+			GroupSlug:      m.R.Group.Slug,
+			UserID:         m.UserID,
+			UserName:       m.R.User.Name,
+			UserEmail:      m.R.User.Email,
+			UserAvatarURL:  m.R.User.AvatarURL.String,
+			CreatedAt:      m.CreatedAt,
+			UpdatedAt:      m.UpdatedAt,
+			IsAdmin:        m.IsAdmin,
+			Note:           m.Note,
+			ExpiresAt:      m.ExpiresAt,
+			AdminExpiresAt: m.AdminExpiresAt,
+			Kind:           m.Kind,
 		}
 	}
 
@@ -947,8 +998,8 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 
 	switch req.Action {
 	case "approve":
-		// approving a request will first check that the requesting user is not already a member
-		// of the group, then add them to the group, and finally delete the request
+		// approving a request will lookup the action to be performed, run checks,
+		// perform the appropriate approval action, and finally delete the request
 		user, err := models.FindUser(c.Request.Context(), r.DB, request.UserID)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
@@ -961,37 +1012,48 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 			return
 		}
 
-		exists, err := models.GroupMemberships(
+		existingMembership, err := models.GroupMemberships(
 			qm.Where("group_id = ?", request.GroupID),
 			qm.And("user_id = ?", request.UserID),
-		).Exists(c.Request.Context(), r.DB)
+		).One(c.Request.Context(), r.DB)
 		if err != nil {
-			sendError(c, http.StatusInternalServerError, "error checking membership exists: "+err.Error())
-			return
-		}
-
-		if exists {
-			// if the user is already a member of the group, we can just delete the request
-			if _, err := request.Delete(c.Request.Context(), r.DB); err != nil {
-				sendError(c, http.StatusBadRequest, "failed to delete group request: "+err.Error())
+			if !errors.Is(err, sql.ErrNoRows) {
+				sendError(c, http.StatusInternalServerError, "error checking membership exists: "+err.Error())
 				return
 			}
-
-			sendError(c, http.StatusConflict, "user already in group")
-
-			return
 		}
 
-		groupMem := &models.GroupMembership{
-			GroupID:   request.GroupID,
-			UserID:    request.UserID,
-			IsAdmin:   request.IsAdmin,
-			ExpiresAt: request.ExpiresAt,
+		// Type-specific checks before processing the approval
+		switch request.Kind {
+		case "new_member":
+			if existingMembership != nil {
+				// if the user is already a member of the group, we can just delete the request
+				if _, err := request.Delete(c.Request.Context(), r.DB); err != nil {
+					sendError(c, http.StatusBadRequest, "failed to delete group request: "+err.Error())
+					return
+				}
+
+				sendError(c, http.StatusConflict, "user already in group")
+
+				return
+			}
+		case "admin_promotion":
+			if existingMembership.IsAdmin {
+				// if the user is already an admin, we can just delete the request
+				if _, err := request.Delete(c.Request.Context(), r.DB); err != nil {
+					sendError(c, http.StatusBadRequest, "failed to delete group request: "+err.Error())
+					return
+				}
+
+				sendError(c, http.StatusConflict, "user already an admin")
+
+				return
+			}
 		}
 
 		tx, err := r.DB.BeginTx(c.Request.Context(), nil)
 		if err != nil {
-			sendError(c, http.StatusBadRequest, "error starting group membership approval transaction: "+err.Error())
+			sendError(c, http.StatusBadRequest, "error starting group request approval transaction: "+err.Error())
 			return
 		}
 
@@ -1008,20 +1070,47 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 			return
 		}
 
-		if err := groupMem.Insert(c.Request.Context(), tx, boil.Infer()); err != nil {
-			msg := "error approving group membership request , rolling back: " + err.Error()
+		groupMem := &models.GroupMembership{
+			GroupID:        request.GroupID,
+			UserID:         request.UserID,
+			IsAdmin:        request.IsAdmin,
+			ExpiresAt:      request.ExpiresAt,
+			AdminExpiresAt: request.AdminExpiresAt,
+		}
 
-			if err := tx.Rollback(); err != nil {
-				msg += "error rolling back transaction: " + err.Error()
+		// Process the approval
+		switch request.Kind {
+		case "new_member":
+			if err := groupMem.Insert(c.Request.Context(), tx, boil.Infer()); err != nil {
+				msg := "error approving group membership request , rolling back: " + err.Error()
+
+				if err := tx.Rollback(); err != nil {
+					msg += "error rolling back transaction: " + err.Error()
+				}
+
+				sendError(c, http.StatusBadRequest, msg)
+
+				return
 			}
+		case "admin_promotion":
+			existingMembership.IsAdmin = true
+			existingMembership.AdminExpiresAt = request.AdminExpiresAt
 
-			sendError(c, http.StatusBadRequest, msg)
+			if _, err := existingMembership.Update(c.Request.Context(), tx, boil.Infer()); err != nil {
+				msg := "error approving admin promotion request , rolling back: " + err.Error()
 
-			return
+				if err := tx.Rollback(); err != nil {
+					msg += "error rolling back transaction: " + err.Error()
+				}
+
+				sendError(c, http.StatusBadRequest, msg)
+
+				return
+			}
 		}
 
 		if _, err := request.Delete(c.Request.Context(), tx); err != nil {
-			msg := "error deleting group membership request on approval, rolling back: " + err.Error()
+			msg := "error deleting group request on approval, rolling back: " + err.Error()
 
 			if err := tx.Rollback(); err != nil {
 				msg += "error rolling back transaction: " + err.Error()
@@ -1032,9 +1121,9 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 			return
 		}
 
-		event, err := dbtools.AuditGroupMembershipApproved(c.Request.Context(), tx, getCtxAuditID(c), ctxUser, groupMem)
+		event, err := dbtools.AuditGroupMembershipApproved(c.Request.Context(), tx, getCtxAuditID(c), ctxUser, groupMem, request.Kind)
 		if err != nil {
-			msg := "error approving group membership request (audit): " + err.Error()
+			msg := "error approving group request (audit): " + err.Error()
 
 			if err := tx.Rollback(); err != nil {
 				msg += "error rolling back transaction: " + err.Error()
@@ -1046,7 +1135,7 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 		}
 
 		if err := updateContextWithAuditEventData(c, event); err != nil {
-			msg := "error approving group membership request (audit): " + err.Error()
+			msg := "error approving group request (audit): " + err.Error()
 
 			if err := tx.Rollback(); err != nil {
 				msg += "error rolling back transaction: " + err.Error()
@@ -1071,7 +1160,7 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 		}
 
 		if err := tx.Commit(); err != nil {
-			msg := "error committing group membership approval, rolling back: " + err.Error()
+			msg := "error committing group request approval, rolling back: " + err.Error()
 
 			if err := tx.Rollback(); err != nil {
 				msg += "error rolling back transaction: " + err.Error()
@@ -1096,7 +1185,7 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 			UserID:  groupMem.UserID,
 			ActorID: getCtxActorID(c),
 		}); err != nil {
-			sendError(c, http.StatusBadRequest, "failed to publish member request approve event, downstream changes may be delayed "+err.Error())
+			sendError(c, http.StatusBadRequest, "failed to publish request approve event, downstream changes may be delayed "+err.Error())
 			return
 		}
 
@@ -1123,7 +1212,7 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 	case "deny":
 		tx, err := r.DB.BeginTx(c.Request.Context(), nil)
 		if err != nil {
-			sendError(c, http.StatusBadRequest, "error starting group membership denial transaction: "+err.Error())
+			sendError(c, http.StatusBadRequest, "error starting group request denial transaction: "+err.Error())
 			return
 		}
 
@@ -1135,7 +1224,7 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 
 		event, err := dbtools.AuditGroupMembershipDenied(c.Request.Context(), tx, getCtxAuditID(c), ctxUser, request)
 		if err != nil {
-			msg := "error denying group membership request (audit): " + err.Error()
+			msg := "error denying group request (audit): " + err.Error()
 
 			if err := tx.Rollback(); err != nil {
 				msg += "error rolling back transaction: " + err.Error()
@@ -1147,7 +1236,7 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 		}
 
 		if err := tx.Commit(); err != nil {
-			msg := "error committing group membership deny, rolling back: " + err.Error()
+			msg := "error committing group request deny, rolling back: " + err.Error()
 
 			if err := tx.Rollback(); err != nil {
 				msg += "error rolling back transaction: " + err.Error()
@@ -1159,7 +1248,7 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 		}
 
 		if err := updateContextWithAuditEventData(c, event); err != nil {
-			msg := "error denying group membership request (audit): " + err.Error()
+			msg := "error denying group request (audit): " + err.Error()
 
 			if err := tx.Rollback(); err != nil {
 				msg += "error rolling back transaction: " + err.Error()
@@ -1178,7 +1267,7 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 			UserID:  request.UserID,
 			ActorID: getCtxActorID(c),
 		}); err != nil {
-			sendError(c, http.StatusBadRequest, "failed to publish member request deny event, downstream changes may be delayed "+err.Error())
+			sendError(c, http.StatusBadRequest, "failed to publish request deny event, downstream changes may be delayed "+err.Error())
 			return
 		}
 
@@ -1216,12 +1305,14 @@ func (r *Router) getGroupMembershipsAll(c *gin.Context) {
 		response = make([]GroupMembership, len(groupMemberships))
 		for i, m := range groupMemberships {
 			response[i] = GroupMembership{
-				ID:        m.ID,
-				GroupID:   m.GroupID,
-				GroupSlug: m.R.Group.Slug,
-				UserID:    m.UserID,
-				UserEmail: m.R.User.Email,
-				ExpiresAt: m.ExpiresAt,
+				ID:             m.ID,
+				GroupID:        m.GroupID,
+				GroupSlug:      m.R.Group.Slug,
+				UserID:         m.UserID,
+				UserEmail:      m.R.User.Email,
+				ExpiresAt:      m.ExpiresAt,
+				IsAdmin:        m.IsAdmin,
+				AdminExpiresAt: m.AdminExpiresAt,
 			}
 		}
 	} else {
@@ -1236,12 +1327,14 @@ func (r *Router) getGroupMembershipsAll(c *gin.Context) {
 		response = make([]GroupMembership, len(enumeratedMemberships))
 		for i, m := range enumeratedMemberships {
 			response[i] = GroupMembership{
-				ID:        "",
-				GroupID:   m.GroupID,
-				GroupSlug: m.Group.Slug,
-				UserID:    m.UserID,
-				UserEmail: m.User.Email,
-				ExpiresAt: m.ExpiresAt,
+				ID:             "",
+				GroupID:        m.GroupID,
+				GroupSlug:      m.Group.Slug,
+				UserID:         m.UserID,
+				UserEmail:      m.User.Email,
+				ExpiresAt:      m.ExpiresAt,
+				IsAdmin:        m.IsAdmin,
+				AdminExpiresAt: m.AdminExpiresAt,
 			}
 		}
 	}
@@ -1272,19 +1365,21 @@ func (r *Router) getGroupRequestsAll(c *gin.Context) {
 	response := make([]GroupMemberRequest, len(groupMembershipRequests))
 	for i, m := range groupMembershipRequests {
 		response[i] = GroupMemberRequest{
-			ID:            m.ID,
-			GroupID:       m.GroupID,
-			GroupName:     m.R.Group.Name,
-			GroupSlug:     m.R.Group.Slug,
-			UserID:        m.UserID,
-			UserName:      m.R.User.Name,
-			UserEmail:     m.R.User.Email,
-			UserAvatarURL: m.R.User.AvatarURL.String,
-			CreatedAt:     m.CreatedAt,
-			UpdatedAt:     m.UpdatedAt,
-			IsAdmin:       m.IsAdmin,
-			Note:          m.Note,
-			ExpiresAt:     m.ExpiresAt,
+			ID:             m.ID,
+			GroupID:        m.GroupID,
+			GroupName:      m.R.Group.Name,
+			GroupSlug:      m.R.Group.Slug,
+			UserID:         m.UserID,
+			UserName:       m.R.User.Name,
+			UserEmail:      m.R.User.Email,
+			UserAvatarURL:  m.R.User.AvatarURL.String,
+			CreatedAt:      m.CreatedAt,
+			UpdatedAt:      m.UpdatedAt,
+			IsAdmin:        m.IsAdmin,
+			Note:           m.Note,
+			ExpiresAt:      m.ExpiresAt,
+			AdminExpiresAt: m.AdminExpiresAt,
+			Kind:           m.Kind,
 		}
 	}
 

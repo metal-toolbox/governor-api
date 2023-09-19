@@ -279,6 +279,46 @@ func (c *Client) RemoveGroupMember(ctx context.Context, groupID, userID string) 
 	return nil
 }
 
+// UpdateGroupMember updates a group membership in governor
+func (c *Client) UpdateGroupMember(ctx context.Context, groupID, userID string, admin bool) error {
+	if groupID == "" {
+		return ErrMissingGroupID
+	}
+
+	if userID == "" {
+		return ErrMissingUserID
+	}
+
+	req, err := c.newGovernorRequest(ctx, http.MethodPatch, fmt.Sprintf("%s/api/%s/groups/%s/users/%s", c.url, governorAPIVersionAlpha, groupID, userID))
+	if err != nil {
+		return err
+	}
+
+	b, err := json.Marshal(struct {
+		IsAdmin bool `json:"is_admin"`
+	}{admin})
+	if err != nil {
+		return err
+	}
+
+	req.Body = io.NopCloser(bytes.NewBuffer(b))
+
+	resp, err := c.httpClient.Do(req.WithContext(ctx))
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK &&
+		resp.StatusCode != http.StatusAccepted &&
+		resp.StatusCode != http.StatusNoContent {
+		return ErrRequestNonSuccess
+	}
+
+	return nil
+}
+
 // AddGroupToOrganization links the group to the organization
 func (c *Client) AddGroupToOrganization(ctx context.Context, groupID, orgID string) error {
 	if groupID == "" {

@@ -279,6 +279,7 @@ func (r *Router) getAuthenticatedUserGroupApprovals(c *gin.Context) {
 				CreatedAt:     m.CreatedAt,
 				UpdatedAt:     m.UpdatedAt,
 				IsAdmin:       m.IsAdmin,
+				Kind:          m.Kind,
 			}, isGroupAdmin})
 		}
 	}
@@ -346,6 +347,7 @@ func (r *Router) getAuthenticatedUserGroupRequests(c *gin.Context) {
 			UpdatedAt:     m.UpdatedAt,
 			IsAdmin:       m.IsAdmin,
 			Note:          m.Note,
+			Kind:          m.Kind,
 		}
 
 		memberRequests[i] = AuthenticatedUserGroupMemberRequest{

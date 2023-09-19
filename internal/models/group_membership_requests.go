@@ -24,57 +24,67 @@ import (
 
 // GroupMembershipRequest is an object representing the database table.
 type GroupMembershipRequest struct {
-	ID        string    `boil:"id" json:"id" toml:"id" yaml:"id"`
-	GroupID   string    `boil:"group_id" json:"group_id" toml:"group_id" yaml:"group_id"`
-	UserID    string    `boil:"user_id" json:"user_id" toml:"user_id" yaml:"user_id"`
-	CreatedAt time.Time `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
-	UpdatedAt time.Time `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
-	IsAdmin   bool      `boil:"is_admin" json:"is_admin" toml:"is_admin" yaml:"is_admin"`
-	Note      string    `boil:"note" json:"note" toml:"note" yaml:"note"`
-	ExpiresAt null.Time `boil:"expires_at" json:"expires_at,omitempty" toml:"expires_at" yaml:"expires_at,omitempty"`
+	ID             string    `boil:"id" json:"id" toml:"id" yaml:"id"`
+	GroupID        string    `boil:"group_id" json:"group_id" toml:"group_id" yaml:"group_id"`
+	UserID         string    `boil:"user_id" json:"user_id" toml:"user_id" yaml:"user_id"`
+	CreatedAt      time.Time `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
+	UpdatedAt      time.Time `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
+	IsAdmin        bool      `boil:"is_admin" json:"is_admin" toml:"is_admin" yaml:"is_admin"`
+	Note           string    `boil:"note" json:"note" toml:"note" yaml:"note"`
+	ExpiresAt      null.Time `boil:"expires_at" json:"expires_at,omitempty" toml:"expires_at" yaml:"expires_at,omitempty"`
+	Kind           string    `boil:"kind" json:"kind" toml:"kind" yaml:"kind"`
+	AdminExpiresAt null.Time `boil:"admin_expires_at" json:"admin_expires_at,omitempty" toml:"admin_expires_at" yaml:"admin_expires_at,omitempty"`
 
 	R *groupMembershipRequestR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L groupMembershipRequestL  `boil:"-" json:"-" toml:"-" yaml:"-"`
 }
 
 var GroupMembershipRequestColumns = struct {
-	ID        string
-	GroupID   string
-	UserID    string
-	CreatedAt string
-	UpdatedAt string
-	IsAdmin   string
-	Note      string
-	ExpiresAt string
+	ID             string
+	GroupID        string
+	UserID         string
+	CreatedAt      string
+	UpdatedAt      string
+	IsAdmin        string
+	Note           string
+	ExpiresAt      string
+	Kind           string
+	AdminExpiresAt string
 }{
-	ID:        "id",
-	GroupID:   "group_id",
-	UserID:    "user_id",
-	CreatedAt: "created_at",
-	UpdatedAt: "updated_at",
-	IsAdmin:   "is_admin",
-	Note:      "note",
-	ExpiresAt: "expires_at",
+	ID:             "id",
+	GroupID:        "group_id",
+	UserID:         "user_id",
+	CreatedAt:      "created_at",
+	UpdatedAt:      "updated_at",
+	IsAdmin:        "is_admin",
+	Note:           "note",
+	ExpiresAt:      "expires_at",
+	Kind:           "kind",
+	AdminExpiresAt: "admin_expires_at",
 }
 
 var GroupMembershipRequestTableColumns = struct {
-	ID        string
-	GroupID   string
-	UserID    string
-	CreatedAt string
-	UpdatedAt string
-	IsAdmin   string
-	Note      string
-	ExpiresAt string
+	ID             string
+	GroupID        string
+	UserID         string
+	CreatedAt      string
+	UpdatedAt      string
+	IsAdmin        string
+	Note           string
+	ExpiresAt      string
+	Kind           string
+	AdminExpiresAt string
 }{
-	ID:        "group_membership_requests.id",
-	GroupID:   "group_membership_requests.group_id",
-	UserID:    "group_membership_requests.user_id",
-	CreatedAt: "group_membership_requests.created_at",
-	UpdatedAt: "group_membership_requests.updated_at",
-	IsAdmin:   "group_membership_requests.is_admin",
-	Note:      "group_membership_requests.note",
-	ExpiresAt: "group_membership_requests.expires_at",
+	ID:             "group_membership_requests.id",
+	GroupID:        "group_membership_requests.group_id",
+	UserID:         "group_membership_requests.user_id",
+	CreatedAt:      "group_membership_requests.created_at",
+	UpdatedAt:      "group_membership_requests.updated_at",
+	IsAdmin:        "group_membership_requests.is_admin",
+	Note:           "group_membership_requests.note",
+	ExpiresAt:      "group_membership_requests.expires_at",
+	Kind:           "group_membership_requests.kind",
+	AdminExpiresAt: "group_membership_requests.admin_expires_at",
 }
 
 // Generated where
@@ -89,23 +99,27 @@ func (w whereHelperbool) GT(x bool) qm.QueryMod  { return qmhelper.Where(w.field
 func (w whereHelperbool) GTE(x bool) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.GTE, x) }
 
 var GroupMembershipRequestWhere = struct {
-	ID        whereHelperstring
-	GroupID   whereHelperstring
-	UserID    whereHelperstring
-	CreatedAt whereHelpertime_Time
-	UpdatedAt whereHelpertime_Time
-	IsAdmin   whereHelperbool
-	Note      whereHelperstring
-	ExpiresAt whereHelpernull_Time
+	ID             whereHelperstring
+	GroupID        whereHelperstring
+	UserID         whereHelperstring
+	CreatedAt      whereHelpertime_Time
+	UpdatedAt      whereHelpertime_Time
+	IsAdmin        whereHelperbool
+	Note           whereHelperstring
+	ExpiresAt      whereHelpernull_Time
+	Kind           whereHelperstring
+	AdminExpiresAt whereHelpernull_Time
 }{
-	ID:        whereHelperstring{field: "\"group_membership_requests\".\"id\""},
-	GroupID:   whereHelperstring{field: "\"group_membership_requests\".\"group_id\""},
-	UserID:    whereHelperstring{field: "\"group_membership_requests\".\"user_id\""},
-	CreatedAt: whereHelpertime_Time{field: "\"group_membership_requests\".\"created_at\""},
-	UpdatedAt: whereHelpertime_Time{field: "\"group_membership_requests\".\"updated_at\""},
-	IsAdmin:   whereHelperbool{field: "\"group_membership_requests\".\"is_admin\""},
-	Note:      whereHelperstring{field: "\"group_membership_requests\".\"note\""},
-	ExpiresAt: whereHelpernull_Time{field: "\"group_membership_requests\".\"expires_at\""},
+	ID:             whereHelperstring{field: "\"group_membership_requests\".\"id\""},
+	GroupID:        whereHelperstring{field: "\"group_membership_requests\".\"group_id\""},
+	UserID:         whereHelperstring{field: "\"group_membership_requests\".\"user_id\""},
+	CreatedAt:      whereHelpertime_Time{field: "\"group_membership_requests\".\"created_at\""},
+	UpdatedAt:      whereHelpertime_Time{field: "\"group_membership_requests\".\"updated_at\""},
+	IsAdmin:        whereHelperbool{field: "\"group_membership_requests\".\"is_admin\""},
+	Note:           whereHelperstring{field: "\"group_membership_requests\".\"note\""},
+	ExpiresAt:      whereHelpernull_Time{field: "\"group_membership_requests\".\"expires_at\""},
+	Kind:           whereHelperstring{field: "\"group_membership_requests\".\"kind\""},
+	AdminExpiresAt: whereHelpernull_Time{field: "\"group_membership_requests\".\"admin_expires_at\""},
 }
 
 // GroupMembershipRequestRels is where relationship names are stored.
@@ -146,9 +160,9 @@ func (r *groupMembershipRequestR) GetGroup() *Group {
 type groupMembershipRequestL struct{}
 
 var (
-	groupMembershipRequestAllColumns            = []string{"id", "group_id", "user_id", "created_at", "updated_at", "is_admin", "note", "expires_at"}
+	groupMembershipRequestAllColumns            = []string{"id", "group_id", "user_id", "created_at", "updated_at", "is_admin", "note", "expires_at", "kind", "admin_expires_at"}
 	groupMembershipRequestColumnsWithoutDefault = []string{"group_id", "user_id", "created_at", "updated_at"}
-	groupMembershipRequestColumnsWithDefault    = []string{"id", "is_admin", "note", "expires_at"}
+	groupMembershipRequestColumnsWithDefault    = []string{"id", "is_admin", "note", "expires_at", "kind", "admin_expires_at"}
 	groupMembershipRequestPrimaryKeyColumns     = []string{"id"}
 	groupMembershipRequestGeneratedColumns      = []string{}
 )
