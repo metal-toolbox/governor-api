@@ -659,23 +659,17 @@ func (r *Router) createGroupRequest(c *gin.Context) {
 		}
 	}
 
-	var eventSubject string
-
 	switch req.Kind {
 	case NewMemberRequest:
 		if foundExistingGroupMember {
 			sendError(c, http.StatusBadRequest, "user already member of the group")
 			return
 		}
-
-		eventSubject = events.GovernorMemberRequestsNewEventSubject
 	case AdminPromotionRequest:
 		if !foundExistingGroupMember {
 			sendError(c, http.StatusBadRequest, "user must be a member before making this request")
 			return
 		}
-
-		eventSubject = events.GovernorMemberRequestsPromotionEventSubject
 	}
 
 	for _, r := range ctxUser.R.GroupMembershipRequests {
@@ -750,7 +744,7 @@ func (r *Router) createGroupRequest(c *gin.Context) {
 		return
 	}
 
-	if err := r.EventBus.Publish(c.Request.Context(), eventSubject, &events.Event{
+	if err := r.EventBus.Publish(c.Request.Context(), events.GovernorMemberRequestsEventSubject, &events.Event{
 		Version: events.Version,
 		Action:  events.GovernorEventCreate,
 		AuditID: c.GetString(ginaudit.AuditIDContextKey),
@@ -800,15 +794,6 @@ func (r *Router) deleteGroupRequest(c *gin.Context) {
 		sendError(c, http.StatusInternalServerError, "error getting group request"+err.Error())
 
 		return
-	}
-
-	var eventSubject string
-
-	switch request.Kind {
-	case NewMemberRequest:
-		eventSubject = events.GovernorMemberRequestsNewEventSubject
-	case AdminPromotionRequest:
-		eventSubject = events.GovernorMemberRequestsPromotionEventSubject
 	}
 
 	if request.GroupID != group.ID {
@@ -881,7 +866,7 @@ func (r *Router) deleteGroupRequest(c *gin.Context) {
 		userID = ctxUser.ID
 	}
 
-	if err := r.EventBus.Publish(c.Request.Context(), eventSubject, &events.Event{
+	if err := r.EventBus.Publish(c.Request.Context(), events.GovernorMemberRequestsEventSubject, &events.Event{
 		Version: events.Version,
 		Action:  events.GovernorEventRevoke,
 		AuditID: c.GetString(ginaudit.AuditIDContextKey),
@@ -990,15 +975,6 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 		sendError(c, http.StatusInternalServerError, "error getting group request"+err.Error())
 
 		return
-	}
-
-	var eventSubject string
-
-	switch request.Kind {
-	case NewMemberRequest:
-		eventSubject = events.GovernorMemberRequestsNewEventSubject
-	case AdminPromotionRequest:
-		eventSubject = events.GovernorMemberRequestsPromotionEventSubject
 	}
 
 	if request.GroupID != group.ID {
@@ -1201,7 +1177,7 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 			return
 		}
 
-		if err := r.EventBus.Publish(c.Request.Context(), eventSubject, &events.Event{
+		if err := r.EventBus.Publish(c.Request.Context(), events.GovernorMemberRequestsEventSubject, &events.Event{
 			Version: events.Version,
 			Action:  events.GovernorEventApprove,
 			AuditID: c.GetString(ginaudit.AuditIDContextKey),
@@ -1283,7 +1259,7 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 			return
 		}
 
-		if err := r.EventBus.Publish(c.Request.Context(), eventSubject, &events.Event{
+		if err := r.EventBus.Publish(c.Request.Context(), events.GovernorMemberRequestsEventSubject, &events.Event{
 			Version: events.Version,
 			Action:  events.GovernorEventDeny,
 			AuditID: c.GetString(ginaudit.AuditIDContextKey),
