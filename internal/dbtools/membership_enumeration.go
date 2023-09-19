@@ -51,7 +51,7 @@ const (
 			b.parent_group_id,
 			a.user_id,
 			b.expires_at,
-			b.admin_expires_at,
+			NULL as admin_expires_at,
 			FALSE AS is_admin,
 			FALSE AS direct
 		FROM
