@@ -1011,3 +1011,60 @@ func AuditNotificationPreferencesUpdated(ctx context.Context, exec boil.ContextE
 
 	return &event, event.Insert(ctx, exec, boil.Infer())
 }
+
+// AuditExtensionCreated inserts an event representing a extension being created
+func AuditExtensionCreated(ctx context.Context, exec boil.ContextExecutor, pID string, actor *models.User, a *models.Extension) (*models.AuditEvent, error) {
+	// TODO non-user API actors don't exist in the governor database,
+	// we need to figure out how to handle that relationship in the audit table
+	var actorID null.String
+	if actor != nil {
+		actorID = null.StringFrom(actor.ID)
+	}
+
+	event := models.AuditEvent{
+		ParentID:  null.StringFrom(pID),
+		ActorID:   actorID,
+		Action:    "extension.created",
+		Changeset: calculateChangeset(&models.NotificationTarget{}, a),
+	}
+
+	return &event, event.Insert(ctx, exec, boil.Infer())
+}
+
+// AuditExtensionUpdated inserts an event representing a extension being created
+func AuditExtensionUpdated(ctx context.Context, exec boil.ContextExecutor, pID string, actor *models.User, o, a *models.Extension) (*models.AuditEvent, error) {
+	// TODO non-user API actors don't exist in the governor database,
+	// we need to figure out how to handle that relationship in the audit table
+	var actorID null.String
+	if actor != nil {
+		actorID = null.StringFrom(actor.ID)
+	}
+
+	event := models.AuditEvent{
+		ParentID:  null.StringFrom(pID),
+		ActorID:   actorID,
+		Action:    "extension.updated",
+		Changeset: calculateChangeset(o, a),
+	}
+
+	return &event, event.Insert(ctx, exec, boil.Infer())
+}
+
+// AuditExtensionDeleted inserts an event representing an extension being deleted
+func AuditExtensionDeleted(ctx context.Context, exec boil.ContextExecutor, pID string, actor *models.User, a *models.Extension) (*models.AuditEvent, error) {
+	// TODO non-user API actors don't exist in the governor database,
+	// we need to figure out how to handle that relationship in the audit table
+	var actorID null.String
+	if actor != nil {
+		actorID = null.StringFrom(actor.ID)
+	}
+
+	event := models.AuditEvent{
+		ParentID:  null.StringFrom(pID),
+		ActorID:   actorID,
+		Action:    "extension.deleted",
+		Changeset: calculateChangeset(a, &models.Extension{}),
+	}
+
+	return &event, event.Insert(ctx, exec, boil.Infer())
+}

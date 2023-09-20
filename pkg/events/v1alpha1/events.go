@@ -39,6 +39,8 @@ const (
 	GovernorNotificationTypesEventSubject = "notification.types"
 	// GovernorNotificationTargetsEventSubject is the subject name for notification target events (minus the subject prefix)
 	GovernorNotificationTargetsEventSubject = "notification.targets"
+	// GovernorExtensionsEventSubject is the subject name for extensions events (minus the subject prefix)
+	GovernorExtensionsEventSubject = "extensions"
 )
 
 // Event is an event notification from Governor.
@@ -49,6 +51,7 @@ type Event struct {
 	GroupID              string `json:"group_id,omitempty"`
 	UserID               string `json:"user_id,omitempty"`
 	ActorID              string `json:"actor_id,omitempty"`
+	ExtensionID          string `json:"extension_id,omitempty"`
 	ApplicationID        string `json:"application_id,omitempty"`
 	ApplicationTypeID    string `json:"application_type_id,omitempty"`
 	NotificationTypeID   string `json:"notification_type_id,omitempty"`

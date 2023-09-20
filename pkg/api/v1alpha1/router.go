@@ -566,6 +566,43 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		r.mwUserAuthRequired(AuthRoleAdmin),
 		r.deleteNotificationTarget,
 	)
+
+	rg.GET(
+		"/extensions",
+		r.AuditMW.AuditWithType("ListExtensions"),
+		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:extensions")),
+		r.listExtensions,
+	)
+
+	rg.GET(
+		"/extensions/:id",
+		r.AuditMW.AuditWithType("GetExtension"),
+		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:extensions")),
+		r.getExtension,
+	)
+
+	rg.POST(
+		"/extensions",
+		r.AuditMW.AuditWithType("CreateExtension"),
+		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensions")),
+		r.mwUserAuthRequired(AuthRoleAdmin),
+		r.createExtension,
+	)
+
+	rg.PATCH(
+		"/extensions/:id",
+		r.AuditMW.AuditWithType("UpdateExtension"),
+		r.AuthMW.AuthRequired(updateScopesWithOpenID("governor:extensions")),
+		r.updateExtension,
+	)
+
+	rg.DELETE(
+		"/extensions/:id",
+		r.AuditMW.AuditWithType("DeleteExtension"),
+		r.AuthMW.AuthRequired(deleteScopesWithOpenID("governor:extensions")),
+		r.mwUserAuthRequired(AuthRoleAdmin),
+		r.deleteExtension,
+	)
 }
 
 func contains(list []string, item string) bool {
