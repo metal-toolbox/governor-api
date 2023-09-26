@@ -567,6 +567,7 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		r.deleteNotificationTarget,
 	)
 
+	// extensions
 	rg.GET(
 		"/extensions",
 		r.AuditMW.AuditWithType("ListExtensions"),
@@ -575,7 +576,7 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 	)
 
 	rg.GET(
-		"/extensions/:id",
+		"/extensions/:eid",
 		r.AuditMW.AuditWithType("GetExtension"),
 		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:extensions")),
 		r.getExtension,
@@ -590,18 +591,54 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 	)
 
 	rg.PATCH(
-		"/extensions/:id",
+		"/extensions/:eid",
 		r.AuditMW.AuditWithType("UpdateExtension"),
 		r.AuthMW.AuthRequired(updateScopesWithOpenID("governor:extensions")),
 		r.updateExtension,
 	)
 
 	rg.DELETE(
-		"/extensions/:id",
+		"/extensions/:eid",
 		r.AuditMW.AuditWithType("DeleteExtension"),
 		r.AuthMW.AuthRequired(deleteScopesWithOpenID("governor:extensions")),
 		r.mwUserAuthRequired(AuthRoleAdmin),
 		r.deleteExtension,
+	)
+
+	// extension resource definitions
+	rg.GET(
+		"/extensions/:eid/erds",
+		r.AuditMW.AuditWithType("ListExtensionResourceDefinitions"),
+		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:extensions")),
+		r.listExtensionResourceDefinitions,
+	)
+
+	rg.POST(
+		"/extensions/:eid/erds",
+		r.AuditMW.AuditWithType("CreateExtensionResourceDefinition"),
+		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensions")),
+		r.createExtensionResourceDefinition,
+	)
+
+	rg.GET(
+		"/extensions/:eid/erds/:id",
+		r.AuditMW.AuditWithType("GetExtensionResourceDefinition"),
+		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:extensions")),
+		r.getExtensionResourceDefinition,
+	)
+
+	rg.PATCH(
+		"/extensions/:eid/erds/:id",
+		r.AuditMW.AuditWithType("UpdateExtensionResourceDefinition"),
+		r.AuthMW.AuthRequired(updateScopesWithOpenID("governor:extensions")),
+		r.updateExtensionResourceDefinition,
+	)
+
+	rg.DELETE(
+		"/extensions/:eid/erds/:id",
+		r.AuditMW.AuditWithType("DeleteExtensionResourceDefinition"),
+		r.AuthMW.AuthRequired(deleteScopesWithOpenID("governor:extensions")),
+		r.deleteExtensionResourceDefinition,
 	)
 }
 

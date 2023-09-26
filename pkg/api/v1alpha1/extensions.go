@@ -181,7 +181,7 @@ func (r *Router) createExtension(c *gin.Context) {
 // getExtension fetch a extension from DB with given id
 func (r *Router) getExtension(c *gin.Context) {
 	queryMods := []qm.QueryMod{}
-	id := c.Param("id")
+	id := c.Param("eid")
 
 	deleted := false
 	if _, deleted = c.GetQuery("deleted"); deleted {
@@ -218,7 +218,7 @@ func (r *Router) getExtension(c *gin.Context) {
 
 // deleteExtension marks a extension deleted
 func (r *Router) deleteExtension(c *gin.Context) {
-	id := c.Param("id")
+	id := c.Param("eid")
 
 	q := qm.Where("id = ?", id)
 	if _, err := uuid.Parse(id); err != nil {
@@ -328,7 +328,7 @@ func (r *Router) deleteExtension(c *gin.Context) {
 
 // updateExtension updates a extension in DB
 func (r *Router) updateExtension(c *gin.Context) {
-	id := c.Param("id")
+	id := c.Param("eid")
 
 	q := qm.Where("id = ?", id)
 	if _, err := uuid.Parse(id); err != nil {

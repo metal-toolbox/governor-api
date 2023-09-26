@@ -17,7 +17,9 @@ CREATE TABLE extensions (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at TIMESTAMPTZ NULL,
 
-  CONSTRAINT extension_slug_key UNIQUE (slug) WHERE deleted_at IS NULL
+  CONSTRAINT extension_slug_key UNIQUE (slug) WHERE deleted_at IS NULL,
+  INDEX (slug, deleted_at) STORING (name, description, enabled, url, status, created_at, updated_at),
+  INDEX (deleted_at) STORING (name, description, enabled, slug, url, status, created_at, updated_at)
 );
 
 CREATE TABLE extension_resource_definitions (
@@ -37,38 +39,17 @@ CREATE TABLE extension_resource_definitions (
   deleted_at TIMESTAMPTZ NULL,
 
 	extension_id UUID NOT NULL REFERENCES extensions(id) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT erd_unique_key UNIQUE (slug_singular) WHERE deleted_at IS NULL
+  CONSTRAINT erd_unique_slug_singular_key UNIQUE (slug_singular) WHERE deleted_at IS NULL,
+  CONSTRAINT erd_unique_slug_plural_key UNIQUE (slug_plural) WHERE deleted_at IS NULL,
+
+  INDEX (extension_id, deleted_at) STORING (
+    name, description, enabled, slug_singular, slug_plural, version, scope, schema, created_at, updated_at
+  )
 );
-
-CREATE TABLE user_extension_resources (
-  id UUID PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(),
-	resource jsonb NOT NULL,
-
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  deleted_at TIMESTAMPTZ NULL,
-
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
-  extension_resource_definition_id UUID NOT NULL REFERENCES extension_resource_definitions(id) ON DELETE CASCADE ON UPDATE CASCADE
-);
-
-CREATE TABLE system_extension_resources (
-  id UUID PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(),
-	resource jsonb NOT NULL,
-
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  deleted_at TIMESTAMPTZ NULL,
-
-  extension_resource_definition_id UUID NOT NULL REFERENCES extension_resource_definitions(id) ON DELETE CASCADE ON UPDATE CASCADE
-);
-
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE system_extension_resources;
-DROP TABLE user_extension_resources;
 DROP TABLE extension_resource_definitions;
 DROP TABLE extensions;
 
