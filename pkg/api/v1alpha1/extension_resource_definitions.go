@@ -38,6 +38,7 @@ const (
 // ExtensionResourceDefinitionReq is a request to create an extension resource definition
 type ExtensionResourceDefinitionReq struct {
 	Name         string                           `json:"name"`
+	Description  string                           `json:"description"`
 	SlugSingular string                           `json:"slug_singular"`
 	SlugPlural   string                           `json:"slug_plural"`
 	Version      string                           `json:"version"`
