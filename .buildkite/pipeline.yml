@@ -58,7 +58,7 @@ steps:
         push: true
         build-args:
           - NAME=${APP_NAME}
-    - equinixmetal-buildkite/trivy#v1.18.2:
+    - equinixmetal-buildkite/trivy#v1.18.3:
         severity: CRITICAL,HIGH
         ignore-unfixed: true
         security-checks: config,secret,vuln
