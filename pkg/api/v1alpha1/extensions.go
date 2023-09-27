@@ -221,7 +221,7 @@ func (r *Router) deleteExtension(c *gin.Context) {
 	extension, err := models.Extensions(q).One(c.Request.Context(), r.DB)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			sendError(c, http.StatusNotFound, "extension not found"+err.Error())
+			sendError(c, http.StatusNotFound, "extension not found: "+err.Error())
 			return
 		}
 
@@ -331,7 +331,7 @@ func (r *Router) updateExtension(c *gin.Context) {
 	extension, err := models.Extensions(q).One(c.Request.Context(), r.DB)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			sendError(c, http.StatusNotFound, "extension not found"+err.Error())
+			sendError(c, http.StatusNotFound, "extension not found: "+err.Error())
 			return
 		}
 
