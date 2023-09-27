@@ -38,8 +38,8 @@ CREATE TABLE extension_resource_definitions (
   deleted_at TIMESTAMPTZ NULL,
 
 	extension_id UUID NOT NULL REFERENCES extensions(id) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT erd_unique_slug_singular_key UNIQUE (slug_singular) WHERE deleted_at IS NULL,
-  CONSTRAINT erd_unique_slug_plural_key UNIQUE (slug_plural) WHERE deleted_at IS NULL,
+  CONSTRAINT erd_unique_slug_singular_key UNIQUE (slug_singular, version) WHERE deleted_at IS NULL,
+  CONSTRAINT erd_unique_slug_plural_key UNIQUE (slug_plural, version) WHERE deleted_at IS NULL,
 
   INDEX (extension_id, deleted_at) STORING (
     name, description, enabled, slug_singular, slug_plural, version, scope, schema, created_at, updated_at
