@@ -26,7 +26,6 @@ type Extension struct {
 // ExtensionReq is a request to create a extension
 type ExtensionReq struct {
 	Name        string `json:"name"`
-	URL         string `json:"url"`
 	Description string `json:"description"`
 	Enabled     *bool  `json:"enabled,omitempty"`
 }
@@ -70,11 +69,6 @@ func (r *Router) createExtension(c *gin.Context) {
 		return
 	}
 
-	if req.URL == "" {
-		sendError(c, http.StatusBadRequest, "extension url is required")
-		return
-	}
-
 	if req.Enabled == nil {
 		sendError(c, http.StatusBadRequest, "extension enabled is required")
 		return
@@ -83,7 +77,6 @@ func (r *Router) createExtension(c *gin.Context) {
 	extension := &models.Extension{
 		Name:        req.Name,
 		Description: req.Description,
-		URL:         req.URL,
 		Enabled:     *req.Enabled,
 	}
 
@@ -362,10 +355,6 @@ func (r *Router) updateExtension(c *gin.Context) {
 
 	if req.Description != "" {
 		extension.Description = req.Description
-	}
-
-	if req.URL != "" {
-		extension.URL = req.URL
 	}
 
 	if req.Enabled != nil {

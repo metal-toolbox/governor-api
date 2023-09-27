@@ -10,7 +10,6 @@ CREATE TABLE extensions (
   enabled BOOL NOT NULL DEFAULT true,
   slug STRING NOT NULL,
 
-  url STRING NOT NULL,
 	status extension_status NOT NULL DEFAULT 'online',
 
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -18,8 +17,8 @@ CREATE TABLE extensions (
   deleted_at TIMESTAMPTZ NULL,
 
   CONSTRAINT extension_slug_key UNIQUE (slug) WHERE deleted_at IS NULL,
-  INDEX (slug, deleted_at) STORING (name, description, enabled, url, status, created_at, updated_at),
-  INDEX (deleted_at) STORING (name, description, enabled, slug, url, status, created_at, updated_at)
+  INDEX (slug, deleted_at) STORING (name, description, enabled, status, created_at, updated_at),
+  INDEX (deleted_at) STORING (name, description, enabled, slug, status, created_at, updated_at)
 );
 
 CREATE TABLE extension_resource_definitions (

@@ -25,11 +25,10 @@ import (
 // Extension is an object representing the database table.
 type Extension struct {
 	ID          string    `boil:"id" json:"id" toml:"id" yaml:"id"`
-	URL         string    `boil:"url" json:"url" toml:"url" yaml:"url"`
 	Name        string    `boil:"name" json:"name" toml:"name" yaml:"name"`
-	Slug        string    `boil:"slug" json:"slug" toml:"slug" yaml:"slug"`
 	Description string    `boil:"description" json:"description" toml:"description" yaml:"description"`
 	Enabled     bool      `boil:"enabled" json:"enabled" toml:"enabled" yaml:"enabled"`
+	Slug        string    `boil:"slug" json:"slug" toml:"slug" yaml:"slug"`
 	Status      string    `boil:"status" json:"status" toml:"status" yaml:"status"`
 	CreatedAt   time.Time `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
 	UpdatedAt   time.Time `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
@@ -41,22 +40,20 @@ type Extension struct {
 
 var ExtensionColumns = struct {
 	ID          string
-	URL         string
 	Name        string
-	Slug        string
 	Description string
 	Enabled     string
+	Slug        string
 	Status      string
 	CreatedAt   string
 	UpdatedAt   string
 	DeletedAt   string
 }{
 	ID:          "id",
-	URL:         "url",
 	Name:        "name",
-	Slug:        "slug",
 	Description: "description",
 	Enabled:     "enabled",
+	Slug:        "slug",
 	Status:      "status",
 	CreatedAt:   "created_at",
 	UpdatedAt:   "updated_at",
@@ -65,22 +62,20 @@ var ExtensionColumns = struct {
 
 var ExtensionTableColumns = struct {
 	ID          string
-	URL         string
 	Name        string
-	Slug        string
 	Description string
 	Enabled     string
+	Slug        string
 	Status      string
 	CreatedAt   string
 	UpdatedAt   string
 	DeletedAt   string
 }{
 	ID:          "extensions.id",
-	URL:         "extensions.url",
 	Name:        "extensions.name",
-	Slug:        "extensions.slug",
 	Description: "extensions.description",
 	Enabled:     "extensions.enabled",
+	Slug:        "extensions.slug",
 	Status:      "extensions.status",
 	CreatedAt:   "extensions.created_at",
 	UpdatedAt:   "extensions.updated_at",
@@ -91,22 +86,20 @@ var ExtensionTableColumns = struct {
 
 var ExtensionWhere = struct {
 	ID          whereHelperstring
-	URL         whereHelperstring
 	Name        whereHelperstring
-	Slug        whereHelperstring
 	Description whereHelperstring
 	Enabled     whereHelperbool
+	Slug        whereHelperstring
 	Status      whereHelperstring
 	CreatedAt   whereHelpertime_Time
 	UpdatedAt   whereHelpertime_Time
 	DeletedAt   whereHelpernull_Time
 }{
 	ID:          whereHelperstring{field: "\"extensions\".\"id\""},
-	URL:         whereHelperstring{field: "\"extensions\".\"url\""},
 	Name:        whereHelperstring{field: "\"extensions\".\"name\""},
-	Slug:        whereHelperstring{field: "\"extensions\".\"slug\""},
 	Description: whereHelperstring{field: "\"extensions\".\"description\""},
 	Enabled:     whereHelperbool{field: "\"extensions\".\"enabled\""},
+	Slug:        whereHelperstring{field: "\"extensions\".\"slug\""},
 	Status:      whereHelperstring{field: "\"extensions\".\"status\""},
 	CreatedAt:   whereHelpertime_Time{field: "\"extensions\".\"created_at\""},
 	UpdatedAt:   whereHelpertime_Time{field: "\"extensions\".\"updated_at\""},
@@ -141,8 +134,8 @@ func (r *extensionR) GetExtensionResourceDefinitions() ExtensionResourceDefiniti
 type extensionL struct{}
 
 var (
-	extensionAllColumns            = []string{"id", "url", "name", "slug", "description", "enabled", "status", "created_at", "updated_at", "deleted_at"}
-	extensionColumnsWithoutDefault = []string{"url", "name", "slug", "description"}
+	extensionAllColumns            = []string{"id", "name", "description", "enabled", "slug", "status", "created_at", "updated_at", "deleted_at"}
+	extensionColumnsWithoutDefault = []string{"name", "description", "slug"}
 	extensionColumnsWithDefault    = []string{"id", "enabled", "status", "created_at", "updated_at", "deleted_at"}
 	extensionPrimaryKeyColumns     = []string{"id"}
 	extensionGeneratedColumns      = []string{}

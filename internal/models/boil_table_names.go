@@ -20,8 +20,6 @@ var TableNames = struct {
 	NotificationTargets          string
 	NotificationTypes            string
 	Organizations                string
-	SystemExtensionResources     string
-	UserExtensionResources       string
 	Users                        string
 }{
 	ApplicationTypes:             "application_types",
@@ -40,7 +38,5 @@ var TableNames = struct {
 	NotificationTargets:          "notification_targets",
 	NotificationTypes:            "notification_types",
 	Organizations:                "organizations",
-	SystemExtensionResources:     "system_extension_resources",
-	UserExtensionResources:       "user_extension_resources",
 	Users:                        "users",
 }
