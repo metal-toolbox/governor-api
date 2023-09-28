@@ -154,7 +154,7 @@ func TestClient_ExtensionResourceDefinitions(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov/",
+				url:                    "https://the.gov",
 				logger:                 zap.NewNop(),
 				httpClient:             tt.fields.httpClient,
 				clientCredentialConfig: &mockTokener{t: t},
@@ -187,22 +187,25 @@ func TestClient_ExtensionResourceDefinition(t *testing.T) {
 	}
 
 	type fields struct {
-		httpClient HTTPDoer
+		httpClient *mockHTTPDoer
 	}
 
 	tests := []struct {
-		name        string
-		extensionID string
-		erdID       string
-		fields      fields
-		expected    *v1alpha1.ExtensionResourceDefinition
-		expectedErr error
-		expectErr   bool
+		name         string
+		extensionID  string
+		erdID        string
+		erdVersion   string
+		fields       fields
+		expected     *v1alpha1.ExtensionResourceDefinition
+		expectedErr  error
+		expectedPath string
+		expectErr    bool
 	}{
 		{
-			name:        "example request",
+			name:        "request with slug",
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
+			erdVersion:  "v1alpha1",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -210,13 +213,30 @@ func TestClient_ExtensionResourceDefinition(t *testing.T) {
 					statusCode: http.StatusOK,
 				},
 			},
-			expected:  testResp([]byte(testERDResponse)),
-			expectErr: false,
+			expected:     testResp([]byte(testERDResponse)),
+			expectedPath: "/api/v1alpha1/extensions/test-extension-1/erds/erd-1/v1alpha1",
+			expectErr:    false,
+		},
+		{
+			name:        "request with uuid",
+			extensionID: "test-extension-1",
+			erdID:       "a82a34a5-db1f-464f-af9c-76086e79f715",
+			fields: fields{
+				httpClient: &mockHTTPDoer{
+					t:          t,
+					resp:       []byte(testERDResponse),
+					statusCode: http.StatusOK,
+				},
+			},
+			expected:     testResp([]byte(testERDResponse)),
+			expectedPath: "/api/v1alpha1/extensions/test-extension-1/erds/a82a34a5-db1f-464f-af9c-76086e79f715",
+			expectErr:    false,
 		},
 		{
 			name:        "non-success",
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
+			erdVersion:  "v1alpha1",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -230,6 +250,7 @@ func TestClient_ExtensionResourceDefinition(t *testing.T) {
 			name:        "bad json response",
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
+			erdVersion:  "v1alpha1",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -243,6 +264,7 @@ func TestClient_ExtensionResourceDefinition(t *testing.T) {
 			name:        "missing extension id",
 			extensionID: "",
 			erdID:       "erd-1",
+			erdVersion:  "v1alpha1",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -256,6 +278,7 @@ func TestClient_ExtensionResourceDefinition(t *testing.T) {
 			name:        "missing ERD id",
 			extensionID: "test-extension-1",
 			erdID:       "",
+			erdVersion:  "v1alpha1",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -269,6 +292,7 @@ func TestClient_ExtensionResourceDefinition(t *testing.T) {
 			name:        "extension not found",
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
+			erdVersion:  "v1alpha1",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -283,6 +307,7 @@ func TestClient_ExtensionResourceDefinition(t *testing.T) {
 			name:        "ERD not found",
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
+			erdVersion:  "v1alpha1",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -298,13 +323,13 @@ func TestClient_ExtensionResourceDefinition(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov/",
+				url:                    "https://the.gov",
 				logger:                 zap.NewNop(),
 				httpClient:             tt.fields.httpClient,
 				clientCredentialConfig: &mockTokener{t: t},
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
-			got, err := c.ExtensionResourceDefinition(context.TODO(), tt.extensionID, tt.erdID, false)
+			got, err := c.ExtensionResourceDefinition(context.TODO(), tt.extensionID, tt.erdID, tt.erdVersion, false)
 
 			if tt.expectedErr != nil {
 				assert.EqualError(t, err, tt.expectedErr.Error())
@@ -316,6 +341,10 @@ func TestClient_ExtensionResourceDefinition(t *testing.T) {
 
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expected, got)
+
+			if tt.expectedPath != "" {
+				assert.Equal(t, tt.expectedPath, tt.fields.httpClient.Request().URL.Path)
+			}
 		})
 	}
 }
@@ -483,24 +512,27 @@ func TestClient_UpdateExtensionResourceDefinition(t *testing.T) {
 	}
 
 	type fields struct {
-		httpClient HTTPDoer
+		httpClient *mockHTTPDoer
 	}
 
 	tests := []struct {
-		name        string
-		extensionID string
-		erdID       string
-		fields      fields
-		id          string
-		req         *v1alpha1.ExtensionResourceDefinitionReq
-		expected    *v1alpha1.ExtensionResourceDefinition
-		expectedErr error
-		expectErr   bool
+		name         string
+		extensionID  string
+		erdID        string
+		erdVersion   string
+		fields       fields
+		id           string
+		req          *v1alpha1.ExtensionResourceDefinitionReq
+		expected     *v1alpha1.ExtensionResourceDefinition
+		expectedErr  error
+		expectErr    bool
+		expectedPath string
 	}{
 		{
-			name:        "example request",
+			name:        "example request with slug",
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
+			erdVersion:  "v1alpha1",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -511,13 +543,33 @@ func TestClient_UpdateExtensionResourceDefinition(t *testing.T) {
 			req: &v1alpha1.ExtensionResourceDefinitionReq{
 				Description: "some test",
 			},
-			expected:  testResp([]byte(testERDResponse)),
-			expectErr: false,
+			expected:     testResp([]byte(testERDResponse)),
+			expectedPath: "/api/v1alpha1/extensions/test-extension-1/erds/erd-1/v1alpha1",
+			expectErr:    false,
+		},
+		{
+			name:        "example request with id",
+			extensionID: "test-extension-1",
+			erdID:       "a82a34a5-db1f-464f-af9c-76086e79f715",
+			fields: fields{
+				httpClient: &mockHTTPDoer{
+					t:          t,
+					resp:       []byte(testERDResponse),
+					statusCode: http.StatusOK,
+				},
+			},
+			req: &v1alpha1.ExtensionResourceDefinitionReq{
+				Description: "some test",
+			},
+			expected:     testResp([]byte(testERDResponse)),
+			expectedPath: "/api/v1alpha1/extensions/test-extension-1/erds/a82a34a5-db1f-464f-af9c-76086e79f715",
+			expectErr:    false,
 		},
 		{
 			name:        "example request status accepted",
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
+			erdVersion:  "v1alpha1",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -536,6 +588,7 @@ func TestClient_UpdateExtensionResourceDefinition(t *testing.T) {
 			name:        "non-success",
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
+			erdVersion:  "v1alpha1",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -553,6 +606,7 @@ func TestClient_UpdateExtensionResourceDefinition(t *testing.T) {
 			name:        "bad json response",
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
+			erdVersion:  "v1alpha1",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -567,8 +621,9 @@ func TestClient_UpdateExtensionResourceDefinition(t *testing.T) {
 			expectErr: true,
 		},
 		{
-			name:  "missing extension id",
-			erdID: "erd-1",
+			name:       "missing extension id",
+			erdID:      "erd-1",
+			erdVersion: "v1alpha1",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -585,6 +640,7 @@ func TestClient_UpdateExtensionResourceDefinition(t *testing.T) {
 		{
 			name:        "missing erd id",
 			extensionID: "test-extension-1",
+			erdVersion:  "v1alpha1",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -602,6 +658,7 @@ func TestClient_UpdateExtensionResourceDefinition(t *testing.T) {
 			name:        "extension not found",
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
+			erdVersion:  "v1alpha1",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -619,6 +676,7 @@ func TestClient_UpdateExtensionResourceDefinition(t *testing.T) {
 			name:        "ERD not found",
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
+			erdVersion:  "v1alpha1",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -637,13 +695,13 @@ func TestClient_UpdateExtensionResourceDefinition(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov/",
+				url:                    "https://the.gov",
 				logger:                 zap.NewNop(),
 				httpClient:             tt.fields.httpClient,
 				clientCredentialConfig: &mockTokener{t: t},
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
-			got, err := c.UpdateExtensionResourceDefinition(context.TODO(), tt.extensionID, tt.erdID, tt.req)
+			got, err := c.UpdateExtensionResourceDefinition(context.TODO(), tt.extensionID, tt.erdID, tt.erdVersion, tt.req)
 
 			if tt.expectedErr != nil {
 				assert.EqualError(t, err, tt.expectedErr.Error())
@@ -655,27 +713,34 @@ func TestClient_UpdateExtensionResourceDefinition(t *testing.T) {
 
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expected, got)
+
+			if tt.expectedPath != "" {
+				assert.Equal(t, tt.expectedPath, tt.fields.httpClient.Request().URL.Path)
+			}
 		})
 	}
 }
 
 func TestClient_DeleteExtensionResourceDefinition(t *testing.T) {
 	type fields struct {
-		httpClient HTTPDoer
+		httpClient *mockHTTPDoer
 	}
 
 	tests := []struct {
-		name        string
-		extensionID string
-		erdID       string
-		fields      fields
-		expectedErr error
-		expectErr   bool
+		name         string
+		extensionID  string
+		erdID        string
+		erdVersion   string
+		fields       fields
+		expectedPath string
+		expectedErr  error
+		expectErr    bool
 	}{
 		{
-			name:        "example request",
+			name:        "example request with slug",
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
+			erdVersion:  "v1alpha1",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -683,12 +748,28 @@ func TestClient_DeleteExtensionResourceDefinition(t *testing.T) {
 					statusCode: http.StatusOK,
 				},
 			},
-			expectErr: false,
+			expectErr:    false,
+			expectedPath: "/api/v1alpha1/extensions/test-extension-1/erds/erd-1/v1alpha1",
+		},
+		{
+			name:        "example request with id",
+			extensionID: "test-extension-1",
+			erdID:       "a82a34a5-db1f-464f-af9c-76086e79f715",
+			fields: fields{
+				httpClient: &mockHTTPDoer{
+					t:          t,
+					resp:       []byte(testERDResponse),
+					statusCode: http.StatusOK,
+				},
+			},
+			expectErr:    false,
+			expectedPath: "/api/v1alpha1/extensions/test-extension-1/erds/a82a34a5-db1f-464f-af9c-76086e79f715",
 		},
 		{
 			name:        "non-success",
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
+			erdVersion:  "v1alpha1",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -699,8 +780,9 @@ func TestClient_DeleteExtensionResourceDefinition(t *testing.T) {
 			expectedErr: ErrRequestNonSuccess,
 		},
 		{
-			name:  "missing extension id",
-			erdID: "erd-1",
+			name:       "missing extension id",
+			erdID:      "erd-1",
+			erdVersion: "v1alpha1",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -726,6 +808,7 @@ func TestClient_DeleteExtensionResourceDefinition(t *testing.T) {
 			name:        "extension not found",
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
+			erdVersion:  "v1alpha1",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -740,6 +823,7 @@ func TestClient_DeleteExtensionResourceDefinition(t *testing.T) {
 			name:        "ERD not found",
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
+			erdVersion:  "v1alpha1",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -755,13 +839,13 @@ func TestClient_DeleteExtensionResourceDefinition(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov/",
+				url:                    "https://the.gov",
 				logger:                 zap.NewNop(),
 				httpClient:             tt.fields.httpClient,
 				clientCredentialConfig: &mockTokener{t: t},
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
-			err := c.DeleteExtensionResourceDefinition(context.TODO(), tt.extensionID, tt.erdID)
+			err := c.DeleteExtensionResourceDefinition(context.TODO(), tt.extensionID, tt.erdID, tt.erdVersion)
 
 			if tt.expectedErr != nil {
 				assert.EqualError(t, err, tt.expectedErr.Error())
@@ -772,6 +856,10 @@ func TestClient_DeleteExtensionResourceDefinition(t *testing.T) {
 			}
 
 			assert.NoError(t, err)
+
+			if tt.expectedPath != "" {
+				assert.Equal(t, tt.expectedPath, tt.fields.httpClient.Request().URL.Path)
+			}
 		})
 	}
 }

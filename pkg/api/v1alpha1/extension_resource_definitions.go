@@ -49,7 +49,7 @@ type ExtensionResourceDefinitionReq struct {
 
 func findERD(
 	ctx context.Context, exec boil.ContextExecutor,
-	extensionID, erdID string, deleted bool,
+	extensionID, erdIDOrSlug, erdVersion string, deleted bool,
 ) (extension *models.Extension, erd *models.ExtensionResourceDefinition, err error) {
 	// fetch extension
 	var extensionQM qm.QueryMod
@@ -61,17 +61,22 @@ func findERD(
 
 	// fetch ERD
 	queryMods := []qm.QueryMod{}
-	q := qm.Where("id = ?", erdID)
 
-	if _, err = uuid.Parse(erdID); err != nil {
+	// use slug if uuid is invalid
+	if _, err = uuid.Parse(erdIDOrSlug); err != nil {
 		if deleted {
 			return nil, nil, ErrGetDeleteResourcedWithSlug
 		}
 
-		q = qm.Where("slug_singular = ?", erdID)
-	}
+		if erdVersion == "" {
+			return nil, nil, err
+		}
 
-	queryMods = append(queryMods, q)
+		queryMods = append(queryMods, qm.Where("slug_singular = ?", erdIDOrSlug))
+		queryMods = append(queryMods, qm.Where("version = ?", erdVersion))
+	} else {
+		queryMods = append(queryMods, qm.Where("id = ?", erdIDOrSlug))
+	}
 
 	if deleted {
 		queryMods = append(queryMods, qm.WithDeleted())
@@ -133,7 +138,7 @@ func (r *Router) listExtensionResourceDefinitions(c *gin.Context) {
 			return
 		}
 
-		sendError(c, http.StatusInternalServerError, "error getting extension"+err.Error())
+		sendError(c, http.StatusInternalServerError, "error getting ERD"+err.Error())
 
 		return
 	}
@@ -186,10 +191,13 @@ func (r *Router) createExtensionResourceDefinition(c *gin.Context) {
 		return
 	}
 
+	// user may choose to upload the schema as an escaped JSON string, here uses
+	// a string unmarshal to "un-escape" the JSON string.
 	var schema string
 	if err := json.Unmarshal(req.Schema, &schema); err != nil {
-		sendError(c, http.StatusBadRequest, "ERD schema is not valid: "+err.Error())
-		return
+		// if the user upload the schema as an object, simply convert the bytes to
+		// string should suffice
+		schema = string(req.Schema)
 	}
 
 	if _, err := jsonschema.CompileString("https://governor/s.json", schema); err != nil {
@@ -222,19 +230,19 @@ func (r *Router) createExtensionResourceDefinition(c *gin.Context) {
 			return
 		}
 
-		sendError(c, http.StatusInternalServerError, "error getting extension"+err.Error())
+		sendError(c, http.StatusInternalServerError, "error getting ERD"+err.Error())
 
 		return
 	}
 
 	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
 	if err != nil {
-		sendError(c, http.StatusBadRequest, "error starting extension create transaction: "+err.Error())
+		sendError(c, http.StatusBadRequest, "error starting ERD create transaction: "+err.Error())
 		return
 	}
 
 	if err := extension.AddExtensionResourceDefinitions(c.Request.Context(), tx, true, erd); err != nil {
-		msg := fmt.Sprintf("error creating extension: %s", err.Error())
+		msg := fmt.Sprintf("error creating ERD: %s", err.Error())
 
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
@@ -253,7 +261,7 @@ func (r *Router) createExtensionResourceDefinition(c *gin.Context) {
 		erd,
 	)
 	if err != nil {
-		msg := fmt.Sprintf("error creating extension (audit): %s", err.Error())
+		msg := fmt.Sprintf("error creating ERD (audit): %s", err.Error())
 
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
@@ -265,7 +273,7 @@ func (r *Router) createExtensionResourceDefinition(c *gin.Context) {
 	}
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
-		msg := fmt.Sprintf("error creating extension: %s", err.Error())
+		msg := fmt.Sprintf("error creating ERD: %s", err.Error())
 
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
@@ -277,7 +285,7 @@ func (r *Router) createExtensionResourceDefinition(c *gin.Context) {
 	}
 
 	if err := tx.Commit(); err != nil {
-		msg := fmt.Sprintf("error committing extension create: %s", err.Error())
+		msg := fmt.Sprintf("error committing ERD create: %s", err.Error())
 
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
@@ -320,23 +328,21 @@ func (r *Router) createExtensionResourceDefinition(c *gin.Context) {
 // getExtensionResourceDefinition fetch a extension from DB with given id
 func (r *Router) getExtensionResourceDefinition(c *gin.Context) {
 	extensionID := c.Param("eid")
-	erdID := c.Param("id")
+	erdIDOrSlug := c.Param("erd-id-slug")
+	erdVersion := c.Param("erd-version")
 	_, deleted := c.GetQuery("deleted")
 
 	_, erd, err := findERD(
 		c.Request.Context(), r.DB,
-		extensionID, erdID, deleted,
+		extensionID, erdIDOrSlug, erdVersion, deleted,
 	)
 	if err != nil {
-		if errors.Is(err, ErrGetDeleteResourcedWithSlug) {
-			sendError(c, http.StatusBadRequest, err.Error())
-			return
-		} else if errors.Is(err, ErrExtensionNotFound) || errors.Is(err, ErrERDNotFound) {
+		if errors.Is(err, ErrExtensionNotFound) || errors.Is(err, ErrERDNotFound) {
 			sendError(c, http.StatusNotFound, err.Error())
 			return
 		}
 
-		sendError(c, http.StatusInternalServerError, err.Error())
+		sendError(c, http.StatusBadRequest, err.Error())
 
 		return
 	}
@@ -347,22 +353,21 @@ func (r *Router) getExtensionResourceDefinition(c *gin.Context) {
 // deleteExtensionResourceDefinition marks a extension deleted
 func (r *Router) deleteExtensionResourceDefinition(c *gin.Context) {
 	extensionID := c.Param("eid")
-	erdID := c.Param("id")
+	erdIDOrSlug := c.Param("erd-id-slug")
+	erdVersion := c.Param("erd-version")
+	_, deleted := c.GetQuery("deleted")
 
 	extension, erd, err := findERD(
 		c.Request.Context(), r.DB,
-		extensionID, erdID, false,
+		extensionID, erdIDOrSlug, erdVersion, deleted,
 	)
 	if err != nil {
-		if errors.Is(err, ErrGetDeleteResourcedWithSlug) {
-			sendError(c, http.StatusBadRequest, err.Error())
-			return
-		} else if errors.Is(err, ErrExtensionNotFound) || errors.Is(err, ErrERDNotFound) {
+		if errors.Is(err, ErrExtensionNotFound) || errors.Is(err, ErrERDNotFound) {
 			sendError(c, http.StatusNotFound, err.Error())
 			return
 		}
 
-		sendError(c, http.StatusInternalServerError, err.Error())
+		sendError(c, http.StatusBadRequest, err.Error())
 
 		return
 	}
@@ -374,7 +379,7 @@ func (r *Router) deleteExtensionResourceDefinition(c *gin.Context) {
 	}
 
 	if _, err := erd.Delete(c.Request.Context(), tx, false); err != nil {
-		msg := fmt.Sprintf("error deleting extension: %s. rolling back\n", err.Error())
+		msg := fmt.Sprintf("error deleting ERD: %s. rolling back\n", err.Error())
 
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
@@ -393,7 +398,7 @@ func (r *Router) deleteExtensionResourceDefinition(c *gin.Context) {
 		erd,
 	)
 	if err != nil {
-		msg := fmt.Sprintf("error deleting extension (audit): %s", err.Error())
+		msg := fmt.Sprintf("error deleting ERD (audit): %s", err.Error())
 
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
@@ -405,7 +410,7 @@ func (r *Router) deleteExtensionResourceDefinition(c *gin.Context) {
 	}
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
-		msg := fmt.Sprintf("error deleting extension: %s", err.Error())
+		msg := fmt.Sprintf("error deleting ERD: %s", err.Error())
 
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
@@ -417,7 +422,7 @@ func (r *Router) deleteExtensionResourceDefinition(c *gin.Context) {
 	}
 
 	if err := tx.Commit(); err != nil {
-		msg := fmt.Sprintf("error committing extension delete: %s", err.Error())
+		msg := fmt.Sprintf("error committing ERD delete: %s", err.Error())
 
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
@@ -486,22 +491,21 @@ func (r *Router) updateExtensionResourceDefinition(c *gin.Context) {
 	}
 
 	extensionID := c.Param("eid")
-	erdID := c.Param("id")
+	erdIDOrSlug := c.Param("erd-id-slug")
+	erdVersion := c.Param("erd-version")
+	_, deleted := c.GetQuery("deleted")
 
 	extension, erd, err := findERD(
 		c.Request.Context(), r.DB,
-		extensionID, erdID, false,
+		extensionID, erdIDOrSlug, erdVersion, deleted,
 	)
 	if err != nil {
-		if errors.Is(err, ErrGetDeleteResourcedWithSlug) {
-			sendError(c, http.StatusBadRequest, err.Error())
-			return
-		} else if errors.Is(err, ErrExtensionNotFound) || errors.Is(err, ErrERDNotFound) {
+		if errors.Is(err, ErrExtensionNotFound) || errors.Is(err, ErrERDNotFound) {
 			sendError(c, http.StatusNotFound, err.Error())
 			return
 		}
 
-		sendError(c, http.StatusInternalServerError, err.Error())
+		sendError(c, http.StatusBadRequest, err.Error())
 
 		return
 	}
@@ -510,6 +514,10 @@ func (r *Router) updateExtensionResourceDefinition(c *gin.Context) {
 
 	if req.Name != "" {
 		erd.Name = req.Name
+	}
+
+	if req.Description != "" {
+		erd.Description = req.Description
 	}
 
 	if req.Enabled != nil {
@@ -543,7 +551,7 @@ func (r *Router) updateExtensionResourceDefinition(c *gin.Context) {
 		erd,
 	)
 	if err != nil {
-		msg := fmt.Sprintf("error updating extension (audit): %s", err.Error())
+		msg := fmt.Sprintf("error updating ERD (audit): %s", err.Error())
 
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
@@ -555,7 +563,7 @@ func (r *Router) updateExtensionResourceDefinition(c *gin.Context) {
 	}
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
-		msg := fmt.Sprintf("error updating extension: %s", err.Error())
+		msg := fmt.Sprintf("error updating ERD: %s", err.Error())
 
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
@@ -567,7 +575,7 @@ func (r *Router) updateExtensionResourceDefinition(c *gin.Context) {
 	}
 
 	if err := tx.Commit(); err != nil {
-		msg := fmt.Sprintf("error committing extension update: %s", err.Error())
+		msg := fmt.Sprintf("error committing ERD update: %s", err.Error())
 
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())

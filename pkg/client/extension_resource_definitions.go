@@ -25,9 +25,10 @@ func handleERDStatusNotFound(respBody []byte) error {
 	return v1alpha1.ErrERDNotFound
 }
 
-// ExtensionResourceDefinition fetches an ERD
+// ExtensionResourceDefinition fetches an ERD, erd version must be provided
+// when using erd slug
 func (c *Client) ExtensionResourceDefinition(
-	ctx context.Context, extensionIDOrSlug, erdIDOrSlug string, deleted bool,
+	ctx context.Context, extensionIDOrSlug, erdIDOrSlug, erdVersion string, deleted bool,
 ) (*v1alpha1.ExtensionResourceDefinition, error) {
 	if extensionIDOrSlug == "" {
 		return nil, ErrMissingExtensionID
@@ -44,6 +45,11 @@ func (c *Client) ExtensionResourceDefinition(
 		extensionIDOrSlug,
 		erdIDOrSlug,
 	)
+
+	if erdVersion != "" {
+		u += fmt.Sprintf("/%s", erdVersion)
+	}
+
 	if deleted {
 		u += "?deleted"
 	}
@@ -192,9 +198,10 @@ func (c *Client) CreateExtensionResourceDefinition(
 	return erd, nil
 }
 
-// UpdateExtensionResourceDefinition updates an ERD
+// UpdateExtensionResourceDefinition updates an ERD, erd version must be provided
+// when using erd slug
 func (c *Client) UpdateExtensionResourceDefinition(
-	ctx context.Context, extensionIDOrSlug, erdIDOrSlug string, erdReq *v1alpha1.ExtensionResourceDefinitionReq,
+	ctx context.Context, extensionIDOrSlug, erdIDOrSlug, erdVersion string, erdReq *v1alpha1.ExtensionResourceDefinitionReq,
 ) (*v1alpha1.ExtensionResourceDefinition, error) {
 	if extensionIDOrSlug == "" {
 		return nil, ErrMissingExtensionID
@@ -204,16 +211,18 @@ func (c *Client) UpdateExtensionResourceDefinition(
 		return nil, ErrMissingERDID
 	}
 
-	req, err := c.newGovernorRequest(
-		ctx, http.MethodPatch,
-		fmt.Sprintf(
-			"%s/api/%s/extensions/%s/erds/%s",
-			c.url,
-			governorAPIVersionAlpha,
-			extensionIDOrSlug,
-			erdIDOrSlug,
-		),
+	u := fmt.Sprintf(
+		"%s/api/%s/extensions/%s/erds/%s",
+		c.url,
+		governorAPIVersionAlpha,
+		extensionIDOrSlug,
+		erdIDOrSlug,
 	)
+	if erdVersion != "" {
+		u += fmt.Sprintf("/%s", erdVersion)
+	}
+
+	req, err := c.newGovernorRequest(ctx, http.MethodPatch, u)
 	if err != nil {
 		return nil, err
 	}
@@ -255,9 +264,10 @@ func (c *Client) UpdateExtensionResourceDefinition(
 	return erd, nil
 }
 
-// DeleteExtensionResourceDefinition deletes a extension
+// DeleteExtensionResourceDefinition deletes a extension, erd version must be provided
+// when using erd slug
 func (c *Client) DeleteExtensionResourceDefinition(
-	ctx context.Context, extensionIDOrSlug, erdIDOrSlug string,
+	ctx context.Context, extensionIDOrSlug, erdIDOrSlug, erdVersion string,
 ) error {
 	if extensionIDOrSlug == "" {
 		return ErrMissingExtensionID
@@ -267,16 +277,18 @@ func (c *Client) DeleteExtensionResourceDefinition(
 		return ErrMissingERDID
 	}
 
-	req, err := c.newGovernorRequest(
-		ctx, http.MethodDelete,
-		fmt.Sprintf(
-			"%s/api/%s/extensions/%s/erds/%s",
-			c.url,
-			governorAPIVersionAlpha,
-			extensionIDOrSlug,
-			erdIDOrSlug,
-		),
+	u := fmt.Sprintf(
+		"%s/api/%s/extensions/%s/erds/%s",
+		c.url,
+		governorAPIVersionAlpha,
+		extensionIDOrSlug,
+		erdIDOrSlug,
 	)
+	if erdVersion != "" {
+		u += fmt.Sprintf("/%s", erdVersion)
+	}
+
+	req, err := c.newGovernorRequest(ctx, http.MethodDelete, u)
 	if err != nil {
 		return err
 	}

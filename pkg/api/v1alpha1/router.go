@@ -621,22 +621,43 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 	)
 
 	rg.GET(
-		"/extensions/:eid/erds/:id",
-		r.AuditMW.AuditWithType("GetExtensionResourceDefinition"),
+		"/extensions/:eid/erds/:erd-id-slug",
+		r.AuditMW.AuditWithType("GetExtensionResourceDefinitionByID"),
+		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:extensions")),
+		r.getExtensionResourceDefinition,
+	)
+
+	rg.GET(
+		"/extensions/:eid/erds/:erd-id-slug/:erd-version",
+		r.AuditMW.AuditWithType("GetExtensionResourceDefinitionBySlug"),
 		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:extensions")),
 		r.getExtensionResourceDefinition,
 	)
 
 	rg.PATCH(
-		"/extensions/:eid/erds/:id",
-		r.AuditMW.AuditWithType("UpdateExtensionResourceDefinition"),
+		"/extensions/:eid/erds/:erd-id-slug",
+		r.AuditMW.AuditWithType("UpdateExtensionResourceDefinitionByID"),
+		r.AuthMW.AuthRequired(updateScopesWithOpenID("governor:extensions")),
+		r.updateExtensionResourceDefinition,
+	)
+
+	rg.PATCH(
+		"/extensions/:eid/erds/:erd-id-slug/:erd-version",
+		r.AuditMW.AuditWithType("UpdateExtensionResourceDefinitionBySlug"),
 		r.AuthMW.AuthRequired(updateScopesWithOpenID("governor:extensions")),
 		r.updateExtensionResourceDefinition,
 	)
 
 	rg.DELETE(
-		"/extensions/:eid/erds/:id",
-		r.AuditMW.AuditWithType("DeleteExtensionResourceDefinition"),
+		"/extensions/:eid/erds/:erd-id-slug",
+		r.AuditMW.AuditWithType("DeleteExtensionResourceDefinitionByID"),
+		r.AuthMW.AuthRequired(deleteScopesWithOpenID("governor:extensions")),
+		r.deleteExtensionResourceDefinition,
+	)
+
+	rg.DELETE(
+		"/extensions/:eid/erds/:erd-id-slug/:erd-version",
+		r.AuditMW.AuditWithType("DeleteExtensionResourceDefinitionBySlug"),
 		r.AuthMW.AuthRequired(deleteScopesWithOpenID("governor:extensions")),
 		r.deleteExtensionResourceDefinition,
 	)

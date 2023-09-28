@@ -21,6 +21,7 @@ type mockHTTPDoer struct {
 	t          *testing.T
 	statusCode int
 	resp       []byte
+	request    *http.Request
 }
 
 type mockTokener struct {
@@ -29,14 +30,19 @@ type mockTokener struct {
 	token *oauth2.Token
 }
 
-func (m *mockHTTPDoer) Do(_ *http.Request) (*http.Response, error) {
+func (m *mockHTTPDoer) Do(r *http.Request) (*http.Response, error) {
 	resp := http.Response{
 		StatusCode: m.statusCode,
 	}
 
+	m.request = r
 	resp.Body = io.NopCloser(bytes.NewReader(m.resp))
 
 	return &resp, nil
+}
+
+func (m *mockHTTPDoer) Request() *http.Request {
+	return m.request
 }
 
 func (m *mockTokener) Token(_ context.Context) (*oauth2.Token, error) {
