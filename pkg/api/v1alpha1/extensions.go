@@ -23,7 +23,7 @@ type Extension struct {
 	*models.Extension
 }
 
-// ExtensionReq is a request to create a extension
+// ExtensionReq is a request to create an extension
 type ExtensionReq struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
@@ -51,7 +51,7 @@ func (r *Router) listExtensions(c *gin.Context) {
 	c.JSON(http.StatusOK, extensions)
 }
 
-// createExtension creates a extension in DB
+// createExtension creates an extension in DB
 func (r *Router) createExtension(c *gin.Context) {
 	req := &ExtensionReq{}
 	if err := c.BindJSON(req); err != nil {
@@ -209,7 +209,7 @@ func (r *Router) getExtension(c *gin.Context) {
 	c.JSON(http.StatusOK, Extension{extension})
 }
 
-// deleteExtension marks a extension deleted
+// deleteExtension marks an extension deleted
 func (r *Router) deleteExtension(c *gin.Context) {
 	id := c.Param("eid")
 
@@ -319,7 +319,7 @@ func (r *Router) deleteExtension(c *gin.Context) {
 	c.JSON(http.StatusAccepted, extension)
 }
 
-// updateExtension updates a extension in DB
+// updateExtension updates an extension in DB
 func (r *Router) updateExtension(c *gin.Context) {
 	id := c.Param("eid")
 
@@ -348,7 +348,7 @@ func (r *Router) updateExtension(c *gin.Context) {
 		return
 	}
 
-	if req.Name != "" {
+	if req.Name != "" && req.Name != extension.Name {
 		sendError(c, http.StatusBadRequest, "modifying extension name is not allowed")
 		return
 	}

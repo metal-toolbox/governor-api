@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/nats-io/nats.go"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -52,7 +51,7 @@ func NewClient(opts ...Option) *Client {
 }
 
 // WithNATSConn sets the nats connection
-func WithNATSConn(nc *nats.Conn) Option {
+func WithNATSConn(nc conn) Option {
 	return func(c *Client) {
 		c.conn = nc
 	}

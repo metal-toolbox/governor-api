@@ -594,6 +594,7 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		"/extensions/:eid",
 		r.AuditMW.AuditWithType("UpdateExtension"),
 		r.AuthMW.AuthRequired(updateScopesWithOpenID("governor:extensions")),
+		r.mwUserAuthRequired(AuthRoleAdmin),
 		r.updateExtension,
 	)
 

@@ -135,8 +135,8 @@ type extensionL struct{}
 
 var (
 	extensionAllColumns            = []string{"id", "name", "description", "enabled", "slug", "status", "created_at", "updated_at", "deleted_at"}
-	extensionColumnsWithoutDefault = []string{"name", "description", "slug"}
-	extensionColumnsWithDefault    = []string{"id", "enabled", "status", "created_at", "updated_at", "deleted_at"}
+	extensionColumnsWithoutDefault = []string{"name", "description", "enabled", "slug"}
+	extensionColumnsWithDefault    = []string{"id", "status", "created_at", "updated_at", "deleted_at"}
 	extensionPrimaryKeyColumns     = []string{"id"}
 	extensionGeneratedColumns      = []string{}
 )

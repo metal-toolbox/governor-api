@@ -7,10 +7,9 @@ CREATE TABLE extensions (
   id UUID PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(),
   name STRING NOT NULL,
   description STRING NOT NULL,
-  enabled BOOL NOT NULL DEFAULT true,
+  enabled BOOL NOT NULL,
   slug STRING NOT NULL,
-
-	status extension_status NOT NULL DEFAULT 'online',
+	status extension_status NOT NULL DEFAULT 'offline',
 
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
