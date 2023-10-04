@@ -26,19 +26,6 @@ import (
 	"go.uber.org/zap"
 )
 
-type mockNATSConn struct {
-	Subject string
-	Payload []byte
-}
-
-func (m *mockNATSConn) Drain() error { return nil }
-func (m *mockNATSConn) Publish(s string, p []byte) error {
-	m.Subject = s
-	m.Payload = p
-
-	return nil
-}
-
 type ExtensionsTestSuite struct {
 	suite.Suite
 
@@ -298,7 +285,6 @@ func (s *ExtensionsTestSuite) TestGetExtension() {
 		params         gin.Params
 		expectedStatus int
 		expectedErrMsg string
-		expectedCount  int
 	}{
 		{
 			name:           "get by ID ok",

@@ -210,6 +210,7 @@ func (r *Router) createExtensionResourceDefinition(c *gin.Context) {
 		SlugSingular: req.SlugSingular,
 		SlugPlural:   req.SlugPlural,
 		Version:      req.Version,
+		Description:  req.Description,
 		Scope:        string(req.Scope),
 		Schema:       []byte(schema),
 		Enabled:      *req.Enabled,
@@ -464,32 +465,6 @@ func (r *Router) deleteExtensionResourceDefinition(c *gin.Context) {
 
 // updateExtensionResourceDefinition updates a extension in DB
 func (r *Router) updateExtensionResourceDefinition(c *gin.Context) {
-	req := &ExtensionResourceDefinitionReq{}
-	if err := c.BindJSON(req); err != nil {
-		sendError(c, http.StatusBadRequest, "unable to bind request: "+err.Error())
-		return
-	}
-
-	if req.SlugPlural != "" || req.SlugSingular != "" {
-		sendError(c, http.StatusBadRequest, "ERD slugs are immutable")
-		return
-	}
-
-	if req.Scope != "" {
-		sendError(c, http.StatusBadRequest, "ERD scope is immutable")
-		return
-	}
-
-	if req.Version != "" {
-		sendError(c, http.StatusBadRequest, "ERD version is immutable")
-		return
-	}
-
-	if string(req.Schema) != "" {
-		sendError(c, http.StatusBadRequest, "ERD schema is immutable")
-		return
-	}
-
 	extensionID := c.Param("eid")
 	erdIDOrSlug := c.Param("erd-id-slug")
 	erdVersion := c.Param("erd-version")
@@ -507,6 +482,32 @@ func (r *Router) updateExtensionResourceDefinition(c *gin.Context) {
 
 		sendError(c, http.StatusBadRequest, err.Error())
 
+		return
+	}
+
+	req := &ExtensionResourceDefinitionReq{}
+	if err := c.BindJSON(req); err != nil {
+		sendError(c, http.StatusBadRequest, "unable to bind request: "+err.Error())
+		return
+	}
+
+	if (req.SlugPlural != "" && req.SlugPlural != erd.SlugPlural) || (req.SlugSingular != "" && req.SlugSingular != erd.SlugSingular) {
+		sendError(c, http.StatusBadRequest, "ERD slugs are immutable")
+		return
+	}
+
+	if req.Scope != "" && req.Scope != ExtensionResourceDefinitionScope(erd.Scope) {
+		sendError(c, http.StatusBadRequest, "ERD scope is immutable")
+		return
+	}
+
+	if req.Version != "" && req.Version != erd.Version {
+		sendError(c, http.StatusBadRequest, "ERD version is immutable")
+		return
+	}
+
+	if string(req.Schema) != "" {
+		sendError(c, http.StatusBadRequest, "ERD schema is immutable")
 		return
 	}
 
