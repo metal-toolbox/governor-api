@@ -15,10 +15,9 @@ import (
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	"github.com/metal-toolbox/governor-api/internal/models"
 	events "github.com/metal-toolbox/governor-api/pkg/events/v1alpha1"
+	"github.com/metal-toolbox/governor-api/pkg/jsonschema"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
-
-	jsonschema "github.com/santhosh-tekuri/jsonschema/v5"
 )
 
 // ExtensionResourceDefinition is the extension resource definition response
@@ -218,7 +217,17 @@ func (r *Router) createExtensionResourceDefinition(c *gin.Context) {
 		schema = string(req.Schema)
 	}
 
-	if _, err := jsonschema.CompileString("https://governor/s.json", schema); err != nil {
+	compiler := jsonschema.NewCompiler(
+		extensionID, req.SlugPlural, req.Version,
+		jsonschema.WithUniqueConstraint(
+			c.Request.Context(),
+			&models.ExtensionResourceDefinition{},
+			nil,
+			nil,
+		),
+	)
+
+	if _, err := compiler.Compile(schema); err != nil {
 		sendError(c, http.StatusBadRequest, "ERD schema is not valid: "+err.Error())
 		return
 	}
