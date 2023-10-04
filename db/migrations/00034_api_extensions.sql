@@ -9,7 +9,7 @@ CREATE TABLE extensions (
   description STRING NOT NULL,
   enabled BOOL NOT NULL,
   slug STRING NOT NULL,
-	status extension_status NOT NULL DEFAULT 'offline',
+  status extension_status NOT NULL DEFAULT 'offline',
 
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -29,14 +29,14 @@ CREATE TABLE extension_resource_definitions (
   slug_singular STRING NOT NULL,
   slug_plural STRING NOT NULL,
   version STRING NOT NULL,
-	scope extension_resource_scope NOT NULL,
-	schema JSONB NOT NULL,
+  scope extension_resource_scope NOT NULL,
+  schema JSONB NOT NULL,
 
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at TIMESTAMPTZ NULL,
 
-	extension_id UUID NOT NULL REFERENCES extensions(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  extension_id UUID NOT NULL REFERENCES extensions(id) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT erd_unique_slug_singular_key UNIQUE (slug_singular, extension_id, version) WHERE deleted_at IS NULL,
   CONSTRAINT erd_unique_slug_plural_key UNIQUE (slug_plural, extension_id, version) WHERE deleted_at IS NULL,
 
