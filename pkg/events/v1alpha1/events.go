@@ -60,6 +60,7 @@ type Event struct {
 
 	ExtensionID                   string `json:"extension_id,omitempty"`
 	ExtensionResourceDefinitionID string `json:"extension_resource_definition_id,omitempty"`
+	ExtensionResourceID           string `json:"extension_resource_id,omitempty"`
 
 	// TraceContext is a map of values used for OpenTelemetry context propagation.
 	TraceContext map[string]string `json:"traceContext"`
