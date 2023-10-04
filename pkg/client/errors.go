@@ -50,4 +50,7 @@ var (
 
 	// ErrMissingExtensionIDOrSlug is returned when a missing or bad extension ID is passed to a request
 	ErrMissingExtensionIDOrSlug = errors.New("missing extension id or slug in request")
+
+	// ErrMissingERDID is returned when a a missing or bad extension resource definition ID is passed to a request
+	ErrMissingERDID = errors.New("missing extension id in request")
 )

@@ -605,6 +605,63 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		r.mwUserAuthRequired(AuthRoleAdmin),
 		r.deleteExtension,
 	)
+
+	// extension resource definitions
+	rg.GET(
+		"/extensions/:eid/erds",
+		r.AuditMW.AuditWithType("ListExtensionResourceDefinitions"),
+		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:extensions")),
+		r.listExtensionResourceDefinitions,
+	)
+
+	rg.POST(
+		"/extensions/:eid/erds",
+		r.AuditMW.AuditWithType("CreateExtensionResourceDefinition"),
+		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensions")),
+		r.createExtensionResourceDefinition,
+	)
+
+	rg.GET(
+		"/extensions/:eid/erds/:erd-id-slug",
+		r.AuditMW.AuditWithType("GetExtensionResourceDefinitionByID"),
+		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:extensions")),
+		r.getExtensionResourceDefinition,
+	)
+
+	rg.GET(
+		"/extensions/:eid/erds/:erd-id-slug/:erd-version",
+		r.AuditMW.AuditWithType("GetExtensionResourceDefinitionBySlug"),
+		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:extensions")),
+		r.getExtensionResourceDefinition,
+	)
+
+	rg.PATCH(
+		"/extensions/:eid/erds/:erd-id-slug",
+		r.AuditMW.AuditWithType("UpdateExtensionResourceDefinitionByID"),
+		r.AuthMW.AuthRequired(updateScopesWithOpenID("governor:extensions")),
+		r.updateExtensionResourceDefinition,
+	)
+
+	rg.PATCH(
+		"/extensions/:eid/erds/:erd-id-slug/:erd-version",
+		r.AuditMW.AuditWithType("UpdateExtensionResourceDefinitionBySlug"),
+		r.AuthMW.AuthRequired(updateScopesWithOpenID("governor:extensions")),
+		r.updateExtensionResourceDefinition,
+	)
+
+	rg.DELETE(
+		"/extensions/:eid/erds/:erd-id-slug",
+		r.AuditMW.AuditWithType("DeleteExtensionResourceDefinitionByID"),
+		r.AuthMW.AuthRequired(deleteScopesWithOpenID("governor:extensions")),
+		r.deleteExtensionResourceDefinition,
+	)
+
+	rg.DELETE(
+		"/extensions/:eid/erds/:erd-id-slug/:erd-version",
+		r.AuditMW.AuditWithType("DeleteExtensionResourceDefinitionBySlug"),
+		r.AuthMW.AuthRequired(deleteScopesWithOpenID("governor:extensions")),
+		r.deleteExtensionResourceDefinition,
+	)
 }
 
 func contains(list []string, item string) bool {
