@@ -167,14 +167,17 @@ var ExtensionResourceDefinitionWhere = struct {
 
 // ExtensionResourceDefinitionRels is where relationship names are stored.
 var ExtensionResourceDefinitionRels = struct {
-	Extension string
+	Extension                string
+	SystemExtensionResources string
 }{
-	Extension: "Extension",
+	Extension:                "Extension",
+	SystemExtensionResources: "SystemExtensionResources",
 }
 
 // extensionResourceDefinitionR is where relationships are stored.
 type extensionResourceDefinitionR struct {
-	Extension *Extension `boil:"Extension" json:"Extension" toml:"Extension" yaml:"Extension"`
+	Extension                *Extension                   `boil:"Extension" json:"Extension" toml:"Extension" yaml:"Extension"`
+	SystemExtensionResources SystemExtensionResourceSlice `boil:"SystemExtensionResources" json:"SystemExtensionResources" toml:"SystemExtensionResources" yaml:"SystemExtensionResources"`
 }
 
 // NewStruct creates a new relationship struct
@@ -187,6 +190,13 @@ func (r *extensionResourceDefinitionR) GetExtension() *Extension {
 		return nil
 	}
 	return r.Extension
+}
+
+func (r *extensionResourceDefinitionR) GetSystemExtensionResources() SystemExtensionResourceSlice {
+	if r == nil {
+		return nil
+	}
+	return r.SystemExtensionResources
 }
 
 // extensionResourceDefinitionL is where Load methods for each relationship are stored.
@@ -489,6 +499,20 @@ func (o *ExtensionResourceDefinition) Extension(mods ...qm.QueryMod) extensionQu
 	return Extensions(queryMods...)
 }
 
+// SystemExtensionResources retrieves all the system_extension_resource's SystemExtensionResources with an executor.
+func (o *ExtensionResourceDefinition) SystemExtensionResources(mods ...qm.QueryMod) systemExtensionResourceQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"system_extension_resources\".\"extension_resource_definition_id\"=?", o.ID),
+	)
+
+	return SystemExtensionResources(queryMods...)
+}
+
 // LoadExtension allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for an N-1 relationship.
 func (extensionResourceDefinitionL) LoadExtension(ctx context.Context, e boil.ContextExecutor, singular bool, maybeExtensionResourceDefinition interface{}, mods queries.Applicator) error {
@@ -610,6 +634,121 @@ func (extensionResourceDefinitionL) LoadExtension(ctx context.Context, e boil.Co
 	return nil
 }
 
+// LoadSystemExtensionResources allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (extensionResourceDefinitionL) LoadSystemExtensionResources(ctx context.Context, e boil.ContextExecutor, singular bool, maybeExtensionResourceDefinition interface{}, mods queries.Applicator) error {
+	var slice []*ExtensionResourceDefinition
+	var object *ExtensionResourceDefinition
+
+	if singular {
+		var ok bool
+		object, ok = maybeExtensionResourceDefinition.(*ExtensionResourceDefinition)
+		if !ok {
+			object = new(ExtensionResourceDefinition)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeExtensionResourceDefinition)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeExtensionResourceDefinition))
+			}
+		}
+	} else {
+		s, ok := maybeExtensionResourceDefinition.(*[]*ExtensionResourceDefinition)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeExtensionResourceDefinition)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeExtensionResourceDefinition))
+			}
+		}
+	}
+
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &extensionResourceDefinitionR{}
+		}
+		args = append(args, object.ID)
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &extensionResourceDefinitionR{}
+			}
+
+			for _, a := range args {
+				if a == obj.ID {
+					continue Outer
+				}
+			}
+
+			args = append(args, obj.ID)
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(
+		qm.From(`system_extension_resources`),
+		qm.WhereIn(`system_extension_resources.extension_resource_definition_id in ?`, args...),
+		qmhelper.WhereIsNull(`system_extension_resources.deleted_at`),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load system_extension_resources")
+	}
+
+	var resultSlice []*SystemExtensionResource
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice system_extension_resources")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on system_extension_resources")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for system_extension_resources")
+	}
+
+	if len(systemExtensionResourceAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.SystemExtensionResources = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &systemExtensionResourceR{}
+			}
+			foreign.R.ExtensionResourceDefinition = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.ExtensionResourceDefinitionID {
+				local.R.SystemExtensionResources = append(local.R.SystemExtensionResources, foreign)
+				if foreign.R == nil {
+					foreign.R = &systemExtensionResourceR{}
+				}
+				foreign.R.ExtensionResourceDefinition = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
 // SetExtension of the extensionResourceDefinition to the related item.
 // Sets o.R.Extension to related.
 // Adds o to related.R.ExtensionResourceDefinitions.
@@ -654,6 +793,59 @@ func (o *ExtensionResourceDefinition) SetExtension(ctx context.Context, exec boi
 		related.R.ExtensionResourceDefinitions = append(related.R.ExtensionResourceDefinitions, o)
 	}
 
+	return nil
+}
+
+// AddSystemExtensionResources adds the given related objects to the existing relationships
+// of the extension_resource_definition, optionally inserting them as new records.
+// Appends related to o.R.SystemExtensionResources.
+// Sets related.R.ExtensionResourceDefinition appropriately.
+func (o *ExtensionResourceDefinition) AddSystemExtensionResources(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*SystemExtensionResource) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.ExtensionResourceDefinitionID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"system_extension_resources\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"extension_resource_definition_id"}),
+				strmangle.WhereClause("\"", "\"", 2, systemExtensionResourcePrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.ExtensionResourceDefinitionID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &extensionResourceDefinitionR{
+			SystemExtensionResources: related,
+		}
+	} else {
+		o.R.SystemExtensionResources = append(o.R.SystemExtensionResources, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &systemExtensionResourceR{
+				ExtensionResourceDefinition: o,
+			}
+		} else {
+			rel.R.ExtensionResourceDefinition = o
+		}
+	}
 	return nil
 }
 
