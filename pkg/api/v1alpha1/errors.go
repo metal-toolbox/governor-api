@@ -13,6 +13,13 @@ var (
 	ErrEmptyInput = errors.New("name or description cannot be empty")
 	// ErrUnknownRequestKind is returned a request kind is unknown
 	ErrUnknownRequestKind = errors.New("request kind is unrecognized")
+	// ErrGetDeleteResourcedWithSlug is returned when user tries to query a deleted
+	// resource with slug
+	ErrGetDeleteResourcedWithSlug = errors.New("unable to get deleted resource by slug, use the id")
+	// ErrExtensionNotFound is returned when an extension is not found
+	ErrExtensionNotFound = errors.New("extension does not exist")
+	// ErrERDNotFound is returned when an extension is not found
+	ErrERDNotFound = errors.New("ERD does not exist")
 )
 
 func sendError(c *gin.Context, code int, msg string) {
