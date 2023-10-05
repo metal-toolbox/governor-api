@@ -18,7 +18,7 @@ var (
 	ErrGetDeleteResourcedWithSlug = errors.New("unable to get deleted resource by slug, use the id")
 	// ErrExtensionNotFound is returned when an extension is not found
 	ErrExtensionNotFound = errors.New("extension does not exist")
-	// ErrERDNotFound is returned when an extension is not found
+	// ErrERDNotFound is returned when an extension resource definition is not found
 	ErrERDNotFound = errors.New("ERD does not exist")
 )
 
