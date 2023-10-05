@@ -39,6 +39,8 @@ const (
 	GovernorNotificationTypesEventSubject = "notification.types"
 	// GovernorNotificationTargetsEventSubject is the subject name for notification target events (minus the subject prefix)
 	GovernorNotificationTargetsEventSubject = "notification.targets"
+	// GovernorExtensionsEventSubject is the subject name for extensions events (minus the subject prefix)
+	GovernorExtensionsEventSubject = "extensions"
 )
 
 // Event is an event notification from Governor.
@@ -53,6 +55,9 @@ type Event struct {
 	ApplicationTypeID    string `json:"application_type_id,omitempty"`
 	NotificationTypeID   string `json:"notification_type_id,omitempty"`
 	NotificationTargetID string `json:"notification_target_id,omitempty"`
+
+	ExtensionID                   string `json:"extension_id,omitempty"`
+	ExtensionResourceDefinitionID string `json:"extension_resource_definition_id,omitempty"`
 
 	// TraceContext is a map of values used for OpenTelemetry context propagation.
 	TraceContext map[string]string `json:"traceContext"`

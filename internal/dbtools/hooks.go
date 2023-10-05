@@ -10,6 +10,7 @@ import (
 	"github.com/gosimple/slug"
 	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
+	"github.com/volatiletech/sqlboiler/v4/types"
 
 	"github.com/metal-toolbox/governor-api/internal/models"
 )
@@ -39,29 +40,29 @@ func SetApplicationTypeSlug(a *models.ApplicationType) {
 }
 
 func changesetLine(set []string, key string, old, new interface{}) []string {
-	if old == new {
+	if reflect.DeepEqual(old, new) {
 		return set
 	}
 
 	var str string
 
-	if old != new {
-		switch o := old.(type) {
-		case string:
-			str = fmt.Sprintf(`%s: "%s" => "%s"`, key, o, new.(string))
-		case null.String:
-			str = fmt.Sprintf(`%s: "%s" => "%s"`, key, o.String, new.(null.String).String)
-		case int:
-			str = fmt.Sprintf(`%s: "%d" => "%d"`, key, o, new)
-		case int64:
-			str = fmt.Sprintf(`%s: "%d" => "%d"`, key, o, new)
-		case bool:
-			str = fmt.Sprintf(`%s: "%t" => "%t"`, key, o, new)
-		case time.Time:
-			str = fmt.Sprintf(`%s: "%s" => "%s"`, key, o.UTC().Format(time.RFC3339), new.(time.Time).UTC().Format(time.RFC3339))
-		default:
-			str = fmt.Sprintf(`%s: "%s" => "%s"`, key, o, new)
-		}
+	switch o := old.(type) {
+	case string:
+		str = fmt.Sprintf(`%s: "%s" => "%s"`, key, o, new.(string))
+	case null.String:
+		str = fmt.Sprintf(`%s: "%s" => "%s"`, key, o.String, new.(null.String).String)
+	case int:
+		str = fmt.Sprintf(`%s: "%d" => "%d"`, key, o, new)
+	case int64:
+		str = fmt.Sprintf(`%s: "%d" => "%d"`, key, o, new)
+	case bool:
+		str = fmt.Sprintf(`%s: "%t" => "%t"`, key, o, new)
+	case time.Time:
+		str = fmt.Sprintf(`%s: "%s" => "%s"`, key, o.UTC().Format(time.RFC3339), new.(time.Time).UTC().Format(time.RFC3339))
+	case types.JSON:
+		str = fmt.Sprintf(`%s: "%s" => "%s"`, key, string(o), string(new.(types.JSON)))
+	default:
+		str = fmt.Sprintf(`%s: "%s" => "%s"`, key, o, new)
 	}
 
 	return append(set, str)
@@ -1007,6 +1008,63 @@ func AuditNotificationPreferencesUpdated(ctx context.Context, exec boil.ContextE
 		Action:        "notification_preferences.updated",
 		SubjectUserID: null.NewString(userID, true),
 		Changeset:     calculateChangeset(before, after),
+	}
+
+	return &event, event.Insert(ctx, exec, boil.Infer())
+}
+
+// AuditExtensionCreated inserts an event representing a extension being created
+func AuditExtensionCreated(ctx context.Context, exec boil.ContextExecutor, pID string, actor *models.User, a *models.Extension) (*models.AuditEvent, error) {
+	// TODO non-user API actors don't exist in the governor database,
+	// we need to figure out how to handle that relationship in the audit table
+	var actorID null.String
+	if actor != nil {
+		actorID = null.StringFrom(actor.ID)
+	}
+
+	event := models.AuditEvent{
+		ParentID:  null.StringFrom(pID),
+		ActorID:   actorID,
+		Action:    "extension.created",
+		Changeset: calculateChangeset(&models.Extension{}, a),
+	}
+
+	return &event, event.Insert(ctx, exec, boil.Infer())
+}
+
+// AuditExtensionUpdated inserts an event representing a extension being created
+func AuditExtensionUpdated(ctx context.Context, exec boil.ContextExecutor, pID string, actor *models.User, o, a *models.Extension) (*models.AuditEvent, error) {
+	// TODO non-user API actors don't exist in the governor database,
+	// we need to figure out how to handle that relationship in the audit table
+	var actorID null.String
+	if actor != nil {
+		actorID = null.StringFrom(actor.ID)
+	}
+
+	event := models.AuditEvent{
+		ParentID:  null.StringFrom(pID),
+		ActorID:   actorID,
+		Action:    "extension.updated",
+		Changeset: calculateChangeset(o, a),
+	}
+
+	return &event, event.Insert(ctx, exec, boil.Infer())
+}
+
+// AuditExtensionDeleted inserts an event representing an extension being deleted
+func AuditExtensionDeleted(ctx context.Context, exec boil.ContextExecutor, pID string, actor *models.User, a *models.Extension) (*models.AuditEvent, error) {
+	// TODO non-user API actors don't exist in the governor database,
+	// we need to figure out how to handle that relationship in the audit table
+	var actorID null.String
+	if actor != nil {
+		actorID = null.StringFrom(actor.ID)
+	}
+
+	event := models.AuditEvent{
+		ParentID:  null.StringFrom(pID),
+		ActorID:   actorID,
+		Action:    "extension.deleted",
+		Changeset: calculateChangeset(a, &models.Extension{}),
 	}
 
 	return &event, event.Insert(ctx, exec, boil.Infer())

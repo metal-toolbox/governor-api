@@ -47,4 +47,7 @@ var (
 
 	// ErrMissingNotificationTargetID is returned when a a missing or bad notification target ID is passed to a request
 	ErrMissingNotificationTargetID = errors.New("missing notification target id in request")
+
+	// ErrMissingExtensionIDOrSlug is returned when a missing or bad extension ID is passed to a request
+	ErrMissingExtensionIDOrSlug = errors.New("missing extension id or slug in request")
 )
