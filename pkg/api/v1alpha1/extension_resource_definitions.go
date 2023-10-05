@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -45,6 +46,13 @@ type ExtensionResourceDefinitionReq struct {
 	Scope        ExtensionResourceDefinitionScope `json:"scope"`
 	Schema       json.RawMessage                  `json:"schema"`
 	Enabled      *bool                            `json:"enabled"`
+}
+
+func isValidSlug(s string) bool {
+	// This regex ensures the slug is lowercase, uses hyphens to separate words,
+	// does not start or end with a hyphen, and contains only alphanumeric characters or hyphens.
+	pattern := regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
+	return pattern.MatchString(s)
 }
 
 func findERD(
@@ -163,6 +171,11 @@ func (r *Router) createExtensionResourceDefinition(c *gin.Context) {
 
 	if req.SlugSingular == "" || req.SlugPlural == "" {
 		sendError(c, http.StatusBadRequest, "ERD slugs are required")
+		return
+	}
+
+	if !isValidSlug(req.SlugSingular) || !isValidSlug(req.SlugPlural) {
+		sendError(c, http.StatusBadRequest, "one or both of ERD slugs are invalid")
 		return
 	}
 

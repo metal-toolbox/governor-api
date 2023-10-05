@@ -286,7 +286,7 @@ func TestClient_ExtensionResourceDefinition(t *testing.T) {
 				},
 			},
 			expectErr:   true,
-			expectedErr: ErrMissingERDID,
+			expectedErr: ErrMissingERDIDOrSlug,
 		},
 		{
 			name:        "extension not found",
@@ -652,7 +652,7 @@ func TestClient_UpdateExtensionResourceDefinition(t *testing.T) {
 				Description: "some test",
 			},
 			expectErr:   true,
-			expectedErr: ErrMissingERDID,
+			expectedErr: ErrMissingERDIDOrSlug,
 		},
 		{
 			name:        "extension not found",
@@ -802,7 +802,7 @@ func TestClient_DeleteExtensionResourceDefinition(t *testing.T) {
 				},
 			},
 			expectErr:   true,
-			expectedErr: ErrMissingERDID,
+			expectedErr: ErrMissingERDIDOrSlug,
 		},
 		{
 			name:        "extension not found",

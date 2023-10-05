@@ -118,6 +118,35 @@ func (s *ExtensionResourceDefinitionsTestSuite) SetupSuite() {
 	}
 }
 
+func (s *ExtensionResourceDefinitionsTestSuite) TestIsValidSlug() {
+	tests := []struct {
+		slug     string
+		expected bool
+	}{
+		{"valid-slug", true},
+		{"invalid_slug", false},
+		{"INVALID", false},
+		{"-invalid-start", false},
+		{"invalid-end-", false},
+		{"another-valid-slug123", true},
+		{"slug with spaces", false},
+		{"slug-with--double-hyphens", false},
+		{"slug-with-special@chars", false},
+		{"slug with white s p a c e s", false},
+		{"", false},
+		{"a", true},
+		{"-a", false},
+		{"a-", false},
+	}
+
+	for _, tt := range tests {
+		s.T().Run(tt.slug, func(t *testing.T) {
+			actual := isValidSlug(tt.slug)
+			assert.Equal(t, tt.expected, actual)
+		})
+	}
+}
+
 func (s *ExtensionResourceDefinitionsTestSuite) TestCreateExtensionResourceDefinition() {
 	r := s.v1alpha1()
 
@@ -331,6 +360,42 @@ func (s *ExtensionResourceDefinitionsTestSuite) TestCreateExtensionResourceDefin
 					"scope": "system"
 			}`,
 			expectedErrMsg: "ERD slugs are required",
+		},
+		{
+			name:           "invalid slug_singular",
+			url:            "/api/v1alpha1/extensions/test-extension-2",
+			expectedStatus: http.StatusBadRequest,
+			params: gin.Params{
+				gin.Param{Key: "eid", Value: "test-extension-2"},
+			},
+			payload: `{
+					"name": "Test ERD 1",
+					"slug_singular": "test 1 resource",
+					"slug_plural": "test-1-resources",
+					"version": "v2",
+					"schema": {},
+					"enabled": true,
+					"scope": "system"
+			}`,
+			expectedErrMsg: "one or both of ERD slugs are invalid",
+		},
+		{
+			name:           "invalid slug_plural",
+			url:            "/api/v1alpha1/extensions/test-extension-2",
+			expectedStatus: http.StatusBadRequest,
+			params: gin.Params{
+				gin.Param{Key: "eid", Value: "test-extension-2"},
+			},
+			payload: `{
+					"name": "Test ERD 1",
+					"slug_singular": "test-1-resource",
+					"slug_plural": "test-1-resources-",
+					"version": "v2",
+					"schema": {},
+					"enabled": true,
+					"scope": "system"
+			}`,
+			expectedErrMsg: "one or both of ERD slugs are invalid",
 		},
 		{
 			name:           "missing version",

@@ -35,7 +35,7 @@ func (c *Client) ExtensionResourceDefinition(
 	}
 
 	if erdIDOrSlug == "" {
-		return nil, ErrMissingERDID
+		return nil, ErrMissingERDIDOrSlug
 	}
 
 	u := fmt.Sprintf(
@@ -208,7 +208,7 @@ func (c *Client) UpdateExtensionResourceDefinition(
 	}
 
 	if erdIDOrSlug == "" {
-		return nil, ErrMissingERDID
+		return nil, ErrMissingERDIDOrSlug
 	}
 
 	u := fmt.Sprintf(
@@ -274,7 +274,7 @@ func (c *Client) DeleteExtensionResourceDefinition(
 	}
 
 	if erdIDOrSlug == "" {
-		return ErrMissingERDID
+		return ErrMissingERDIDOrSlug
 	}
 
 	u := fmt.Sprintf(
