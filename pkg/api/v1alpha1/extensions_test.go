@@ -318,7 +318,7 @@ func (s *ExtensionsTestSuite) TestGetExtension() {
 			},
 		},
 		{
-			name:           "extension not found by ID",
+			name:           "extension not found by slug",
 			url:            "/api/v1alpha1/extensions/nonexistent-extension",
 			expectedStatus: http.StatusNotFound,
 			expectedErrMsg: "extension not found",
@@ -327,7 +327,7 @@ func (s *ExtensionsTestSuite) TestGetExtension() {
 			},
 		},
 		{
-			name:           "extension not found by slug",
+			name:           "extension not found by ID",
 			url:            "/api/v1alpha1/extensions/00000001-0000-0000-0000-000000000002",
 			expectedStatus: http.StatusNotFound,
 			expectedErrMsg: "extension not found",
