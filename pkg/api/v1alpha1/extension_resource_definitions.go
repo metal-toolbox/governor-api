@@ -29,11 +29,16 @@ type ExtensionResourceDefinition struct {
 // ExtensionResourceDefinitionScope is an enum type for scopes in an ERD
 type ExtensionResourceDefinitionScope string
 
+// String converts an ExtensionResourceDefinitionScope to a string
+func (scope ExtensionResourceDefinitionScope) String() string {
+	return string(scope)
+}
+
 const (
 	// ExtensionResourceDefinitionScopeUser represents the `user` scope
 	ExtensionResourceDefinitionScopeUser ExtensionResourceDefinitionScope = "user"
 	// ExtensionResourceDefinitionScopeSys represents the `system` scope
-	ExtensionResourceDefinitionScopeSys = "system"
+	ExtensionResourceDefinitionScopeSys ExtensionResourceDefinitionScope = "system"
 )
 
 // ExtensionResourceDefinitionReq is a request to create an extension resource definition
