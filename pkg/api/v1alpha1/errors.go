@@ -20,6 +20,12 @@ var (
 	ErrExtensionNotFound = errors.New("extension does not exist")
 	// ErrERDNotFound is returned when an extension resource definition is not found
 	ErrERDNotFound = errors.New("ERD does not exist")
+	// ErrNoUserProvided is returned when no user is provided
+	ErrNoUserProvided = errors.New("neither user-id nor context user where provided")
+	// ErrExtensionResourceNotFound is returned when an extension resource is not found
+	ErrExtensionResourceNotFound = errors.New("extension resource does not exist")
+	// ErrUserNotFound is returned when a user is not found
+	ErrUserNotFound = errors.New("user does not exist")
 )
 
 func sendError(c *gin.Context, code int, msg string) {

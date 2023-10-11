@@ -697,6 +697,87 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
 		r.deleteSystemExtensionResource,
 	)
+
+	// user extension resources
+	rg.POST(
+		"/users/:id/extension-resources/:ex-slug/:erd-slug-plural/:erd-version",
+		r.AuditMW.AuditWithType("CreateUserExtensionResource"),
+		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:users")),
+		r.mwUserAuthRequired(AuthRoleAdmin),
+		r.createUserExtensionResource,
+	)
+
+	rg.POST(
+		"/user/extension-resources/:ex-slug/:erd-slug-plural/:erd-version",
+		r.AuditMW.AuditWithType("CreateAuthenticatedUserExtensionResource"),
+		r.AuthMW.AuthRequired([]string{oidcScope}),
+		r.mwUserAuthRequired(AuthRoleUser),
+		r.createUserExtensionResource,
+	)
+
+	rg.GET(
+		"/users/:id/extension-resources/:ex-slug/:erd-slug-plural/:erd-version",
+		r.AuditMW.AuditWithType("ListUserExtensionResources"),
+		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:users")),
+		r.mwUserAuthRequired(AuthRoleAdmin),
+		r.listUserExtensionResources,
+	)
+
+	rg.GET(
+		"/user/extension-resources/:ex-slug/:erd-slug-plural/:erd-version",
+		r.AuditMW.AuditWithType("ListAuthenticatedUserExtensionResources"),
+		r.AuthMW.AuthRequired([]string{oidcScope}),
+		r.mwUserAuthRequired(AuthRoleUser),
+		r.listUserExtensionResources,
+	)
+
+	rg.GET(
+		"/users/:id/extension-resources/:ex-slug/:erd-slug-plural/:erd-version/:resource-id",
+		r.AuditMW.AuditWithType("GetUserExtensionResource"),
+		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:users")),
+		r.mwUserAuthRequired(AuthRoleAdmin),
+		r.getUserExtensionResource,
+	)
+
+	rg.GET(
+		"/user/extension-resources/:ex-slug/:erd-slug-plural/:erd-version/:resource-id",
+		r.AuditMW.AuditWithType("GetAuthenticatedUserExtensionResources"),
+		r.AuthMW.AuthRequired([]string{oidcScope}),
+		r.mwUserAuthRequired(AuthRoleUser),
+		r.getUserExtensionResource,
+	)
+
+	rg.PATCH(
+		"/users/:id/extension-resources/:ex-slug/:erd-slug-plural/:erd-version/:resource-id",
+		r.AuditMW.AuditWithType("UpdateUserExtensionResource"),
+		r.AuthMW.AuthRequired(updateScopesWithOpenID("governor:users")),
+		r.mwUserAuthRequired(AuthRoleAdmin),
+		r.updateUserExtensionResource,
+	)
+
+	rg.PATCH(
+		"/user/extension-resources/:ex-slug/:erd-slug-plural/:erd-version/:resource-id",
+		r.AuditMW.AuditWithType("UpdateAuthenticatedUserExtensionResources"),
+		r.AuthMW.AuthRequired([]string{oidcScope}),
+		r.mwUserAuthRequired(AuthRoleUser),
+		r.updateUserExtensionResource,
+	)
+
+	rg.DELETE(
+		"/users/:id/extension-resources/:ex-slug/:erd-slug-plural/:erd-version/:resource-id",
+		r.AuditMW.AuditWithType("DeleteUserExtensionResource"),
+		r.AuthMW.AuthRequired(deleteScopesWithOpenID("governor:users")),
+		r.mwUserAuthRequired(AuthRoleAdmin),
+		r.deleteUserExtensionResource,
+	)
+
+	rg.DELETE(
+		"/user/extension-resources/:ex-slug/:erd-slug-plural/:erd-version/:resource-id",
+		r.AuditMW.AuditWithType("DeleteAuthenticatedUserExtensionResources"),
+		r.AuthMW.AuthRequired([]string{oidcScope}),
+		r.mwUserAuthRequired(AuthRoleUser),
+		r.deleteUserExtensionResource,
+	)
 }
 
 func contains(list []string, item string) bool {

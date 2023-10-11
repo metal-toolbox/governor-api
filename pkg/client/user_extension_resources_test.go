@@ -12,73 +12,9 @@ import (
 	"golang.org/x/oauth2"
 )
 
-const (
-	testExtensionResourcesResponse = `[
-		{
-			"id": "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
-			"resource": {
-				"age": 10,
-				"firstName": "test",
-				"lastName": "2"
-			},
-			"created_at": "2023-10-03T15:00:31.723117Z",
-			"updated_at": "2023-10-03T15:00:31.723117Z",
-			"deleted_at": null,
-			"extension_resource_definition_id": "151f7af1-8211-471e-bf71-60e15d767243"
-		},
-		{
-			"id": "7ebb627b-707e-4d6c-b155-6245f4e74cd2",
-			"resource": {
-				"age": 10,
-				"firstName": "test",
-				"lastName": "3"
-			},
-			"created_at": "2023-10-03T15:00:36.123365Z",
-			"updated_at": "2023-10-03T15:00:36.123365Z",
-			"deleted_at": null,
-			"extension_resource_definition_id": "151f7af1-8211-471e-bf71-60e15d767243"
-		},
-		{
-			"id": "87ae035e-54c4-4bb6-af74-e4eb71b26a70",
-			"resource": {
-				"age": 10,
-				"firstName": "test",
-				"lastName": "1"
-			},
-			"created_at": "2023-10-03T14:59:44.491402Z",
-			"updated_at": "2023-10-03T15:00:12.323262Z",
-			"deleted_at": null,
-			"extension_resource_definition_id": "151f7af1-8211-471e-bf71-60e15d767243"
-		}
-	]`
-
-	testExtensionResourceResponse = `{
-		"id": "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
-		"resource": {
-			"age": 10,
-			"firstName": "test",
-			"lastName": "2"
-		},
-		"created_at": "2023-10-03T15:00:31.723117Z",
-		"updated_at": "2023-10-03T15:00:31.723117Z",
-		"deleted_at": null,
-		"extension_resource_definition_id": "151f7af1-8211-471e-bf71-60e15d767243"
-	}`
-)
-
-var testExtensionResourcePayload = &struct {
-	Age       int    `json:"age"`
-	FirstName string `json:"firstName"`
-	LastName  string `json:"lastName"`
-}{
-	Age:       10,
-	FirstName: "test",
-	LastName:  "2",
-}
-
-func TestClient_SystemExtensionResources(t *testing.T) {
-	testResp := func(r []byte) []*v1alpha1.SystemExtensionResource {
-		resp := []*v1alpha1.SystemExtensionResource{}
+func TestClient_UserExtensionResources(t *testing.T) {
+	testResp := func(r []byte) []*v1alpha1.UserExtensionResource {
+		resp := []*v1alpha1.UserExtensionResource{}
 		if err := json.Unmarshal(r, &resp); err != nil {
 			t.Error(err)
 		}
@@ -93,7 +29,7 @@ func TestClient_SystemExtensionResources(t *testing.T) {
 	tests := []struct {
 		name        string
 		fields      fields
-		expected    []*v1alpha1.SystemExtensionResource
+		expected    []*v1alpha1.UserExtensionResource
 		expectErr   bool
 		expectedErr error
 	}{
@@ -140,7 +76,7 @@ func TestClient_SystemExtensionResources(t *testing.T) {
 					resp:       []byte(`null`),
 				},
 			},
-			expected:  []*v1alpha1.SystemExtensionResource(nil),
+			expected:  []*v1alpha1.UserExtensionResource(nil),
 			expectErr: false,
 		},
 		{
@@ -149,12 +85,25 @@ func TestClient_SystemExtensionResources(t *testing.T) {
 				httpClient: &mockHTTPDoer{
 					t:          t,
 					statusCode: http.StatusNotFound,
-					resp:       []byte(`{"error":"extension does not exist: sql: no rows in result set"}`),
+					resp:       []byte(`{"error":"extension not found: sql: no rows in result set"}`),
 				},
 			},
-			expected:    []*v1alpha1.SystemExtensionResource(nil),
+			expected:    []*v1alpha1.UserExtensionResource(nil),
 			expectErr:   true,
 			expectedErr: v1alpha1.ErrExtensionNotFound,
+		},
+		{
+			name: "user not found",
+			fields: fields{
+				httpClient: &mockHTTPDoer{
+					t:          t,
+					statusCode: http.StatusNotFound,
+					resp:       []byte(`{"error":"user does not exist: sql: no rows in result set"}`),
+				},
+			},
+			expected:    []*v1alpha1.UserExtensionResource(nil),
+			expectErr:   true,
+			expectedErr: v1alpha1.ErrUserNotFound,
 		},
 	}
 
@@ -167,12 +116,12 @@ func TestClient_SystemExtensionResources(t *testing.T) {
 				clientCredentialConfig: &mockTokener{t: t},
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
-			got, err := c.SystemExtensionResources(
-				context.TODO(), "test-extension-1", "some-resources", "v1", false,
+			got, err := c.UserExtensionResources(
+				context.TODO(), "user-1", "test-extension-1", "some-resources", "v1", false,
 			)
 
 			if tt.expectedErr != nil {
-				assert.EqualError(t, err, tt.expectedErr.Error())
+				assert.ErrorAs(t, err, &tt.expectedErr)
 				return
 			} else if tt.expectErr {
 				assert.Error(t, err)
@@ -185,9 +134,9 @@ func TestClient_SystemExtensionResources(t *testing.T) {
 	}
 }
 
-func TestClient_SystemExtensionResource(t *testing.T) {
-	testResp := func(r []byte) *v1alpha1.SystemExtensionResource {
-		resp := &v1alpha1.SystemExtensionResource{}
+func TestClient_UserExtensionResource(t *testing.T) {
+	testResp := func(r []byte) *v1alpha1.UserExtensionResource {
+		resp := &v1alpha1.UserExtensionResource{}
 		if err := json.Unmarshal(r, resp); err != nil {
 			t.Error(err)
 		}
@@ -205,8 +154,9 @@ func TestClient_SystemExtensionResource(t *testing.T) {
 		erdID       string
 		erdVersion  string
 		resourceID  string
+		userID      string
 		fields      fields
-		expected    *v1alpha1.SystemExtensionResource
+		expected    *v1alpha1.UserExtensionResource
 		expectedErr error
 		expectErr   bool
 	}{
@@ -216,6 +166,7 @@ func TestClient_SystemExtensionResource(t *testing.T) {
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
+			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -231,6 +182,7 @@ func TestClient_SystemExtensionResource(t *testing.T) {
 			extensionID: "test-extension-1",
 			erdID:       "a82a34a5-db1f-464f-af9c-76086e79f715",
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
+			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -247,6 +199,7 @@ func TestClient_SystemExtensionResource(t *testing.T) {
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
+			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -262,6 +215,7 @@ func TestClient_SystemExtensionResource(t *testing.T) {
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
+			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -277,6 +231,7 @@ func TestClient_SystemExtensionResource(t *testing.T) {
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
+			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -292,6 +247,7 @@ func TestClient_SystemExtensionResource(t *testing.T) {
 			erdID:       "",
 			erdVersion:  "v1alpha1",
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
+			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -306,6 +262,7 @@ func TestClient_SystemExtensionResource(t *testing.T) {
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
+			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -316,11 +273,28 @@ func TestClient_SystemExtensionResource(t *testing.T) {
 			expectedErr: ErrMissingResourceID,
 		},
 		{
+			name:        "missing user id",
+			extensionID: "test-extension-1",
+			erdID:       "erd-1",
+			erdVersion:  "v1alpha1",
+			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
+			userID:      "",
+			fields: fields{
+				httpClient: &mockHTTPDoer{
+					t:          t,
+					statusCode: http.StatusOK,
+				},
+			},
+			expectErr:   true,
+			expectedErr: ErrMissingUserID,
+		},
+		{
 			name:        "extension not found",
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
+			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -337,6 +311,7 @@ func TestClient_SystemExtensionResource(t *testing.T) {
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
+			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -346,6 +321,40 @@ func TestClient_SystemExtensionResource(t *testing.T) {
 			},
 			expectErr:   true,
 			expectedErr: v1alpha1.ErrERDNotFound,
+		},
+		{
+			name:        "resource not found",
+			extensionID: "test-extension-1",
+			erdID:       "a82a34a5-db1f-464f-af9c-76086e79f715",
+			erdVersion:  "v1alpha1",
+			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
+			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
+			fields: fields{
+				httpClient: &mockHTTPDoer{
+					t:          t,
+					statusCode: http.StatusNotFound,
+					resp:       []byte(`{"error":"extension resource does not exist"}`),
+				},
+			},
+			expectErr:   true,
+			expectedErr: v1alpha1.ErrExtensionResourceNotFound,
+		},
+		{
+			name:        "user not found",
+			extensionID: "test-extension-1",
+			erdID:       "a82a34a5-db1f-464f-af9c-76086e79f715",
+			erdVersion:  "v1alpha1",
+			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
+			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
+			fields: fields{
+				httpClient: &mockHTTPDoer{
+					t:          t,
+					statusCode: http.StatusNotFound,
+					resp:       []byte(`{"error":"user does not exist"}`),
+				},
+			},
+			expectErr:   true,
+			expectedErr: v1alpha1.ErrUserNotFound,
 		},
 	}
 
@@ -358,8 +367,8 @@ func TestClient_SystemExtensionResource(t *testing.T) {
 				clientCredentialConfig: &mockTokener{t: t},
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
-			got, err := c.SystemExtensionResource(
-				context.TODO(), tt.extensionID, tt.erdID, tt.erdVersion,
+			got, err := c.UserExtensionResource(
+				context.TODO(), tt.userID, tt.extensionID, tt.erdID, tt.erdVersion,
 				tt.resourceID, false,
 			)
 
@@ -377,9 +386,9 @@ func TestClient_SystemExtensionResource(t *testing.T) {
 	}
 }
 
-func TestClient_CreateSystemExtensionResource(t *testing.T) {
-	testResp := func(r []byte) *v1alpha1.SystemExtensionResource {
-		resp := &v1alpha1.SystemExtensionResource{}
+func TestClient_CreateUserExtensionResource(t *testing.T) {
+	testResp := func(r []byte) *v1alpha1.UserExtensionResource {
+		resp := &v1alpha1.UserExtensionResource{}
 		if err := json.Unmarshal(r, resp); err != nil {
 			t.Error(err)
 		}
@@ -395,10 +404,11 @@ func TestClient_CreateSystemExtensionResource(t *testing.T) {
 		name        string
 		extensionID string
 		erdID       string
+		userID      string
 		erdVersion  string
 		fields      fields
 		req         interface{}
-		expected    *v1alpha1.SystemExtensionResource
+		expected    *v1alpha1.UserExtensionResource
 		expectedErr error
 		expectErr   bool
 	}{
@@ -407,6 +417,7 @@ func TestClient_CreateSystemExtensionResource(t *testing.T) {
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
+			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -423,6 +434,7 @@ func TestClient_CreateSystemExtensionResource(t *testing.T) {
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
+			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -439,6 +451,7 @@ func TestClient_CreateSystemExtensionResource(t *testing.T) {
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
+			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -454,6 +467,7 @@ func TestClient_CreateSystemExtensionResource(t *testing.T) {
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
+			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -469,6 +483,7 @@ func TestClient_CreateSystemExtensionResource(t *testing.T) {
 			extensionID: "",
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
+			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -481,10 +496,45 @@ func TestClient_CreateSystemExtensionResource(t *testing.T) {
 			expectedErr: ErrMissingExtensionIDOrSlug,
 		},
 		{
+			name:        "ERD ID missing",
+			extensionID: "test-extension-1",
+			erdID:       "",
+			erdVersion:  "v1alpha1",
+			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
+			fields: fields{
+				httpClient: &mockHTTPDoer{
+					t:          t,
+					resp:       []byte(testExtensionResourceResponse),
+					statusCode: http.StatusOK,
+				},
+			},
+			req:         testExtensionResourcePayload,
+			expectErr:   true,
+			expectedErr: ErrMissingERDIDOrSlug,
+		},
+		{
+			name:        "user ID missing",
+			extensionID: "test-extension-1",
+			erdID:       "erd-1",
+			erdVersion:  "v1alpha1",
+			userID:      "",
+			fields: fields{
+				httpClient: &mockHTTPDoer{
+					t:          t,
+					resp:       []byte(testExtensionResourceResponse),
+					statusCode: http.StatusOK,
+				},
+			},
+			req:         testExtensionResourcePayload,
+			expectErr:   true,
+			expectedErr: ErrMissingUserID,
+		},
+		{
 			name:        "extension not found",
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
+			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -495,6 +545,23 @@ func TestClient_CreateSystemExtensionResource(t *testing.T) {
 			req:         testExtensionResourcePayload,
 			expectErr:   true,
 			expectedErr: v1alpha1.ErrExtensionNotFound,
+		},
+		{
+			name:        "user not found",
+			extensionID: "test-extension-1",
+			erdID:       "erd-1",
+			erdVersion:  "v1alpha1",
+			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
+			fields: fields{
+				httpClient: &mockHTTPDoer{
+					t:          t,
+					resp:       []byte(`{"error":"user does not exist: sql: no rows in result set"}`),
+					statusCode: http.StatusNotFound,
+				},
+			},
+			req:         testExtensionResourcePayload,
+			expectErr:   true,
+			expectedErr: v1alpha1.ErrUserNotFound,
 		},
 	}
 
@@ -507,8 +574,8 @@ func TestClient_CreateSystemExtensionResource(t *testing.T) {
 				clientCredentialConfig: &mockTokener{t: t},
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
-			got, err := c.CreateSystemExtensionResource(
-				context.TODO(), tt.extensionID, tt.erdID, tt.erdVersion, tt.req,
+			got, err := c.CreateUserExtensionResource(
+				context.TODO(), tt.userID, tt.extensionID, tt.erdID, tt.erdVersion, tt.req,
 			)
 
 			if tt.expectedErr != nil {
@@ -525,9 +592,9 @@ func TestClient_CreateSystemExtensionResource(t *testing.T) {
 	}
 }
 
-func TestClient_UpdateSystemExtensionResource(t *testing.T) {
-	testResp := func(r []byte) *v1alpha1.SystemExtensionResource {
-		resp := &v1alpha1.SystemExtensionResource{}
+func TestClient_UpdateUserExtensionResource(t *testing.T) {
+	testResp := func(r []byte) *v1alpha1.UserExtensionResource {
+		resp := &v1alpha1.UserExtensionResource{}
 		if err := json.Unmarshal(r, resp); err != nil {
 			t.Error(err)
 		}
@@ -544,10 +611,11 @@ func TestClient_UpdateSystemExtensionResource(t *testing.T) {
 		extensionID string
 		erdID       string
 		erdVersion  string
+		userID      string
 		fields      fields
 		resourceID  string
 		req         interface{}
-		expected    *v1alpha1.SystemExtensionResource
+		expected    *v1alpha1.UserExtensionResource
 		expectedErr error
 		expectErr   bool
 	}{
@@ -556,6 +624,7 @@ func TestClient_UpdateSystemExtensionResource(t *testing.T) {
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
+			userID:      "e8f5f7c8-6d4a-4c7d-9a5b-9c9c8d7e6f5a",
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
@@ -573,6 +642,7 @@ func TestClient_UpdateSystemExtensionResource(t *testing.T) {
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
+			userID:      "e8f5f7c8-6d4a-4c7d-9a5b-9c9c8d7e6f5a",
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
@@ -590,6 +660,7 @@ func TestClient_UpdateSystemExtensionResource(t *testing.T) {
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
+			userID:      "e8f5f7c8-6d4a-4c7d-9a5b-9c9c8d7e6f5a",
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
@@ -606,6 +677,7 @@ func TestClient_UpdateSystemExtensionResource(t *testing.T) {
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
+			userID:      "e8f5f7c8-6d4a-4c7d-9a5b-9c9c8d7e6f5a",
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
@@ -621,6 +693,7 @@ func TestClient_UpdateSystemExtensionResource(t *testing.T) {
 			name:       "missing extension id",
 			erdID:      "erd-1",
 			erdVersion: "v1alpha1",
+			userID:     "e8f5f7c8-6d4a-4c7d-9a5b-9c9c8d7e6f5a",
 			resourceID: "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
@@ -637,6 +710,7 @@ func TestClient_UpdateSystemExtensionResource(t *testing.T) {
 			name:        "missing erd id",
 			extensionID: "test-extension-1",
 			erdVersion:  "v1alpha1",
+			userID:      "e8f5f7c8-6d4a-4c7d-9a5b-9c9c8d7e6f5a",
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
@@ -654,6 +728,7 @@ func TestClient_UpdateSystemExtensionResource(t *testing.T) {
 			erdID:       "erd-1",
 			extensionID: "test-extension-1",
 			erdVersion:  "v1alpha1",
+			userID:      "e8f5f7c8-6d4a-4c7d-9a5b-9c9c8d7e6f5a",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
@@ -666,10 +741,28 @@ func TestClient_UpdateSystemExtensionResource(t *testing.T) {
 			expectedErr: ErrMissingResourceID,
 		},
 		{
+			name: "missing user id",
+			fields: fields{
+				httpClient: &mockHTTPDoer{
+					t:          t,
+					resp:       []byte(""),
+					statusCode: http.StatusOK,
+				},
+			},
+			extensionID: "test-extension-1",
+			erdID:       "erd-1",
+			erdVersion:  "v1alpha1",
+			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
+			req:         testExtensionResourcePayload,
+			expectErr:   true,
+			expectedErr: ErrMissingUserID,
+		},
+		{
 			name:        "extension not found",
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
+			userID:      "e8f5f7c8-6d4a-4c7d-9a5b-9c9c8d7e6f5a",
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
@@ -687,6 +780,7 @@ func TestClient_UpdateSystemExtensionResource(t *testing.T) {
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
+			userID:      "e8f5f7c8-6d4a-4c7d-9a5b-9c9c8d7e6f5a",
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			fields: fields{
 				httpClient: &mockHTTPDoer{
@@ -699,6 +793,24 @@ func TestClient_UpdateSystemExtensionResource(t *testing.T) {
 			expectErr:   true,
 			expectedErr: v1alpha1.ErrERDNotFound,
 		},
+		{
+			name:        "user not found",
+			extensionID: "test-extension-1",
+			erdID:       "a82a34a5-db1f-464f-af9c-76086e79f715",
+			erdVersion:  "v1alpha1",
+			userID:      "e8f5f7c8-6d4a-4c7d-9a5b-9c9c8d7e6f5a",
+			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
+			req:         testExtensionResourcePayload,
+			fields: fields{
+				httpClient: &mockHTTPDoer{
+					t:          t,
+					resp:       []byte(`{"error":"user does not exist"}`),
+					statusCode: http.StatusNotFound,
+				},
+			},
+			expectErr:   true,
+			expectedErr: v1alpha1.ErrUserNotFound,
+		},
 	}
 
 	for _, tt := range tests {
@@ -710,8 +822,8 @@ func TestClient_UpdateSystemExtensionResource(t *testing.T) {
 				clientCredentialConfig: &mockTokener{t: t},
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
-			got, err := c.UpdateSystemExtensionResource(
-				context.TODO(), tt.extensionID, tt.erdID, tt.erdVersion,
+			got, err := c.UpdateUserExtensionResource(
+				context.TODO(), tt.userID, tt.extensionID, tt.erdID, tt.erdVersion,
 				tt.resourceID, tt.req,
 			)
 
@@ -729,13 +841,14 @@ func TestClient_UpdateSystemExtensionResource(t *testing.T) {
 	}
 }
 
-func TestClient_DeleteSystemExtensionResource(t *testing.T) {
+func TestClient_DeleteUserExtensionResource(t *testing.T) {
 	type fields struct {
 		httpClient *mockHTTPDoer
 	}
 
 	tests := []struct {
 		name        string
+		userID      string
 		extensionID string
 		erdID       string
 		erdVersion  string
@@ -746,6 +859,7 @@ func TestClient_DeleteSystemExtensionResource(t *testing.T) {
 	}{
 		{
 			name:        "example request",
+			userID:      "d4f8e98c-7a1e-4b5c-9a9c-4e4d9e6f3c3f",
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
@@ -761,6 +875,7 @@ func TestClient_DeleteSystemExtensionResource(t *testing.T) {
 		},
 		{
 			name:        "non-success",
+			userID:      "d4f8e98c-7a1e-4b5c-9a9c-4e4d9e6f3c3f",
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
@@ -775,7 +890,23 @@ func TestClient_DeleteSystemExtensionResource(t *testing.T) {
 			expectedErr: ErrRequestNonSuccess,
 		},
 		{
+			name:        "missing user id",
+			extensionID: "test-extension-1",
+			erdID:       "erd-1",
+			erdVersion:  "v1alpha1",
+			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
+			fields: fields{
+				httpClient: &mockHTTPDoer{
+					t:          t,
+					statusCode: http.StatusOK,
+				},
+			},
+			expectErr:   true,
+			expectedErr: ErrMissingUserID,
+		},
+		{
 			name:       "missing extension id",
+			userID:     "d4f8e98c-7a1e-4b5c-9a9c-4e4d9e6f3c3f",
 			erdID:      "erd-1",
 			erdVersion: "v1alpha1",
 			resourceID: "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
@@ -790,6 +921,7 @@ func TestClient_DeleteSystemExtensionResource(t *testing.T) {
 		},
 		{
 			name:        "missing ERD id",
+			userID:      "d4f8e98c-7a1e-4b5c-9a9c-4e4d9e6f3c3f",
 			extensionID: "test-extension-1",
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			fields: fields{
@@ -803,6 +935,7 @@ func TestClient_DeleteSystemExtensionResource(t *testing.T) {
 		},
 		{
 			name:        "missing resource id",
+			userID:      "d4f8e98c-7a1e-4b5c-9a9c-4e4d9e6f3c3f",
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
@@ -817,6 +950,7 @@ func TestClient_DeleteSystemExtensionResource(t *testing.T) {
 		},
 		{
 			name:        "extension not found",
+			userID:      "d4f8e98c-7a1e-4b5c-9a9c-4e4d9e6f3c3f",
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
@@ -833,6 +967,7 @@ func TestClient_DeleteSystemExtensionResource(t *testing.T) {
 		},
 		{
 			name:        "ERD not found",
+			userID:      "d4f8e98c-7a1e-4b5c-9a9c-4e4d9e6f3c3f",
 			extensionID: "test-extension-1",
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
@@ -858,7 +993,7 @@ func TestClient_DeleteSystemExtensionResource(t *testing.T) {
 				clientCredentialConfig: &mockTokener{t: t},
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
-			err := c.DeleteSystemExtensionResource(context.TODO(), tt.extensionID, tt.erdID, tt.erdVersion, tt.resourceID)
+			err := c.DeleteUserExtensionResource(context.TODO(), tt.userID, tt.extensionID, tt.erdID, tt.erdVersion, tt.resourceID)
 
 			if tt.expectedErr != nil {
 				assert.EqualError(t, err, tt.expectedErr.Error())

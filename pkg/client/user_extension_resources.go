@@ -3,45 +3,23 @@ package client
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 
+	"github.com/goccy/go-json"
 	"github.com/metal-toolbox/governor-api/pkg/api/v1alpha1"
 )
 
-// handleResourceStatusNotFound handles a 404 responses
-func handleResourceStatusNotFound(respBody []byte) error {
-	respErr := map[string]string{}
-	if err := json.Unmarshal(respBody, &respErr); err != nil {
-		return ErrRequestNonSuccess
+// UserExtensionResource fetches a user extension resource
+func (c *Client) UserExtensionResource(
+	ctx context.Context, userID, extensionSlug, erdSlugPlural, erdVersion, resourceID string,
+	deleted bool,
+) (*v1alpha1.UserExtensionResource, error) {
+	if userID == "" {
+		return nil, ErrMissingUserID
 	}
 
-	errMsg, ok := respErr["error"]
-	if !ok {
-		return ErrRequestNonSuccess
-	}
-
-	switch {
-	case strings.Contains(errMsg, v1alpha1.ErrERDNotFound.Error()):
-		return v1alpha1.ErrERDNotFound
-	case strings.Contains(errMsg, v1alpha1.ErrExtensionNotFound.Error()):
-		return v1alpha1.ErrExtensionNotFound
-	case strings.Contains(errMsg, v1alpha1.ErrExtensionResourceNotFound.Error()):
-		return v1alpha1.ErrExtensionResourceNotFound
-	case strings.Contains(errMsg, v1alpha1.ErrUserNotFound.Error()):
-		return v1alpha1.ErrUserNotFound
-	default:
-		return ErrRequestNonSuccess
-	}
-}
-
-// SystemExtensionResource fetches a system extension resource
-func (c *Client) SystemExtensionResource(
-	ctx context.Context, extensionSlug, erdSlugPlural, erdVersion, resourceID string, deleted bool,
-) (*v1alpha1.SystemExtensionResource, error) {
 	if extensionSlug == "" {
 		return nil, ErrMissingExtensionIDOrSlug
 	}
@@ -55,9 +33,10 @@ func (c *Client) SystemExtensionResource(
 	}
 
 	u := fmt.Sprintf(
-		"%s/api/%s/extension-resources/%s/%s/%s/%s",
+		"%s/api/%s/users/%s/extension-resources/%s/%s/%s/%s",
 		c.url,
 		governorAPIVersionAlpha,
+		userID,
 		extensionSlug,
 		erdSlugPlural,
 		erdVersion,
@@ -89,32 +68,40 @@ func (c *Client) SystemExtensionResource(
 		return nil, handleResourceStatusNotFound(respBody)
 	}
 
-	if resp.StatusCode != http.StatusOK &&
-		resp.StatusCode != http.StatusAccepted &&
-		resp.StatusCode != http.StatusNoContent {
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted {
 		return nil, ErrRequestNonSuccess
 	}
 
-	ser := &v1alpha1.SystemExtensionResource{}
-	if err := json.Unmarshal(respBody, ser); err != nil {
+	uer := &v1alpha1.UserExtensionResource{}
+	if err := json.Unmarshal(respBody, uer); err != nil {
 		return nil, err
 	}
 
-	return ser, nil
+	return uer, nil
 }
 
-// SystemExtensionResources list all system resources
-func (c *Client) SystemExtensionResources(
-	ctx context.Context, extensionSlug, erdSlugPlural, erdVersion string, deleted bool,
-) ([]*v1alpha1.SystemExtensionResource, error) {
+// UserExtensionResources lists all user extension resources for a user
+func (c *Client) UserExtensionResources(
+	ctx context.Context, userID, extensionSlug, erdSlugPlural, erdVersion string,
+	deleted bool,
+) ([]*v1alpha1.UserExtensionResource, error) {
+	if userID == "" {
+		return nil, ErrMissingUserID
+	}
+
 	if extensionSlug == "" {
 		return nil, ErrMissingExtensionIDOrSlug
 	}
 
+	if erdSlugPlural == "" {
+		return nil, ErrMissingERDIDOrSlug
+	}
+
 	u := fmt.Sprintf(
-		"%s/api/%s/extension-resources/%s/%s/%s",
+		"%s/api/%s/users/%s/extension-resources/%s/%s/%s",
 		c.url,
 		governorAPIVersionAlpha,
+		userID,
 		extensionSlug,
 		erdSlugPlural,
 		erdVersion,
@@ -141,28 +128,27 @@ func (c *Client) SystemExtensionResources(
 		return nil, err
 	}
 
-	if resp.StatusCode == http.StatusNotFound {
+	if resp.StatusCode != http.StatusOK {
 		return nil, handleResourceStatusNotFound(respBody)
 	}
 
-	if resp.StatusCode != http.StatusOK &&
-		resp.StatusCode != http.StatusAccepted &&
-		resp.StatusCode != http.StatusNoContent {
-		return nil, ErrRequestNonSuccess
-	}
-
-	sers := []*v1alpha1.SystemExtensionResource{}
-	if err := json.Unmarshal(respBody, &sers); err != nil {
+	uer := []*v1alpha1.UserExtensionResource{}
+	if err := json.Unmarshal(respBody, &uer); err != nil {
 		return nil, err
 	}
 
-	return sers, nil
+	return uer, nil
 }
 
-// CreateSystemExtensionResource creates a system extension resource
-func (c *Client) CreateSystemExtensionResource(
-	ctx context.Context, extensionSlug, erdSlugPlural, erdVersion string, resource interface{},
-) (*v1alpha1.SystemExtensionResource, error) {
+// CreateUserExtensionResource creates a user extension resource
+func (c *Client) CreateUserExtensionResource(
+	ctx context.Context, userID, extensionSlug, erdSlugPlural, erdVersion string,
+	resource interface{},
+) (*v1alpha1.UserExtensionResource, error) {
+	if userID == "" {
+		return nil, ErrMissingUserID
+	}
+
 	if extensionSlug == "" {
 		return nil, ErrMissingExtensionIDOrSlug
 	}
@@ -174,9 +160,10 @@ func (c *Client) CreateSystemExtensionResource(
 	req, err := c.newGovernorRequest(
 		ctx, http.MethodPost,
 		fmt.Sprintf(
-			"%s/api/%s/extension-resources/%s/%s/%s",
+			"%s/api/%s/users/%s/extension-resources/%s/%s/%s",
 			c.url,
 			governorAPIVersionAlpha,
+			userID,
 			extensionSlug,
 			erdSlugPlural,
 			erdVersion,
@@ -186,12 +173,12 @@ func (c *Client) CreateSystemExtensionResource(
 		return nil, err
 	}
 
-	resourceReq, err := json.Marshal(resource)
+	reqBody, err := json.Marshal(resource)
 	if err != nil {
 		return nil, err
 	}
 
-	req.Body = io.NopCloser(bytes.NewReader(resourceReq))
+	req.Body = io.NopCloser(bytes.NewReader(reqBody))
 
 	resp, err := c.httpClient.Do(req.WithContext(ctx))
 	if err != nil {
@@ -215,18 +202,23 @@ func (c *Client) CreateSystemExtensionResource(
 		return nil, ErrRequestNonSuccess
 	}
 
-	ser := &v1alpha1.SystemExtensionResource{}
-	if err := json.Unmarshal(respBody, ser); err != nil {
+	uer := &v1alpha1.UserExtensionResource{}
+	if err := json.Unmarshal(respBody, uer); err != nil {
 		return nil, err
 	}
 
-	return ser, nil
+	return uer, nil
 }
 
-// UpdateSystemExtensionResource updates a system extension resource
-func (c *Client) UpdateSystemExtensionResource(
-	ctx context.Context, extensionSlug, erdSlugPlural, erdVersion, resourceID string, resource interface{},
-) (*v1alpha1.SystemExtensionResource, error) {
+// UpdateUserExtensionResource updates a user extension resource
+func (c *Client) UpdateUserExtensionResource(
+	ctx context.Context, userID, extensionSlug, erdSlugPlural, erdVersion, resourceID string,
+	resource interface{},
+) (*v1alpha1.UserExtensionResource, error) {
+	if userID == "" {
+		return nil, ErrMissingUserID
+	}
+
 	if extensionSlug == "" {
 		return nil, ErrMissingExtensionIDOrSlug
 	}
@@ -240,9 +232,10 @@ func (c *Client) UpdateSystemExtensionResource(
 	}
 
 	u := fmt.Sprintf(
-		"%s/api/%s/extension-resources/%s/%s/%s/%s",
+		"%s/api/%s/users/%s/extension-resources/%s/%s/%s/%s",
 		c.url,
 		governorAPIVersionAlpha,
+		userID,
 		extensionSlug,
 		erdSlugPlural,
 		erdVersion,
@@ -254,12 +247,12 @@ func (c *Client) UpdateSystemExtensionResource(
 		return nil, err
 	}
 
-	resourceJSON, err := json.Marshal(resource)
+	reqBody, err := json.Marshal(resource)
 	if err != nil {
 		return nil, err
 	}
 
-	req.Body = io.NopCloser(bytes.NewReader(resourceJSON))
+	req.Body = io.NopCloser(bytes.NewReader(reqBody))
 
 	resp, err := c.httpClient.Do(req.WithContext(ctx))
 	if err != nil {
@@ -283,18 +276,22 @@ func (c *Client) UpdateSystemExtensionResource(
 		return nil, ErrRequestNonSuccess
 	}
 
-	ser := &v1alpha1.SystemExtensionResource{}
-	if err := json.Unmarshal(respBody, ser); err != nil {
+	uer := &v1alpha1.UserExtensionResource{}
+	if err := json.Unmarshal(respBody, uer); err != nil {
 		return nil, err
 	}
 
-	return ser, nil
+	return uer, nil
 }
 
-// DeleteSystemExtensionResource deletes a system extension resource
-func (c *Client) DeleteSystemExtensionResource(
-	ctx context.Context, extensionSlug, erdSlugPlural, erdVersion, resourceID string,
+// DeleteUserExtensionResource deletes a user extension resource
+func (c *Client) DeleteUserExtensionResource(
+	ctx context.Context, userID, extensionSlug, erdSlugPlural, erdVersion, resourceID string,
 ) error {
+	if userID == "" {
+		return ErrMissingUserID
+	}
+
 	if extensionSlug == "" {
 		return ErrMissingExtensionIDOrSlug
 	}
@@ -308,9 +305,10 @@ func (c *Client) DeleteSystemExtensionResource(
 	}
 
 	u := fmt.Sprintf(
-		"%s/api/%s/extension-resources/%s/%s/%s/%s",
+		"%s/api/%s/users/%s/extension-resources/%s/%s/%s/%s",
 		c.url,
 		governorAPIVersionAlpha,
+		userID,
 		extensionSlug,
 		erdSlugPlural,
 		erdVersion,
@@ -334,14 +332,8 @@ func (c *Client) DeleteSystemExtensionResource(
 		return err
 	}
 
-	if resp.StatusCode == http.StatusNotFound {
+	if resp.StatusCode != http.StatusOK {
 		return handleResourceStatusNotFound(respBody)
-	}
-
-	if resp.StatusCode != http.StatusOK &&
-		resp.StatusCode != http.StatusAccepted &&
-		resp.StatusCode != http.StatusNoContent {
-		return ErrRequestNonSuccess
 	}
 
 	return nil

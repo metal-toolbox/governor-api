@@ -73,7 +73,16 @@ func (s *UniqueConstraintSchema) Validate(_ jsonschema.ValidationContext, v inte
 		qms = append(qms, qm.Where(`resource->>? = ?`, k, v))
 	}
 
-	exists, err := s.ERD.SystemExtensionResources(qms...).Exists(s.ctx, s.db)
+	var exists bool
+
+	var err error
+
+	if s.ERD.Scope == "system" {
+		exists, err = s.ERD.SystemExtensionResources(qms...).Exists(s.ctx, s.db)
+	} else {
+		exists, err = s.ERD.UserExtensionResources(qms...).Exists(s.ctx, s.db)
+	}
+
 	if err != nil {
 		return &jsonschema.ValidationError{
 			Message: err.Error(),
