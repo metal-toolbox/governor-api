@@ -1069,3 +1069,60 @@ func AuditExtensionDeleted(ctx context.Context, exec boil.ContextExecutor, pID s
 
 	return &event, event.Insert(ctx, exec, boil.Infer())
 }
+
+// AuditExtensionResourceDefinitionCreated inserts an event representing a extension being created
+func AuditExtensionResourceDefinitionCreated(ctx context.Context, exec boil.ContextExecutor, pID string, actor *models.User, erd *models.ExtensionResourceDefinition) (*models.AuditEvent, error) {
+	// TODO non-user API actors don't exist in the governor database,
+	// we need to figure out how to handle that relationship in the audit table
+	var actorID null.String
+	if actor != nil {
+		actorID = null.StringFrom(actor.ID)
+	}
+
+	event := models.AuditEvent{
+		ParentID:  null.StringFrom(pID),
+		ActorID:   actorID,
+		Action:    "extension.erd.created",
+		Changeset: calculateChangeset(&models.ExtensionResourceDefinition{}, erd),
+	}
+
+	return &event, event.Insert(ctx, exec, boil.Infer())
+}
+
+// AuditExtensionResourceDefinitionUpdated inserts an event representing a extension being created
+func AuditExtensionResourceDefinitionUpdated(ctx context.Context, exec boil.ContextExecutor, pID string, actor *models.User, o, a *models.ExtensionResourceDefinition) (*models.AuditEvent, error) {
+	// TODO non-user API actors don't exist in the governor database,
+	// we need to figure out how to handle that relationship in the audit table
+	var actorID null.String
+	if actor != nil {
+		actorID = null.StringFrom(actor.ID)
+	}
+
+	event := models.AuditEvent{
+		ParentID:  null.StringFrom(pID),
+		ActorID:   actorID,
+		Action:    "extension.erd.updated",
+		Changeset: calculateChangeset(o, a),
+	}
+
+	return &event, event.Insert(ctx, exec, boil.Infer())
+}
+
+// AuditExtensionResourceDefinitionDeleted inserts an event representing a extension being created
+func AuditExtensionResourceDefinitionDeleted(ctx context.Context, exec boil.ContextExecutor, pID string, actor *models.User, erd *models.ExtensionResourceDefinition) (*models.AuditEvent, error) {
+	// TODO non-user API actors don't exist in the governor database,
+	// we need to figure out how to handle that relationship in the audit table
+	var actorID null.String
+	if actor != nil {
+		actorID = null.StringFrom(actor.ID)
+	}
+
+	event := models.AuditEvent{
+		ParentID:  null.StringFrom(pID),
+		ActorID:   actorID,
+		Action:    "extension.erd.deleted",
+		Changeset: calculateChangeset(erd, &models.ExtensionResourceDefinition{}),
+	}
+
+	return &event, event.Insert(ctx, exec, boil.Infer())
+}

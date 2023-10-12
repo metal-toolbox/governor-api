@@ -41,6 +41,8 @@ const (
 	GovernorNotificationTargetsEventSubject = "notification.targets"
 	// GovernorExtensionsEventSubject is the subject name for extensions events (minus the subject prefix)
 	GovernorExtensionsEventSubject = "extensions"
+	// GovernorExtensionResourceDefinitionsEventSubject is the subject name for extensions resource definition events (minus the subject prefix)
+	GovernorExtensionResourceDefinitionsEventSubject = "extension.erds"
 )
 
 // Event is an event notification from Governor.
