@@ -64,17 +64,16 @@ func (s *UniqueConstraintSchema) Validate(_ jsonschema.ValidationContext, v inte
 		qms = append(qms, qm.Where("id != ?", *s.ResourceID))
 	}
 
-	for k, value := range mappedValue {
-		// Convert the value to string
-		v := fmt.Sprint(value)
-
+	for k, v := range mappedValue {
 		fieldType, exists := s.UniqueFieldTypesMap[k]
 		if !exists {
 			continue
 		}
 
 		if fieldType == "string" {
-			v = fmt.Sprintf(`"%s"`, v)
+			if vStr, ok := v.(string); ok {
+				v = fmt.Sprintf(`"%s"`, vStr)
+			}
 		}
 
 		qms = append(qms, qm.Where(`resource->? = ?`, k, v))
@@ -192,11 +191,7 @@ func (uc *UniqueConstraintCompiler) compileUniqueConstraint(
 
 // Checks if the provided field type is valid for unique constraints
 func isValidType(fieldType string) bool {
-	_, ok := map[string]bool{
-		"string": true, "number": true, "integer": true, "boolean": true,
-	}[fieldType]
-
-	return fieldType == "string" || fieldType == "number" || fieldType == "integer" || fieldType ==  "boolean"
+	return fieldType == "string" || fieldType == "number" || fieldType == "integer" || fieldType == "boolean"
 }
 
 // helper function to assert string slice type

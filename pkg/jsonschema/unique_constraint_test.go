@@ -3,6 +3,7 @@ package jsonschema
 import (
 	"context"
 	"database/sql"
+	"reflect"
 	"testing"
 
 	"github.com/cockroachdb/cockroach-go/v2/testserver"
@@ -261,6 +262,51 @@ func (s *UniqueConstrainTestSuite) TestValidate() {
 			} else {
 				assert.NotNil(t, err)
 				assert.Contains(t, err.Error(), tt.expectedErr)
+			}
+		})
+	}
+}
+
+func TestAssertStringSlice(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       interface{}
+		expected    []string
+		expectedErr string
+	}{
+		{
+			name:        "valid string slice",
+			input:       []interface{}{"foo", "bar", "baz"},
+			expected:    []string{"foo", "bar", "baz"},
+			expectedErr: "",
+		},
+		{
+			name:        "invalid type",
+			input:       "not a slice",
+			expected:    nil,
+			expectedErr: "to string array",
+		},
+		{
+			name:        "invalid element type",
+			input:       []interface{}{"foo", 42, "baz"},
+			expected:    nil,
+			expectedErr: "to string",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actual, err := assertStringSlice(tt.input)
+
+			if tt.expectedErr == "" {
+				assert.Nil(t, err)
+				if !reflect.DeepEqual(actual, tt.expected) {
+					t.Errorf("assertStringSlice() = %v, expected %v", actual, tt.expected)
+				}
+			} else {
+				assert.NotNil(t, err)
+				assert.Contains(t, err.Error(), tt.expectedErr)
+				return
 			}
 		})
 	}
