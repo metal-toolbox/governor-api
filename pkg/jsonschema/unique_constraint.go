@@ -196,7 +196,7 @@ func isValidType(fieldType string) bool {
 		"string": true, "number": true, "integer": true, "boolean": true,
 	}[fieldType]
 
-	return ok
+	return fieldType == "string" || fieldType == "number" || fieldType == "integer" || fieldType ==  "boolean"
 }
 
 // helper function to assert string slice type
