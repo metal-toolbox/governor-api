@@ -282,7 +282,7 @@ func (s *SystemExtensionResourceTestSuite) TestListSystemExtensionResources() {
 		},
 		{
 			name:           "string URI queries w results",
-			url:            `/api/v1alpha1/extension-resources/test-extension/test-resources/v1?firstName="Hello"`,
+			url:            "/api/v1alpha1/extension-resources/test-extension/test-resources/v1?firstName=Hello",
 			expectedStatus: http.StatusOK,
 			expectedCount:  1,
 			params: gin.Params{
@@ -293,7 +293,7 @@ func (s *SystemExtensionResourceTestSuite) TestListSystemExtensionResources() {
 		},
 		{
 			name:           "string URI queries w/o results",
-			url:            `/api/v1alpha1/extension-resources/test-extension/test-resources/v1?firstName="World"`,
+			url:            `/api/v1alpha1/extension-resources/test-extension/test-resources/v1?firstName=World`,
 			expectedStatus: http.StatusOK,
 			expectedCount:  0,
 			params: gin.Params{

@@ -65,18 +65,12 @@ func (s *UniqueConstraintSchema) Validate(_ jsonschema.ValidationContext, v inte
 	}
 
 	for k, v := range mappedValue {
-		fieldType, exists := s.UniqueFieldTypesMap[k]
+		_, exists := s.UniqueFieldTypesMap[k]
 		if !exists {
 			continue
 		}
 
-		if fieldType == "string" {
-			if vStr, ok := v.(string); ok {
-				v = fmt.Sprintf(`"%s"`, vStr)
-			}
-		}
-
-		qms = append(qms, qm.Where(`resource->? = ?`, k, v))
+		qms = append(qms, qm.Where(`resource->>? = ?`, k, v))
 	}
 
 	exists, err := s.ERD.SystemExtensionResources(qms...).Exists(s.ctx, s.db)
