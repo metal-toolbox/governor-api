@@ -281,7 +281,7 @@ func (r *Router) listSystemExtensionResources(c *gin.Context) {
 			continue
 		}
 
-		qms = append(qms, qm.Where("resource->? = ?", k, v))
+		qms = append(qms, qm.Where("resource->>? = ?", k, v))
 	}
 
 	ers, err := erd.SystemExtensionResources(qms...).All(c.Request.Context(), r.DB)
