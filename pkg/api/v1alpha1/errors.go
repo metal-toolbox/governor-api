@@ -21,7 +21,7 @@ var (
 	// ErrERDNotFound is returned when an extension resource definition is not found
 	ErrERDNotFound = errors.New("ERD does not exist")
 	// ErrNoUserProvided is returned when no user is provided
-	ErrNoUserProvided = errors.New("neither user-id nor context user where provided")
+	ErrNoUserProvided = errors.New("neither user-id nor context user were provided")
 	// ErrExtensionResourceNotFound is returned when an extension resource is not found
 	ErrExtensionResourceNotFound = errors.New("extension resource does not exist")
 	// ErrUserNotFound is returned when a user is not found
