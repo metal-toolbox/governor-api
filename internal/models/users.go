@@ -203,6 +203,7 @@ var UserRels = struct {
 	GroupMembershipRequests               string
 	GroupMemberships                      string
 	NotificationPreferences               string
+	UserExtensionResources                string
 }{
 	SubjectUserAuditEvents:                "SubjectUserAuditEvents",
 	ActorAuditEvents:                      "ActorAuditEvents",
@@ -210,6 +211,7 @@ var UserRels = struct {
 	GroupMembershipRequests:               "GroupMembershipRequests",
 	GroupMemberships:                      "GroupMemberships",
 	NotificationPreferences:               "NotificationPreferences",
+	UserExtensionResources:                "UserExtensionResources",
 }
 
 // userR is where relationships are stored.
@@ -220,6 +222,7 @@ type userR struct {
 	GroupMembershipRequests               GroupMembershipRequestSlice  `boil:"GroupMembershipRequests" json:"GroupMembershipRequests" toml:"GroupMembershipRequests" yaml:"GroupMembershipRequests"`
 	GroupMemberships                      GroupMembershipSlice         `boil:"GroupMemberships" json:"GroupMemberships" toml:"GroupMemberships" yaml:"GroupMemberships"`
 	NotificationPreferences               NotificationPreferenceSlice  `boil:"NotificationPreferences" json:"NotificationPreferences" toml:"NotificationPreferences" yaml:"NotificationPreferences"`
+	UserExtensionResources                UserExtensionResourceSlice   `boil:"UserExtensionResources" json:"UserExtensionResources" toml:"UserExtensionResources" yaml:"UserExtensionResources"`
 }
 
 // NewStruct creates a new relationship struct
@@ -267,6 +270,13 @@ func (r *userR) GetNotificationPreferences() NotificationPreferenceSlice {
 		return nil
 	}
 	return r.NotificationPreferences
+}
+
+func (r *userR) GetUserExtensionResources() UserExtensionResourceSlice {
+	if r == nil {
+		return nil
+	}
+	return r.UserExtensionResources
 }
 
 // userL is where Load methods for each relationship are stored.
@@ -640,6 +650,20 @@ func (o *User) NotificationPreferences(mods ...qm.QueryMod) notificationPreferen
 	)
 
 	return NotificationPreferences(queryMods...)
+}
+
+// UserExtensionResources retrieves all the user_extension_resource's UserExtensionResources with an executor.
+func (o *User) UserExtensionResources(mods ...qm.QueryMod) userExtensionResourceQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"user_extension_resources\".\"user_id\"=?", o.ID),
+	)
+
+	return UserExtensionResources(queryMods...)
 }
 
 // LoadSubjectUserAuditEvents allows an eager lookup of values, cached into the
@@ -1326,6 +1350,121 @@ func (userL) LoadNotificationPreferences(ctx context.Context, e boil.ContextExec
 	return nil
 }
 
+// LoadUserExtensionResources allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (userL) LoadUserExtensionResources(ctx context.Context, e boil.ContextExecutor, singular bool, maybeUser interface{}, mods queries.Applicator) error {
+	var slice []*User
+	var object *User
+
+	if singular {
+		var ok bool
+		object, ok = maybeUser.(*User)
+		if !ok {
+			object = new(User)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeUser)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeUser))
+			}
+		}
+	} else {
+		s, ok := maybeUser.(*[]*User)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeUser)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeUser))
+			}
+		}
+	}
+
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &userR{}
+		}
+		args = append(args, object.ID)
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &userR{}
+			}
+
+			for _, a := range args {
+				if a == obj.ID {
+					continue Outer
+				}
+			}
+
+			args = append(args, obj.ID)
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(
+		qm.From(`user_extension_resources`),
+		qm.WhereIn(`user_extension_resources.user_id in ?`, args...),
+		qmhelper.WhereIsNull(`user_extension_resources.deleted_at`),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load user_extension_resources")
+	}
+
+	var resultSlice []*UserExtensionResource
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice user_extension_resources")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on user_extension_resources")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for user_extension_resources")
+	}
+
+	if len(userExtensionResourceAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.UserExtensionResources = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &userExtensionResourceR{}
+			}
+			foreign.R.User = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.UserID {
+				local.R.UserExtensionResources = append(local.R.UserExtensionResources, foreign)
+				if foreign.R == nil {
+					foreign.R = &userExtensionResourceR{}
+				}
+				foreign.R.User = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
 // AddSubjectUserAuditEvents adds the given related objects to the existing relationships
 // of the user, optionally inserting them as new records.
 // Appends related to o.R.SubjectUserAuditEvents.
@@ -1783,6 +1922,59 @@ func (o *User) AddNotificationPreferences(ctx context.Context, exec boil.Context
 	for _, rel := range related {
 		if rel.R == nil {
 			rel.R = &notificationPreferenceR{
+				User: o,
+			}
+		} else {
+			rel.R.User = o
+		}
+	}
+	return nil
+}
+
+// AddUserExtensionResources adds the given related objects to the existing relationships
+// of the user, optionally inserting them as new records.
+// Appends related to o.R.UserExtensionResources.
+// Sets related.R.User appropriately.
+func (o *User) AddUserExtensionResources(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*UserExtensionResource) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.UserID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"user_extension_resources\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"user_id"}),
+				strmangle.WhereClause("\"", "\"", 2, userExtensionResourcePrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.UserID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &userR{
+			UserExtensionResources: related,
+		}
+	} else {
+		o.R.UserExtensionResources = append(o.R.UserExtensionResources, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &userExtensionResourceR{
 				User: o,
 			}
 		} else {
