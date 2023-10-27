@@ -3,7 +3,6 @@ env:
   IMAGE_REPO: ghcr.io/metal-toolbox/${APP_NAME}
   IMAGE_TAG: ${BUILDKITE_BUILD_NUMBER}-${BUILDKITE_COMMIT:0:8}
 
-
 steps:
 - label: ":golangci-lint: lint :lint-roller:"
   key: "lint"
