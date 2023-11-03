@@ -131,7 +131,15 @@ func (uc *UniqueConstraintCompiler) Compile(
 		return nil, nil
 	}
 
-	requiredFields, err := assertStringSlice(m["required"])
+	required, ok := m["required"]
+	if !ok {
+		return nil, fmt.Errorf(
+			`%w: cannot apply unique constraint when "required" is not provided`,
+			ErrInvalidUniqueProperty,
+		)
+	}
+
+	requiredFields, err := assertStringSlice(required)
 	if err != nil {
 		return nil, err
 	}
