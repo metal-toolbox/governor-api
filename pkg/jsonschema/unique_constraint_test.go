@@ -95,6 +95,13 @@ func (s *UniqueConstrainTestSuite) TestCompile() {
 			expectedErr: "",
 		},
 		{
+			name: "unique exists but required missing",
+			inputMap: map[string]interface{}{
+				"unique": []interface{}{"a"},
+			},
+			expectedErr: `cannot apply unique constraint when "required" is not provided`,
+		},
+		{
 			name: "unique exists but required invalid",
 			inputMap: map[string]interface{}{
 				"unique":   []interface{}{"a"},
