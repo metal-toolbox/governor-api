@@ -1,5 +1,336 @@
 # Extend Governor APIs
 
+**Governor Extensions** allows the Governor API itself to be
+extended, in a design that is heavily influenced by Kubernetes' CRD and operator
+patten.
+
+See [Governor Extension Example](https://github.com/equinixmetal/governor-extension-example)
+for a complete implementation of a Governor Extension.
+
+## Data Schema
+
+```mermaid
+erDiagram
+  extension {
+    uuid id
+    string url
+    string name
+    string slug
+    string description
+    bool enabled
+    enum status "offline, online"
+  }
+
+  extension_resource_definition {
+    uuid id
+    string name
+    string slug_singular
+    string slug_plural
+    enum scope "system or user"
+
+    bool enabled
+    string version
+    jsonb schema "JSON schema"
+  }
+
+  user_extension_resource {
+    uuid id
+    uuid resource_version
+    jsonb resource
+  }
+
+  system_extension_resource {
+    uuid id
+    uuid resource_version
+    jsonb resource
+  }
+
+  extension ||--o{ extension_resource_definition: has
+
+  user ||--o{ user_extension_resource: has
+  extension_resource_definition ||--o{ user_extension_resource: validates
+
+  extension_resource_definition ||--o{ system_extension_resource: validates
+```
+
+## Extension Life Cycles
+
+### Extension Registration and Bootstrapping
+
+- [Example Bootstrapping](https://github.com/equinixmetal/governor-extension-example/blob/main/internal/server/bootstrap.go)
+- [Example Deployment](https://github.com/equinixmetal/k8s-governor-extension-example/blob/main/values.yaml#L15)
+
+After the development of the extension itself, the admin will initiate the
+registration process prior to the deployment of the extension,
+the Governor API will then create an extension entity with its UUID.
+This UUID will be deployed with the extension (e.g. env var), and the extension,
+in turn, will use this UUID to gather all the necessary information to facilitate
+the process.
+
+A future improvement is shown below and can be added when governor API has the
+capability of provisioning NATS credentials.
+
+```mermaid
+sequenceDiagram
+  actor a as admin
+  participant g as Governor API
+  participant e as Extension
+
+
+  a->>g: initiate registration
+  note over a,g: extension name, description, URL,<br/>etc.
+  g->>a: 201 created
+
+  a->>e: deploy with UUID
+
+  opt bootstrap
+    e->>g: GET /extensions/:uuid
+    g->>e: resp
+
+    alt status == 404 or enabled == true
+      note over e,g: extension not registered or disabled
+      e->>e: do nothing
+    else
+      e->>g: PATCH /extensions/:uuid
+      note over e,g: basic info, e.g., health check endpoint
+      g->>e: 200 ok
+
+      loop for each ERDs not already exists
+        e->>g: POST /extensions/:uuid/erds
+        g->>e: 201 created
+      end
+    end
+
+    opt NATS credentials
+      g->>g: provision NATS credential
+      note over g,e: this credential can access core events and<br/> resource events that are own by this extension
+      g->>e: send credentials
+    end
+
+    e->>g: PATCH /extensions/:uuid
+    note over e,g: { status: "online" }
+    g->>e: 200 ok
+  end
+```
+
+### Serving an Extension
+
+- [Example: Event Subscription](https://github.com/equinixmetal/governor-extension-example/blob/main/internal/server/events.go)
+- [Example: Event Processing](https://github.com/equinixmetal/governor-extension-example/blob/main/pkg/greetings/process.go)
+
+```mermaid
+sequenceDiagram
+  actor u as User
+  participant g as Governor API
+  participant d as DB
+  participant m as Message Bus
+  participant e as Extension
+
+  e->>m: subscribe
+
+  critical initialization
+    g->>d: extension info?
+    d->>g: extension info
+    g->>g: add and serve resources routes
+  end
+
+  u->>g: [Create/Delete/Update]<br/> /resources
+  activate g
+  g->>g: permissions check
+  g->>g: validation
+  g->>d: store in DB
+  g->>m: publish event: User did a thing
+  g->>u: response
+  deactivate g
+
+  m->>e: receive event: <br/>User did a thing
+  activate e
+  opt this thing concerns me
+    e->>g: fetch relevant resources
+    g->>e: 
+    note over e,g: user info, group info, custom resources, etc.
+    e->>e: do other relative things
+  end
+  deactivate e
+```
+
+### Update
+
+JSON schema for extension resource definition should be immutable, new versions
+of the resource definition can be created. Otherwise the bootstrap process
+is the same as shown above.
+
+### Disabling
+
+```mermaid
+sequenceDiagram
+  actor a as admin
+  participant g as Governor API
+  participant db as DB
+  participant m as Message Bus
+  participant e as Extension
+
+  a->>g: initiate disabling
+
+  g->>g: revoke NATS credentials
+  g->>g: withdraw routes
+
+  g->>m: extension update event
+  g->>a: 200: ok
+
+  opt termination logics
+    m->>e: receive event
+    note over e,m: { enabled: false }
+    e->>e: do termination things
+    note over e: reload, ignore NATS error, etc
+  end
+```
+
+### Removal
+
+```mermaid
+sequenceDiagram
+  actor a as admin
+  participant g as Governor API
+  participant db as DB
+  participant m as Message Bus
+  participant e as Extension
+
+  a->>g: initiate disabling
+
+  g->>g: revoke NATS credentials
+  g->>g: (soft) delete all resources
+  g->>g: withdraw routes
+
+  g->>m: extension update event
+  g->>a: 200: ok
+
+  opt termination logics
+    m->>e: receive event
+    note over e,m: { enabled: false }
+    e->>e: do termination things
+    note over e: reload, ignore NATS error, etc
+  end
+```
+
+## Endpoints
+
+### Extension Management
+
+| Operation | Method | URI  |
+|---|---|---|
+| **list** | `GET` | /api/v1alpha1/extensions |
+| **create** | `POST` | /api/v1alpha1/extensions |
+| **get** | `GET` | /api/v1alpha1/extensions/:slug-or-id |
+| **update** | `PATCH` | /api/v1alpha1/extensions/:slug-or-id |
+| **delete** | `DELETE` | /api/v1alpha1/extensions/:slug-or-id |
+
+### Extension Resource Definitions Management
+
+| Operation | Method | URI  |
+|---|---|---|
+| **list** | `GET` | /api/v1alpha1/extensions/:extension-slug-or-id/erds |
+| **create** | `POST` | /api/v1alpha1/extensions/:extension-slug-or-id/erds |
+| **get by ID** | `GET` | /api/v1alpha1/extensions/:extension-slug-or-id/erds/:uuid |
+| **get by slug** | `GET` | /api/v1alpha1/extensions/:extension-slug-or-id/erds/:slug-singular/:version |
+| **update by ID** | `PATCH` | /api/v1alpha1/extensions/:extension-slug-or-id/erds/:uuid |
+| **update by slug** | `PATCH` | /api/v1alpha1/extensions/:extension-slug-or-id/erds/:slug-singular/:version |
+| **delete by ID** | `DELETE` | /api/v1alpha1/extensions/:extension-slug-or-id/erds/:uuid |
+| **delete by slug** | `DELETE` | /api/v1alpha1/extensions/:extension-slug-or-id/erds/:slug-singular/:version |
+
+### User Resources
+
+#### Prefixes
+
+- authenticated user resources: `/api/v1alpha1/user/extension-resources`
+- admin managing user resources: `/api/v1alpha1/users/:user-id/extension-resources`
+
+#### URIs
+
+| Operation | Method | URI  |
+|---|---|---|
+| **list** | `GET` | /\<prefix\>/\<extension-slug\>/\<erd-slug-plural\>/\<erd-version\> |
+| **create** | `POST` | /\<prefix\>/\<extension-slug\>/\<erd-slug-plural\>/\<erd-version\> |
+| **get** | `GET` | /\<prefix\>/\<extension-slug\>/\<erd-slug-plural\>/\<erd-version\>/\<er-slug-or-id\> |
+| **update** | `PATCH` | /\<prefix\>/\<extension-slug\>/\<erd-slug-plural\>/\<erd-version\>/\<er-slug-or-id\> |
+| **delete** | `DELETE` | /\<prefix\>/\<extension-slug\>/\<erd-slug-plural\>/\<erd-version\>/\<er-slug-or-id\> |
+
+### System Resources
+
+#### URI Prefixes
+
+- use existing `/v1alpha1/` api group: `/api/v1alpha1/extension-resources`
+
+#### Resource URIs
+
+| Operation | Method | URI  |
+|---|---|---|
+| **list** | `GET` | /\<prefix\>/\<extension-slug\>/\<erd-slug-plural\>/\<erd-version\> |
+| **create** | `POST` | /\<prefix\>/\<extension-slug\>/\<erd-slug-plural\>/\<erd-version\> |
+| **get** | `GET` | /\<prefix\>/\<extension-slug\>/\<erd-slug-plural\>/\<erd-version\>/\<er-slug-or-id\> |
+| **update** | `PATCH` | /\<prefix\>/\<extension-slug\>/\<erd-slug-plural\>/\<erd-version\>/\<er-slug-or-id\> |
+| **delete** | `DELETE` | /\<prefix\>/\<extension-slug\>/\<erd-slug-plural\>/\<erd-version\>/\<er-slug-or-id\> |
+
+### Examples
+
+`user-1` is an admin, `user-2` is a regular user. URI prefixes approach-2 is chosen,
+all extensions are hypothetical
+
+1. admin registers notification extension
+
+    ```HTTP
+    POST /api/v1alpha1/extensions
+    {
+      "url": "notifications.governor.svc"
+      "name": "notifications"
+      "description": "notifications"
+    }
+    ```
+
+1. users checks their own `notification-preferences` provided by the notification extension
+
+    ```HTTP
+    GET /api/v1alpha1/user/extension-resources/notifications/notification-preferences/v1
+    ```
+
+1. admin checks `user-2`'s `pager-duty-groups` provided by the pager duty extension
+
+    ```HTTP
+    GET /api/v1alpha1/users/user-2/extension-resources/pager-duty/pager-duty-groups/v1
+    ```
+
+1. admin updates system resource `notification-targets` provided by the notification extension
+
+    ```HTTP
+    PATCH /api/v1alpha1/extension-resources/notifications/notification-targets/v1/slack
+    ```
+
+## Events
+
+Example Event:
+
+```json
+{
+  "subject": "<resource-slug>",
+  "version": "v1alpha1",
+  "action": "create",
+
+  "extension-resource-id": "some-id"
+
+  // ... optional metadata
+  // group ID
+  // user ID
+  // application ID
+}
+```
+
+## Trace
+
+Governor API populates `TraceContext` to each event it emits to the event bus,
+extensions can inherit the parent parent trace context in `event.TraceContext`.
+
+[Example](https://github.com/equinixmetal/governor-extension-example/blob/main/pkg/greetings/process.go#L83-L86)
+
 ## VIPs
 
 Very interesting problems.
@@ -87,6 +418,20 @@ To mitigate this problem, **Annotations** can be introduced
 to the extension resources, and having the extension to mark a resource
 as `processed`, then ignore any subsequent updates on resources with this
 annotation.
+
+Annotations in an extension resource should be a map of `string => any`,
+the key of this map should follow this format:
+
+```txt
+proccessed.extension.governor/<extension_slug>
+```
+
+The type of the annotation value is up to the extension developer's design,
+here are some example annotation values:
+
+- boolean value: extension simply discard the event if `true`
+- unix time stamp: indicates the last time the resource was processed by
+  the extension, and the extension can apply an "expiry" to the annotation
 
 ### Multiple Extension Race Conditions
 
