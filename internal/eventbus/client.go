@@ -11,7 +11,9 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 
+	"github.com/google/uuid"
 	events "github.com/metal-toolbox/governor-api/pkg/events/v1alpha1"
+	"github.com/nats-io/nats.go"
 )
 
 const (
@@ -21,6 +23,7 @@ const (
 
 type conn interface {
 	Publish(subject string, data []byte) error
+	PublishMsg(m *nats.Msg) error
 	Drain() error
 }
 
@@ -101,7 +104,7 @@ func (c *Client) Publish(ctx context.Context, sub string, event *events.Event) e
 
 	event.TraceContext = mapCarrier
 
-	j, err := json.Marshal(event)
+	payload, err := json.Marshal(event)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
@@ -109,5 +112,24 @@ func (c *Client) Publish(ctx context.Context, sub string, event *events.Event) e
 		return err
 	}
 
-	return c.conn.Publish(subject, j)
+	var headers nats.Header = event.Headers
+
+	if headers == nil {
+		headers = nats.Header{}
+	}
+
+	if v := headers.Get(events.GovernorEventCorrelationIDHeader); v == "" {
+		correlationsID := uuid.New().String()
+		headers.Set(events.GovernorEventCorrelationIDHeader, correlationsID)
+	}
+
+	span.SetAttributes(attribute.String("event.correlation_id", headers.Get(events.GovernorEventCorrelationIDHeader)))
+
+	msg := &nats.Msg{
+		Subject: subject,
+		Data:    payload,
+		Header:  headers,
+	}
+
+	return c.conn.PublishMsg(msg)
 }

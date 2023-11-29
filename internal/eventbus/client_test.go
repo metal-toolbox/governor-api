@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/nats-io/nats.go"
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
@@ -41,6 +42,11 @@ func (m *mockConn) Drain() error {
 		return m.err
 	}
 
+	return nil
+}
+
+// PublishMsg is a mock publish message function
+func (m *mockConn) PublishMsg(_ *nats.Msg) error {
 	return nil
 }
 
