@@ -11,7 +11,6 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 
-	"github.com/google/uuid"
 	events "github.com/metal-toolbox/governor-api/pkg/events/v1alpha1"
 	"github.com/nats-io/nats.go"
 )
@@ -89,7 +88,7 @@ func (c *Client) Publish(ctx context.Context, sub string, event *events.Event) e
 
 	c.logger.Info("publishing event to the event bus", zap.String("subject", subject), zap.Any("action", event.Action))
 
-	ctx, span := c.tracer.Start(ctx, "events.nats.PublishEvent", trace.WithAttributes(
+	_, span := c.tracer.Start(ctx, "events.nats.PublishEvent", trace.WithAttributes(
 		attribute.String("events.action", event.Action),
 		attribute.String("event.subject", subject),
 		attribute.String("event.actor_id", event.ActorID),
@@ -112,18 +111,16 @@ func (c *Client) Publish(ctx context.Context, sub string, event *events.Event) e
 		return err
 	}
 
-	var headers nats.Header = event.Headers
+	headers := nats.Header{}
 
-	if headers == nil {
-		headers = nats.Header{}
+	if v := ctx.Value(events.GovernorEventCorrelationIDHeaderCtxKey); v != nil {
+		cid, ok := v.(string)
+		if ok {
+			c.logger.Debug("publishing event with correlation ID", zap.String("correlationID", cid))
+			span.SetAttributes(attribute.String("event.correlation_id", cid))
+			headers.Add(events.GovernorEventCorrelationIDHeader, cid)
+		}
 	}
-
-	if v := headers.Get(events.GovernorEventCorrelationIDHeader); v == "" {
-		correlationsID := uuid.New().String()
-		headers.Set(events.GovernorEventCorrelationIDHeader, correlationsID)
-	}
-
-	span.SetAttributes(attribute.String("event.correlation_id", headers.Get(events.GovernorEventCorrelationIDHeader)))
 
 	msg := &nats.Msg{
 		Subject: subject,

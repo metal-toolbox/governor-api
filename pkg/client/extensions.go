@@ -9,6 +9,8 @@ import (
 	"net/http"
 
 	"github.com/metal-toolbox/governor-api/pkg/api/v1alpha1"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 // Extension fetch an extension
@@ -31,6 +33,8 @@ func (c *Client) Extension(ctx context.Context, idOrSlug string, deleted bool) (
 	if err != nil {
 		return nil, err
 	}
+
+	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
 
 	resp, err := c.httpClient.Do(req.WithContext(ctx))
 	if err != nil {
@@ -78,6 +82,8 @@ func (c *Client) Extensions(ctx context.Context, deleted bool) ([]*v1alpha1.Exte
 		return nil, err
 	}
 
+	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
+
 	resp, err := c.httpClient.Do(req.WithContext(ctx))
 	if err != nil {
 		return nil, err
@@ -105,13 +111,22 @@ func (c *Client) Extensions(ctx context.Context, deleted bool) ([]*v1alpha1.Exte
 }
 
 // CreateExtension creates an extension
-func (c *Client) CreateExtension(ctx context.Context, exReq *v1alpha1.ExtensionReq) (*v1alpha1.Extension, error) {
+func (c *Client) CreateExtension(
+	ctx context.Context, exReq *v1alpha1.ExtensionReq,
+	reqOpts ...RequestOption,
+) (*v1alpha1.Extension, error) {
 	req, err := c.newGovernorRequest(
 		ctx, http.MethodPost,
 		fmt.Sprintf("%s/api/%s/extensions", c.url, governorAPIVersionAlpha),
 	)
 	if err != nil {
 		return nil, err
+	}
+
+	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
+
+	for _, opt := range reqOpts {
+		opt(req)
 	}
 
 	exReqJSON, err := json.Marshal(exReq)
@@ -150,6 +165,7 @@ func (c *Client) CreateExtension(ctx context.Context, exReq *v1alpha1.ExtensionR
 // UpdateExtension updates an extension
 func (c *Client) UpdateExtension(
 	ctx context.Context, idOrSlug string, exReq *v1alpha1.ExtensionReq,
+	reqOpts ...RequestOption,
 ) (*v1alpha1.Extension, error) {
 	if idOrSlug == "" {
 		return nil, ErrMissingExtensionIDOrSlug
@@ -166,6 +182,12 @@ func (c *Client) UpdateExtension(
 	)
 	if err != nil {
 		return nil, err
+	}
+
+	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
+
+	for _, opt := range reqOpts {
+		opt(req)
 	}
 
 	exReqJSON, err := json.Marshal(exReq)
@@ -206,7 +228,7 @@ func (c *Client) UpdateExtension(
 }
 
 // DeleteExtension deletes an extension
-func (c *Client) DeleteExtension(ctx context.Context, idOrSlug string) error {
+func (c *Client) DeleteExtension(ctx context.Context, idOrSlug string, reqOpts ...RequestOption) error {
 	if idOrSlug == "" {
 		return ErrMissingExtensionIDOrSlug
 	}
@@ -222,6 +244,12 @@ func (c *Client) DeleteExtension(ctx context.Context, idOrSlug string) error {
 	)
 	if err != nil {
 		return err
+	}
+
+	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
+
+	for _, opt := range reqOpts {
+		opt(req)
 	}
 
 	resp, err := c.httpClient.Do(req.WithContext(ctx))

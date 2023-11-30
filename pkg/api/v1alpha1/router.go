@@ -33,6 +33,8 @@ type Router struct {
 
 // Routes sets up protected routes and sets the scopes for said routes
 func (r *Router) Routes(rg *gin.RouterGroup) {
+	rg.Use(r.mwContextInjectCorrelationID)
+
 	rg.GET(
 		"/user",
 		r.AuditMW.AuditWithType("GetUser"),

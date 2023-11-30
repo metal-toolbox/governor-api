@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"github.com/metal-toolbox/governor-api/pkg/api/v1alpha1"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 func handleERDStatusNotFound(respBody []byte) error {
@@ -58,6 +60,8 @@ func (c *Client) ExtensionResourceDefinition(
 	if err != nil {
 		return nil, err
 	}
+
+	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
 
 	resp, err := c.httpClient.Do(req.WithContext(ctx))
 	if err != nil {
@@ -112,6 +116,8 @@ func (c *Client) ExtensionResourceDefinitions(
 		return nil, err
 	}
 
+	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
+
 	resp, err := c.httpClient.Do(req.WithContext(ctx))
 	if err != nil {
 		return nil, err
@@ -145,6 +151,7 @@ func (c *Client) ExtensionResourceDefinitions(
 // CreateExtensionResourceDefinition creates an ERD
 func (c *Client) CreateExtensionResourceDefinition(
 	ctx context.Context, extensionIDOrSlug string, erdReq *v1alpha1.ExtensionResourceDefinitionReq,
+	reqOpts ...RequestOption,
 ) (*v1alpha1.ExtensionResourceDefinition, error) {
 	if extensionIDOrSlug == "" {
 		return nil, ErrMissingExtensionIDOrSlug
@@ -159,6 +166,12 @@ func (c *Client) CreateExtensionResourceDefinition(
 	)
 	if err != nil {
 		return nil, err
+	}
+
+	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
+
+	for _, opt := range reqOpts {
+		opt(req)
 	}
 
 	erdReqJSON, err := json.Marshal(erdReq)
@@ -202,6 +215,7 @@ func (c *Client) CreateExtensionResourceDefinition(
 // when using erd slug
 func (c *Client) UpdateExtensionResourceDefinition(
 	ctx context.Context, extensionIDOrSlug, erdIDOrSlug, erdVersion string, erdReq *v1alpha1.ExtensionResourceDefinitionReq,
+	reqOpts ...RequestOption,
 ) (*v1alpha1.ExtensionResourceDefinition, error) {
 	if extensionIDOrSlug == "" {
 		return nil, ErrMissingExtensionIDOrSlug
@@ -225,6 +239,12 @@ func (c *Client) UpdateExtensionResourceDefinition(
 	req, err := c.newGovernorRequest(ctx, http.MethodPatch, u)
 	if err != nil {
 		return nil, err
+	}
+
+	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
+
+	for _, opt := range reqOpts {
+		opt(req)
 	}
 
 	erdReqJSON, err := json.Marshal(erdReq)
@@ -268,6 +288,7 @@ func (c *Client) UpdateExtensionResourceDefinition(
 // when using erd slug
 func (c *Client) DeleteExtensionResourceDefinition(
 	ctx context.Context, extensionIDOrSlug, erdIDOrSlug, erdVersion string,
+	reqOpts ...RequestOption,
 ) error {
 	if extensionIDOrSlug == "" {
 		return ErrMissingExtensionIDOrSlug
@@ -291,6 +312,12 @@ func (c *Client) DeleteExtensionResourceDefinition(
 	req, err := c.newGovernorRequest(ctx, http.MethodDelete, u)
 	if err != nil {
 		return err
+	}
+
+	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
+
+	for _, opt := range reqOpts {
+		opt(req)
 	}
 
 	resp, err := c.httpClient.Do(req.WithContext(ctx))

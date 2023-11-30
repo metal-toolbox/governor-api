@@ -1,5 +1,8 @@
 package v1alpha1
 
+// ContextKey is a type for defining KV pairs in a context
+type ContextKey string
+
 const (
 	// Version is the API version constant
 	Version = "v1alpha1"
@@ -46,6 +49,8 @@ const (
 
 	// GovernorEventCorrelationIDHeader is the header name for the correlation ID
 	GovernorEventCorrelationIDHeader = "Correlation-ID"
+	// GovernorEventCorrelationIDHeaderCtxKey is the context key for the correlation ID
+	GovernorEventCorrelationIDHeaderCtxKey ContextKey = GovernorEventCorrelationIDHeader
 )
 
 // Event is an event notification from Governor.

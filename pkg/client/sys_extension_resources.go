@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"github.com/metal-toolbox/governor-api/pkg/api/v1alpha1"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 // handleResourceStatusNotFound handles a 404 responses
@@ -73,6 +75,8 @@ func (c *Client) SystemExtensionResource(
 		return nil, err
 	}
 
+	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
+
 	resp, err := c.httpClient.Do(req.WithContext(ctx))
 	if err != nil {
 		return nil, err
@@ -129,6 +133,8 @@ func (c *Client) SystemExtensionResources(
 		return nil, err
 	}
 
+	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
+
 	resp, err := c.httpClient.Do(req.WithContext(ctx))
 	if err != nil {
 		return nil, err
@@ -162,6 +168,7 @@ func (c *Client) SystemExtensionResources(
 // CreateSystemExtensionResource creates a system extension resource
 func (c *Client) CreateSystemExtensionResource(
 	ctx context.Context, extensionSlug, erdSlugPlural, erdVersion string, resource interface{},
+	reqOpts ...RequestOption,
 ) (*v1alpha1.SystemExtensionResource, error) {
 	if extensionSlug == "" {
 		return nil, ErrMissingExtensionIDOrSlug
@@ -184,6 +191,12 @@ func (c *Client) CreateSystemExtensionResource(
 	)
 	if err != nil {
 		return nil, err
+	}
+
+	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
+
+	for _, opt := range reqOpts {
+		opt(req)
 	}
 
 	resourceReq, err := json.Marshal(resource)
@@ -226,6 +239,7 @@ func (c *Client) CreateSystemExtensionResource(
 // UpdateSystemExtensionResource updates a system extension resource
 func (c *Client) UpdateSystemExtensionResource(
 	ctx context.Context, extensionSlug, erdSlugPlural, erdVersion, resourceID string, resource interface{},
+	reqOpts ...RequestOption,
 ) (*v1alpha1.SystemExtensionResource, error) {
 	if extensionSlug == "" {
 		return nil, ErrMissingExtensionIDOrSlug
@@ -252,6 +266,12 @@ func (c *Client) UpdateSystemExtensionResource(
 	req, err := c.newGovernorRequest(ctx, http.MethodPatch, u)
 	if err != nil {
 		return nil, err
+	}
+
+	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
+
+	for _, opt := range reqOpts {
+		opt(req)
 	}
 
 	resourceJSON, err := json.Marshal(resource)
@@ -294,6 +314,7 @@ func (c *Client) UpdateSystemExtensionResource(
 // DeleteSystemExtensionResource deletes a system extension resource
 func (c *Client) DeleteSystemExtensionResource(
 	ctx context.Context, extensionSlug, erdSlugPlural, erdVersion, resourceID string,
+	reqOpts ...RequestOption,
 ) error {
 	if extensionSlug == "" {
 		return ErrMissingExtensionIDOrSlug
@@ -320,6 +341,12 @@ func (c *Client) DeleteSystemExtensionResource(
 	req, err := c.newGovernorRequest(ctx, http.MethodDelete, u)
 	if err != nil {
 		return err
+	}
+
+	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
+
+	for _, opt := range reqOpts {
+		opt(req)
 	}
 
 	resp, err := c.httpClient.Do(req.WithContext(ctx))
