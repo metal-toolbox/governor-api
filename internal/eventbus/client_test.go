@@ -46,7 +46,17 @@ func (m *mockConn) Drain() error {
 }
 
 // PublishMsg is a mock publish message function
-func (m *mockConn) PublishMsg(_ *nats.Msg) error {
+func (m *mockConn) PublishMsg(msg *nats.Msg) error {
+	if m.err != nil {
+		return m.err
+	}
+
+	m.t.Logf("got data payload %s", string(msg.Data))
+
+	if !bytes.Equal(m.data, msg.Data) {
+		return errors.New("unexpected data payload") //nolint:goerr113
+	}
+
 	return nil
 }
 
