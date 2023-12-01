@@ -9,8 +9,6 @@ import (
 
 	"github.com/goccy/go-json"
 	"github.com/metal-toolbox/governor-api/pkg/api/v1alpha1"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/propagation"
 )
 
 // UserExtensionResource fetches a user extension resource
@@ -53,8 +51,6 @@ func (c *Client) UserExtensionResource(
 	if err != nil {
 		return nil, err
 	}
-
-	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
 
 	resp, err := c.httpClient.Do(req.WithContext(ctx))
 	if err != nil {
@@ -120,8 +116,6 @@ func (c *Client) UserExtensionResources(
 		return nil, err
 	}
 
-	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
-
 	resp, err := c.httpClient.Do(req.WithContext(ctx))
 	if err != nil {
 		return nil, err
@@ -178,8 +172,6 @@ func (c *Client) CreateUserExtensionResource(
 	if err != nil {
 		return nil, err
 	}
-
-	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
 
 	for _, opt := range reqOpts {
 		opt(req)
@@ -259,8 +251,6 @@ func (c *Client) UpdateUserExtensionResource(
 		return nil, err
 	}
 
-	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
-
 	for _, opt := range reqOpts {
 		opt(req)
 	}
@@ -338,8 +328,6 @@ func (c *Client) DeleteUserExtensionResource(
 	if err != nil {
 		return err
 	}
-
-	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
 
 	for _, opt := range reqOpts {
 		opt(req)

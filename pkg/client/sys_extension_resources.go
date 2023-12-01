@@ -10,8 +10,6 @@ import (
 	"strings"
 
 	"github.com/metal-toolbox/governor-api/pkg/api/v1alpha1"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/propagation"
 )
 
 // handleResourceStatusNotFound handles a 404 responses
@@ -75,8 +73,6 @@ func (c *Client) SystemExtensionResource(
 		return nil, err
 	}
 
-	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
-
 	resp, err := c.httpClient.Do(req.WithContext(ctx))
 	if err != nil {
 		return nil, err
@@ -132,8 +128,6 @@ func (c *Client) SystemExtensionResources(
 	if err != nil {
 		return nil, err
 	}
-
-	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
 
 	resp, err := c.httpClient.Do(req.WithContext(ctx))
 	if err != nil {
@@ -192,8 +186,6 @@ func (c *Client) CreateSystemExtensionResource(
 	if err != nil {
 		return nil, err
 	}
-
-	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
 
 	for _, opt := range reqOpts {
 		opt(req)
@@ -268,8 +260,6 @@ func (c *Client) UpdateSystemExtensionResource(
 		return nil, err
 	}
 
-	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
-
 	for _, opt := range reqOpts {
 		opt(req)
 	}
@@ -342,8 +332,6 @@ func (c *Client) DeleteSystemExtensionResource(
 	if err != nil {
 		return err
 	}
-
-	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
 
 	for _, opt := range reqOpts {
 		opt(req)

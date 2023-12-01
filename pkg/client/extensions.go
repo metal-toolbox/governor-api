@@ -9,8 +9,6 @@ import (
 	"net/http"
 
 	"github.com/metal-toolbox/governor-api/pkg/api/v1alpha1"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/propagation"
 )
 
 // Extension fetch an extension
@@ -33,8 +31,6 @@ func (c *Client) Extension(ctx context.Context, idOrSlug string, deleted bool) (
 	if err != nil {
 		return nil, err
 	}
-
-	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
 
 	resp, err := c.httpClient.Do(req.WithContext(ctx))
 	if err != nil {
@@ -82,8 +78,6 @@ func (c *Client) Extensions(ctx context.Context, deleted bool) ([]*v1alpha1.Exte
 		return nil, err
 	}
 
-	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
-
 	resp, err := c.httpClient.Do(req.WithContext(ctx))
 	if err != nil {
 		return nil, err
@@ -122,8 +116,6 @@ func (c *Client) CreateExtension(
 	if err != nil {
 		return nil, err
 	}
-
-	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
 
 	for _, opt := range reqOpts {
 		opt(req)
@@ -184,8 +176,6 @@ func (c *Client) UpdateExtension(
 		return nil, err
 	}
 
-	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
-
 	for _, opt := range reqOpts {
 		opt(req)
 	}
@@ -245,8 +235,6 @@ func (c *Client) DeleteExtension(ctx context.Context, idOrSlug string, reqOpts .
 	if err != nil {
 		return err
 	}
-
-	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
 
 	for _, opt := range reqOpts {
 		opt(req)
