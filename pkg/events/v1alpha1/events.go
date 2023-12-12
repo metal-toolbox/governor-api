@@ -43,6 +43,9 @@ const (
 	GovernorExtensionsEventSubject = "extensions"
 	// GovernorExtensionResourceDefinitionsEventSubject is the subject name for extensions resource definition events (minus the subject prefix)
 	GovernorExtensionResourceDefinitionsEventSubject = "extension.erds"
+
+	// GovernorEventCorrelationIDHeader is the header name for the correlation ID
+	GovernorEventCorrelationIDHeader = "Correlation-ID"
 )
 
 // Event is an event notification from Governor.
@@ -64,4 +67,7 @@ type Event struct {
 
 	// TraceContext is a map of values used for OpenTelemetry context propagation.
 	TraceContext map[string]string `json:"traceContext"`
+
+	// Headers is a map of headers to be passed along with the event.
+	Headers map[string][]string `json:"-"`
 }

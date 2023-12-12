@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/nats-io/nats.go"
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
@@ -39,6 +40,21 @@ func (m *mockConn) Publish(_ string, data []byte) error {
 func (m *mockConn) Drain() error {
 	if m.err != nil {
 		return m.err
+	}
+
+	return nil
+}
+
+// PublishMsg is a mock publish message function
+func (m *mockConn) PublishMsg(msg *nats.Msg) error {
+	if m.err != nil {
+		return m.err
+	}
+
+	m.t.Logf("got data payload %s", string(msg.Data))
+
+	if !bytes.Equal(m.data, msg.Data) {
+		return errors.New("unexpected data payload") //nolint:goerr113
 	}
 
 	return nil

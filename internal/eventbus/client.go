@@ -12,6 +12,7 @@ import (
 	"go.uber.org/zap"
 
 	events "github.com/metal-toolbox/governor-api/pkg/events/v1alpha1"
+	"github.com/nats-io/nats.go"
 )
 
 const (
@@ -21,6 +22,7 @@ const (
 
 type conn interface {
 	Publish(subject string, data []byte) error
+	PublishMsg(m *nats.Msg) error
 	Drain() error
 }
 
@@ -86,7 +88,7 @@ func (c *Client) Publish(ctx context.Context, sub string, event *events.Event) e
 
 	c.logger.Info("publishing event to the event bus", zap.String("subject", subject), zap.Any("action", event.Action))
 
-	ctx, span := c.tracer.Start(ctx, "events.nats.PublishEvent", trace.WithAttributes(
+	_, span := c.tracer.Start(ctx, "events.nats.PublishEvent", trace.WithAttributes(
 		attribute.String("events.action", event.Action),
 		attribute.String("event.subject", subject),
 		attribute.String("event.actor_id", event.ActorID),
@@ -101,7 +103,7 @@ func (c *Client) Publish(ctx context.Context, sub string, event *events.Event) e
 
 	event.TraceContext = mapCarrier
 
-	j, err := json.Marshal(event)
+	payload, err := json.Marshal(event)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
@@ -109,5 +111,19 @@ func (c *Client) Publish(ctx context.Context, sub string, event *events.Event) e
 		return err
 	}
 
-	return c.conn.Publish(subject, j)
+	headers := nats.Header{}
+
+	if cid := events.ExtractCorrelationID(ctx); cid != "" {
+		c.logger.Debug("publishing event with correlation ID", zap.String("correlationID", cid))
+		span.SetAttributes(attribute.String("event.correlation_id", cid))
+		headers.Add(events.GovernorEventCorrelationIDHeader, cid)
+	}
+
+	msg := &nats.Msg{
+		Subject: subject,
+		Data:    payload,
+		Header:  headers,
+	}
+
+	return c.conn.PublishMsg(msg)
 }
