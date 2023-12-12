@@ -1,8 +1,6 @@
 package v1alpha1
 
 import (
-	"context"
-
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	events "github.com/metal-toolbox/governor-api/pkg/events/v1alpha1"
@@ -20,8 +18,8 @@ func (r *Router) mwContextInjectCorrelationID(c *gin.Context) {
 
 	r.Logger.Debug("mwCorrelationID", zap.String("correlationID", correlationID))
 
-	c.Request = c.Request.WithContext(context.WithValue(
+	c.Request = c.Request.WithContext(events.InjectCorrelationID(
 		c.Request.Context(),
-		events.GovernorEventCorrelationIDHeaderCtxKey, correlationID,
+		correlationID,
 	))
 }

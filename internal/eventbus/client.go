@@ -113,13 +113,10 @@ func (c *Client) Publish(ctx context.Context, sub string, event *events.Event) e
 
 	headers := nats.Header{}
 
-	if v := ctx.Value(events.GovernorEventCorrelationIDHeaderCtxKey); v != nil {
-		cid, ok := v.(string)
-		if ok {
-			c.logger.Debug("publishing event with correlation ID", zap.String("correlationID", cid))
-			span.SetAttributes(attribute.String("event.correlation_id", cid))
-			headers.Add(events.GovernorEventCorrelationIDHeader, cid)
-		}
+	if cid := events.ExtractCorrelationID(ctx); cid != "" {
+		c.logger.Debug("publishing event with correlation ID", zap.String("correlationID", cid))
+		span.SetAttributes(attribute.String("event.correlation_id", cid))
+		headers.Add(events.GovernorEventCorrelationIDHeader, cid)
 	}
 
 	msg := &nats.Msg{
