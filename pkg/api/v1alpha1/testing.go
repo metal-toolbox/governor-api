@@ -17,6 +17,9 @@ func (m *mockNATSConn) Publish(s string, p []byte) error {
 	return nil
 }
 
-func (m *mockNATSConn) PublishMsg(_ *nats.Msg) error {
+func (m *mockNATSConn) PublishMsg(msg *nats.Msg) error {
+	m.Subject = msg.Subject
+	m.Payload = msg.Data
+
 	return nil
 }

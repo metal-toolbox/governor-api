@@ -162,7 +162,6 @@ func (c *Client) SystemExtensionResources(
 // CreateSystemExtensionResource creates a system extension resource
 func (c *Client) CreateSystemExtensionResource(
 	ctx context.Context, extensionSlug, erdSlugPlural, erdVersion string, resource interface{},
-	reqOpts ...RequestOption,
 ) (*v1alpha1.SystemExtensionResource, error) {
 	if extensionSlug == "" {
 		return nil, ErrMissingExtensionIDOrSlug
@@ -185,10 +184,6 @@ func (c *Client) CreateSystemExtensionResource(
 	)
 	if err != nil {
 		return nil, err
-	}
-
-	for _, opt := range reqOpts {
-		opt(req)
 	}
 
 	resourceReq, err := json.Marshal(resource)
@@ -231,7 +226,6 @@ func (c *Client) CreateSystemExtensionResource(
 // UpdateSystemExtensionResource updates a system extension resource
 func (c *Client) UpdateSystemExtensionResource(
 	ctx context.Context, extensionSlug, erdSlugPlural, erdVersion, resourceID string, resource interface{},
-	reqOpts ...RequestOption,
 ) (*v1alpha1.SystemExtensionResource, error) {
 	if extensionSlug == "" {
 		return nil, ErrMissingExtensionIDOrSlug
@@ -258,10 +252,6 @@ func (c *Client) UpdateSystemExtensionResource(
 	req, err := c.newGovernorRequest(ctx, http.MethodPatch, u)
 	if err != nil {
 		return nil, err
-	}
-
-	for _, opt := range reqOpts {
-		opt(req)
 	}
 
 	resourceJSON, err := json.Marshal(resource)
@@ -304,7 +294,6 @@ func (c *Client) UpdateSystemExtensionResource(
 // DeleteSystemExtensionResource deletes a system extension resource
 func (c *Client) DeleteSystemExtensionResource(
 	ctx context.Context, extensionSlug, erdSlugPlural, erdVersion, resourceID string,
-	reqOpts ...RequestOption,
 ) error {
 	if extensionSlug == "" {
 		return ErrMissingExtensionIDOrSlug
@@ -331,10 +320,6 @@ func (c *Client) DeleteSystemExtensionResource(
 	req, err := c.newGovernorRequest(ctx, http.MethodDelete, u)
 	if err != nil {
 		return err
-	}
-
-	for _, opt := range reqOpts {
-		opt(req)
 	}
 
 	resp, err := c.httpClient.Do(req.WithContext(ctx))

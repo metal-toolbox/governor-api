@@ -105,20 +105,13 @@ func (c *Client) Extensions(ctx context.Context, deleted bool) ([]*v1alpha1.Exte
 }
 
 // CreateExtension creates an extension
-func (c *Client) CreateExtension(
-	ctx context.Context, exReq *v1alpha1.ExtensionReq,
-	reqOpts ...RequestOption,
-) (*v1alpha1.Extension, error) {
+func (c *Client) CreateExtension(ctx context.Context, exReq *v1alpha1.ExtensionReq) (*v1alpha1.Extension, error) {
 	req, err := c.newGovernorRequest(
 		ctx, http.MethodPost,
 		fmt.Sprintf("%s/api/%s/extensions", c.url, governorAPIVersionAlpha),
 	)
 	if err != nil {
 		return nil, err
-	}
-
-	for _, opt := range reqOpts {
-		opt(req)
 	}
 
 	exReqJSON, err := json.Marshal(exReq)
@@ -157,7 +150,6 @@ func (c *Client) CreateExtension(
 // UpdateExtension updates an extension
 func (c *Client) UpdateExtension(
 	ctx context.Context, idOrSlug string, exReq *v1alpha1.ExtensionReq,
-	reqOpts ...RequestOption,
 ) (*v1alpha1.Extension, error) {
 	if idOrSlug == "" {
 		return nil, ErrMissingExtensionIDOrSlug
@@ -174,10 +166,6 @@ func (c *Client) UpdateExtension(
 	)
 	if err != nil {
 		return nil, err
-	}
-
-	for _, opt := range reqOpts {
-		opt(req)
 	}
 
 	exReqJSON, err := json.Marshal(exReq)
@@ -218,7 +206,7 @@ func (c *Client) UpdateExtension(
 }
 
 // DeleteExtension deletes an extension
-func (c *Client) DeleteExtension(ctx context.Context, idOrSlug string, reqOpts ...RequestOption) error {
+func (c *Client) DeleteExtension(ctx context.Context, idOrSlug string) error {
 	if idOrSlug == "" {
 		return ErrMissingExtensionIDOrSlug
 	}
@@ -234,10 +222,6 @@ func (c *Client) DeleteExtension(ctx context.Context, idOrSlug string, reqOpts .
 	)
 	if err != nil {
 		return err
-	}
-
-	for _, opt := range reqOpts {
-		opt(req)
 	}
 
 	resp, err := c.httpClient.Do(req.WithContext(ctx))

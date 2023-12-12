@@ -14,7 +14,6 @@ import (
 	"golang.org/x/oauth2/clientcredentials"
 
 	"github.com/metal-toolbox/governor-api/pkg/api/v1alpha1"
-	events "github.com/metal-toolbox/governor-api/pkg/events/v1alpha1"
 )
 
 const (
@@ -209,18 +208,4 @@ func (c *Client) Organization(ctx context.Context, id string) (*v1alpha1.Organiz
 	}
 
 	return &out, nil
-}
-
-// RequestOption is a functional configuration option for a request
-type RequestOption func(*http.Request)
-
-// RequestWithCorrelationID sets the correlation id header
-func RequestWithCorrelationID(id string) RequestOption {
-	return func(r *http.Request) {
-		if id == "" {
-			return
-		}
-
-		r.Header.Add(events.GovernorEventCorrelationIDHeader, id)
-	}
 }

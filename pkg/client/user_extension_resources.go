@@ -143,7 +143,7 @@ func (c *Client) UserExtensionResources(
 // CreateUserExtensionResource creates a user extension resource
 func (c *Client) CreateUserExtensionResource(
 	ctx context.Context, userID, extensionSlug, erdSlugPlural, erdVersion string,
-	resource interface{}, reqOpts ...RequestOption,
+	resource interface{},
 ) (*v1alpha1.UserExtensionResource, error) {
 	if userID == "" {
 		return nil, ErrMissingUserID
@@ -171,10 +171,6 @@ func (c *Client) CreateUserExtensionResource(
 	)
 	if err != nil {
 		return nil, err
-	}
-
-	for _, opt := range reqOpts {
-		opt(req)
 	}
 
 	reqBody, err := json.Marshal(resource)
@@ -217,7 +213,7 @@ func (c *Client) CreateUserExtensionResource(
 // UpdateUserExtensionResource updates a user extension resource
 func (c *Client) UpdateUserExtensionResource(
 	ctx context.Context, userID, extensionSlug, erdSlugPlural, erdVersion, resourceID string,
-	resource interface{}, reqOpts ...RequestOption,
+	resource interface{},
 ) (*v1alpha1.UserExtensionResource, error) {
 	if userID == "" {
 		return nil, ErrMissingUserID
@@ -249,10 +245,6 @@ func (c *Client) UpdateUserExtensionResource(
 	req, err := c.newGovernorRequest(ctx, http.MethodPatch, u)
 	if err != nil {
 		return nil, err
-	}
-
-	for _, opt := range reqOpts {
-		opt(req)
 	}
 
 	reqBody, err := json.Marshal(resource)
@@ -295,7 +287,6 @@ func (c *Client) UpdateUserExtensionResource(
 // DeleteUserExtensionResource deletes a user extension resource
 func (c *Client) DeleteUserExtensionResource(
 	ctx context.Context, userID, extensionSlug, erdSlugPlural, erdVersion, resourceID string,
-	reqOpts ...RequestOption,
 ) error {
 	if userID == "" {
 		return ErrMissingUserID
@@ -327,10 +318,6 @@ func (c *Client) DeleteUserExtensionResource(
 	req, err := c.newGovernorRequest(ctx, http.MethodDelete, u)
 	if err != nil {
 		return err
-	}
-
-	for _, opt := range reqOpts {
-		opt(req)
 	}
 
 	resp, err := c.httpClient.Do(req.WithContext(ctx))
