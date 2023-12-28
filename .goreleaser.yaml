@@ -54,3 +54,32 @@ release:
   name_template: "Release {{.Tag}}"
   header: |
     # What's Changed
+
+sboms:
+  - artifacts: archive
+  - id: source
+    artifacts: source
+
+signs:
+  - cmd: cosign
+    signature: "${artifact}.sig"
+    certificate: "${artifact}.pem"
+    args:
+      - "sign-blob"
+      - "--oidc-issuer=https://token.actions.githubusercontent.com"
+      - "--output-certificate=${certificate}"
+      - "--output-signature=${signature}"
+      - "${artifact}"
+      - "--yes" # required on cosign 2.0.0+
+    artifacts: all
+    output: true
+
+docker_signs:
+  - cmd: cosign
+    args:
+      - "sign"
+      - "--oidc-issuer=https://token.actions.githubusercontent.com"
+      - "${artifact}"
+      - "--yes" # required on cosign 2.0.0+
+    artifacts: all
+    output: true
