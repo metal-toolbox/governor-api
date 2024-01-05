@@ -15,7 +15,7 @@ steps:
 - label: ":test_tube: test"
   key: "test"
   plugins:
-    - docker-compose#v4.14.0:
+    - docker-compose#v4.16.0:
         cli-version: 2
         run: go
         config: docker-compose-ci.yml
