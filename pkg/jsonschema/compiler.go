@@ -28,6 +28,8 @@ func NewCompiler(
 	opts ...Option,
 ) *Compiler {
 	c := &Compiler{*jsonschema.NewCompiler(), extensionID, slugPlural, version}
+	c.Compiler.AssertFormat = true
+	c.Compiler.AssertContent = true
 
 	for _, opt := range opts {
 		opt(c)
