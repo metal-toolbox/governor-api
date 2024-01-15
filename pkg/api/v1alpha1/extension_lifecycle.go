@@ -53,3 +53,42 @@ func (r *Router) mwExtensionEnabledCheck(c *gin.Context) {
 		sendError(c, http.StatusBadRequest, "extension is disabled")
 	}
 }
+
+func (r *Router) mwExtensionResourcesEnabledCheck(c *gin.Context) {
+	extensionSlug := c.Param("ex-slug")
+	erdSlugPlural := c.Param("erd-slug-plural")
+	erdVersion := c.Param("erd-version")
+
+	r.Logger.Debug(
+		"mwExtensionResourcesEnabledCheck",
+		zap.String("extension-slug", extensionSlug),
+		zap.String("erd-slug-plural", erdSlugPlural),
+		zap.String("erd-version", erdVersion),
+	)
+
+	// find ERD
+	ext, erd, err := findERDForExtensionResource(
+		c.Request.Context(), r.DB,
+		extensionSlug, erdSlugPlural, erdVersion,
+	)
+	if err != nil {
+		if errors.Is(err, ErrExtensionNotFound) || errors.Is(err, ErrERDNotFound) {
+			sendError(c, http.StatusNotFound, err.Error())
+			return
+		}
+
+		sendError(c, http.StatusBadRequest, err.Error())
+
+		return
+	}
+
+	if !ext.Enabled {
+		sendError(c, http.StatusBadRequest, "extension is disabled")
+		return
+	}
+
+	if !erd.Enabled {
+		sendError(c, http.StatusBadRequest, "extension resource definition is disabled")
+		return
+	}
+}
