@@ -621,7 +621,6 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		r.AuditMW.AuditWithType("CreateExtensionResourceDefinition"),
 		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensions")),
 		r.mwUserAuthRequired(AuthRoleAdmin),
-		r.mwExtensionEnabledCheck,
 		r.createExtensionResourceDefinition,
 	)
 
@@ -644,7 +643,6 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		r.AuditMW.AuditWithType("UpdateExtensionResourceDefinitionByID"),
 		r.AuthMW.AuthRequired(updateScopesWithOpenID("governor:extensions")),
 		r.mwUserAuthRequired(AuthRoleAdmin),
-		r.mwExtensionEnabledCheck,
 		r.updateExtensionResourceDefinition,
 	)
 
@@ -653,7 +651,6 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		r.AuditMW.AuditWithType("UpdateExtensionResourceDefinitionBySlug"),
 		r.AuthMW.AuthRequired(updateScopesWithOpenID("governor:extensions")),
 		r.mwUserAuthRequired(AuthRoleAdmin),
-		r.mwExtensionEnabledCheck,
 		r.updateExtensionResourceDefinition,
 	)
 
@@ -662,7 +659,6 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		r.AuditMW.AuditWithType("DeleteExtensionResourceDefinitionByID"),
 		r.AuthMW.AuthRequired(deleteScopesWithOpenID("governor:extensions")),
 		r.mwUserAuthRequired(AuthRoleAdmin),
-		r.mwExtensionEnabledCheck,
 		r.deleteExtensionResourceDefinition,
 	)
 
@@ -671,7 +667,6 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		r.AuditMW.AuditWithType("DeleteExtensionResourceDefinitionBySlug"),
 		r.AuthMW.AuthRequired(deleteScopesWithOpenID("governor:extensions")),
 		r.mwUserAuthRequired(AuthRoleAdmin),
-		r.mwExtensionEnabledCheck,
 		r.deleteExtensionResourceDefinition,
 	)
 

@@ -1,8 +1,6 @@
 package v1alpha1
 
 import (
-	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -60,7 +58,7 @@ func isValidSlug(s string) bool {
 }
 
 func findERD(
-	ctx context.Context, exec boil.ContextExecutor,
+	c *gin.Context, exec boil.ContextExecutor,
 	extensionID, erdIDOrSlug, erdVersion string, deleted bool,
 ) (extension *models.Extension, erd *models.ExtensionResourceDefinition, err error) {
 	// fetch extension
@@ -94,18 +92,11 @@ func findERD(
 		queryMods = append(queryMods, qm.WithDeleted())
 	}
 
-	extension, err = models.Extensions(
-		extensionQM,
-		qm.Load(
-			models.ExtensionRels.ExtensionResourceDefinitions,
-			queryMods...,
-		),
-	).One(ctx, exec)
+	extension, err = fetchExtension(c, exec, extensionQM, qm.Load(
+		models.ExtensionRels.ExtensionResourceDefinitions,
+		queryMods...,
+	))
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil, ErrExtensionNotFound
-		}
-
 		return
 	}
 
@@ -138,14 +129,12 @@ func (r *Router) listExtensionResourceDefinitions(c *gin.Context) {
 		extensionQM = qm.Where("id = ?", extensionID)
 	}
 
-	extension, err := models.Extensions(
-		extensionQM, qm.Load(
-			models.ExtensionRels.ExtensionResourceDefinitions,
-			erdQMs...,
-		),
-	).One(c.Request.Context(), r.DB)
+	extension, err := fetchExtension(c, r.DB, extensionQM, qm.Load(
+		models.ExtensionRels.ExtensionResourceDefinitions,
+		erdQMs...,
+	))
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, ErrExtensionNotFound) {
 			sendError(c, http.StatusNotFound, "extension not found: "+err.Error())
 			return
 		}
@@ -251,9 +240,9 @@ func (r *Router) createExtensionResourceDefinition(c *gin.Context) {
 		extensionQM = qm.Where("id = ?", extensionID)
 	}
 
-	extension, err := models.Extensions(extensionQM).One(c.Request.Context(), r.DB)
+	extension, err := fetchExtension(c, r.DB, extensionQM)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, ErrExtensionNotFound) {
 			sendError(c, http.StatusNotFound, "extension not found: "+err.Error())
 			return
 		}
@@ -361,7 +350,7 @@ func (r *Router) getExtensionResourceDefinition(c *gin.Context) {
 	_, deleted := c.GetQuery("deleted")
 
 	_, erd, err := findERD(
-		c.Request.Context(), r.DB,
+		c, r.DB,
 		extensionID, erdIDOrSlug, erdVersion, deleted,
 	)
 	if err != nil {
@@ -383,11 +372,10 @@ func (r *Router) deleteExtensionResourceDefinition(c *gin.Context) {
 	extensionID := c.Param("eid")
 	erdIDOrSlug := c.Param("erd-id-slug")
 	erdVersion := c.Param("erd-version")
-	_, deleted := c.GetQuery("deleted")
 
 	extension, erd, err := findERD(
-		c.Request.Context(), r.DB,
-		extensionID, erdIDOrSlug, erdVersion, deleted,
+		c, r.DB,
+		extensionID, erdIDOrSlug, erdVersion, false,
 	)
 	if err != nil {
 		if errors.Is(err, ErrExtensionNotFound) || errors.Is(err, ErrERDNotFound) {
@@ -498,7 +486,7 @@ func (r *Router) updateExtensionResourceDefinition(c *gin.Context) {
 	_, deleted := c.GetQuery("deleted")
 
 	extension, erd, err := findERD(
-		c.Request.Context(), r.DB,
+		c, r.DB,
 		extensionID, erdIDOrSlug, erdVersion, deleted,
 	)
 	if err != nil {

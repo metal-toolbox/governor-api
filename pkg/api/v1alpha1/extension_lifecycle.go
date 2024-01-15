@@ -6,52 +6,94 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/metal-toolbox/governor-api/internal/models"
+	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 	"go.uber.org/zap"
 )
 
-func (r *Router) mwExtensionEnabledCheck(c *gin.Context) {
-	extensionIDOrSlug := c.Param("eid")
-	if extensionIDOrSlug == "" {
-		extensionIDOrSlug = c.Param("ex-slug")
+const (
+	extensionCtxKey = "gin-contextkey/extension"
+)
+
+func saveExtensionToContext(c *gin.Context, extension *models.Extension) {
+	c.Set(extensionCtxKey, extension)
+}
+
+func extractExtensionFromContext(c *gin.Context) *models.Extension {
+	if extensionAny, ok := c.Get(extensionCtxKey); ok {
+		return extensionAny.(*models.Extension)
 	}
 
-	erdQMs := []qm.QueryMod{
-		qm.OrderBy("name"),
+	return nil
+}
+
+// fetch extension is a helper function that retrieves an extension from the
+// database using the provided query modifiers. The function saves the extension
+// to the gin.Context object to ensure that no unnecessary database queries are
+// called after the extension is loaded through out a request.
+func fetchExtension(
+	c *gin.Context, exec boil.ContextExecutor, qms ...qm.QueryMod,
+) (extension *models.Extension, err error) {
+	// skip if extension and ERD are already loaded
+	if extension = extractExtensionFromContext(c); extension != nil {
+		return
 	}
 
-	var extensionQM qm.QueryMod
-
-	if _, err := uuid.Parse(extensionIDOrSlug); err != nil {
-		extensionQM = qm.Where("slug = ?", extensionIDOrSlug)
-	} else {
-		extensionQM = qm.Where("id = ?", extensionIDOrSlug)
-	}
-
-	r.Logger.Debug("mwExtensionEnabledCheck", zap.String("extension-id-slug", extensionIDOrSlug))
-
-	extension, err := models.Extensions(
-		extensionQM, qm.Load(
-			models.ExtensionRels.ExtensionResourceDefinitions,
-			erdQMs...,
-		),
-	).One(c.Request.Context(), r.DB)
+	extension, err = models.Extensions(qms...).One(c.Request.Context(), exec)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			sendError(c, http.StatusNotFound, "extension not found or deleted: "+err.Error())
-			return
+			return nil, ErrExtensionNotFound
 		}
-
-		sendError(c, http.StatusInternalServerError, "error getting extension"+err.Error())
 
 		return
 	}
 
-	if !extension.Enabled {
-		sendError(c, http.StatusBadRequest, "extension is disabled")
+	saveExtensionToContext(c, extension)
+
+	return
+}
+
+// findERDForExtensionResource is a function that retrieves the extension and
+// extension resource definition (ERD) for a given extension slug, ERD slug plural,
+// and ERD version.
+// It takes a gin.Context object, a boil.ContextExecutor object, and the extensionSlug,
+// erdSlugPlural, and erdVersion as parameters.
+// The function returns the extension and ERD if found, along with any error
+// that occurred during the retrieval process.
+// If the extension or ERD is not found, specific error types are returned.
+func findERDForExtensionResource(
+	c *gin.Context, exec boil.ContextExecutor,
+	extensionSlug, erdSlugPlural, erdVersion string,
+) (extension *models.Extension, erd *models.ExtensionResourceDefinition, err error) {
+	// fetch extension
+	if extension == nil {
+		extensionQM := qm.Where("slug = ?", extensionSlug)
+
+		// fetch ERD
+		queryMods := []qm.QueryMod{
+			qm.Where("slug_plural = ?", erdSlugPlural),
+			qm.Where("version = ?", erdVersion),
+		}
+
+		extension, err = fetchExtension(c, exec, extensionQM,
+			qm.Load(
+				models.ExtensionRels.ExtensionResourceDefinitions,
+				queryMods...,
+			),
+		)
+		if err != nil {
+			return
+		}
 	}
+
+	if len(extension.R.ExtensionResourceDefinitions) < 1 {
+		return nil, nil, ErrERDNotFound
+	}
+
+	erd = extension.R.ExtensionResourceDefinitions[0]
+
+	return
 }
 
 func (r *Router) mwExtensionResourcesEnabledCheck(c *gin.Context) {
@@ -68,7 +110,7 @@ func (r *Router) mwExtensionResourcesEnabledCheck(c *gin.Context) {
 
 	// find ERD
 	ext, erd, err := findERDForExtensionResource(
-		c.Request.Context(), r.DB,
+		c, r.DB,
 		extensionSlug, erdSlugPlural, erdVersion,
 	)
 	if err != nil {

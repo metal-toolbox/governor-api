@@ -69,7 +69,7 @@ func fetchUserAndERD(c *gin.Context, db boil.ContextExecutor) (
 	fetchERD := func(ctx context.Context, exec boil.ContextExecutor, exSlug, erdSlug, erdVersion string) {
 		defer fetchWg.Done()
 
-		extension, erd, findERDErr = findERDForExtensionResource(ctx, exec, exSlug, erdSlug, erdVersion)
+		extension, erd, findERDErr = findERDForExtensionResource(c, exec, exSlug, erdSlug, erdVersion)
 	}
 	go fetchERD(c.Request.Context(), db, extensionSlug, erdSlugPlural, erdVersion)
 

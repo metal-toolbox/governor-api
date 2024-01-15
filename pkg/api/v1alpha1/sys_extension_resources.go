@@ -1,7 +1,6 @@
 package v1alpha1
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -26,43 +25,6 @@ type SystemExtensionResource struct {
 	Version string `json:"version"`
 }
 
-func findERDForExtensionResource(
-	ctx context.Context, exec boil.ContextExecutor,
-	extensionSlug, erdSlugPlural, erdVersion string,
-) (extension *models.Extension, erd *models.ExtensionResourceDefinition, err error) {
-	// fetch extension
-	extensionQM := qm.Where("slug = ?", extensionSlug)
-
-	// fetch ERD
-	queryMods := []qm.QueryMod{
-		qm.Where("slug_plural = ?", erdSlugPlural),
-		qm.Where("version = ?", erdVersion),
-	}
-
-	extension, err = models.Extensions(
-		extensionQM,
-		qm.Load(
-			models.ExtensionRels.ExtensionResourceDefinitions,
-			queryMods...,
-		),
-	).One(ctx, exec)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil, ErrExtensionNotFound
-		}
-
-		return
-	}
-
-	if len(extension.R.ExtensionResourceDefinitions) < 1 {
-		return nil, nil, ErrERDNotFound
-	}
-
-	erd = extension.R.ExtensionResourceDefinitions[0]
-
-	return
-}
-
 // createSystemExtensionResource creates a system extension resource
 func (r *Router) createSystemExtensionResource(c *gin.Context) {
 	defer c.Request.Body.Close()
@@ -79,7 +41,7 @@ func (r *Router) createSystemExtensionResource(c *gin.Context) {
 
 	// find ERD
 	extension, erd, err := findERDForExtensionResource(
-		c.Request.Context(), r.DB,
+		c, r.DB,
 		extensionSlug, erdSlugPlural, erdVersion,
 	)
 	if err != nil {
@@ -237,7 +199,7 @@ func (r *Router) listSystemExtensionResources(c *gin.Context) {
 
 	// find ERD
 	_, erd, err := findERDForExtensionResource(
-		c.Request.Context(), r.DB,
+		c, r.DB,
 		extensionSlug, erdSlugPlural, erdVersion,
 	)
 	if err != nil {
@@ -307,7 +269,7 @@ func (r *Router) getSystemExtensionResource(c *gin.Context) {
 
 	// find ERD
 	_, erd, err := findERDForExtensionResource(
-		c.Request.Context(), r.DB,
+		c, r.DB,
 		extensionSlug, erdSlugPlural, erdVersion,
 	)
 	if err != nil {
@@ -376,7 +338,7 @@ func (r *Router) updateSystemExtensionResource(c *gin.Context) {
 
 	// find ERD
 	extension, erd, err := findERDForExtensionResource(
-		c.Request.Context(), r.DB,
+		c, r.DB,
 		extensionSlug, erdSlugPlural, erdVersion,
 	)
 	if err != nil {
@@ -557,7 +519,7 @@ func (r *Router) deleteSystemExtensionResource(c *gin.Context) {
 
 	// find ERD
 	extension, erd, err := findERDForExtensionResource(
-		c.Request.Context(), r.DB,
+		c, r.DB,
 		extensionSlug, erdSlugPlural, erdVersion,
 	)
 	if err != nil {
