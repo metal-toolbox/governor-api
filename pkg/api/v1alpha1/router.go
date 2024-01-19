@@ -596,6 +596,7 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		"/extensions/:eid",
 		r.AuditMW.AuditWithType("UpdateExtension"),
 		r.AuthMW.AuthRequired(updateScopesWithOpenID("governor:extensions")),
+		r.mwUserAuthRequired(AuthRoleAdmin),
 		r.updateExtension,
 	)
 
@@ -619,6 +620,7 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		"/extensions/:eid/erds",
 		r.AuditMW.AuditWithType("CreateExtensionResourceDefinition"),
 		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensions")),
+		r.mwUserAuthRequired(AuthRoleAdmin),
 		r.createExtensionResourceDefinition,
 	)
 
@@ -640,6 +642,7 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		"/extensions/:eid/erds/:erd-id-slug",
 		r.AuditMW.AuditWithType("UpdateExtensionResourceDefinitionByID"),
 		r.AuthMW.AuthRequired(updateScopesWithOpenID("governor:extensions")),
+		r.mwUserAuthRequired(AuthRoleAdmin),
 		r.updateExtensionResourceDefinition,
 	)
 
@@ -647,6 +650,7 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		"/extensions/:eid/erds/:erd-id-slug/:erd-version",
 		r.AuditMW.AuditWithType("UpdateExtensionResourceDefinitionBySlug"),
 		r.AuthMW.AuthRequired(updateScopesWithOpenID("governor:extensions")),
+		r.mwUserAuthRequired(AuthRoleAdmin),
 		r.updateExtensionResourceDefinition,
 	)
 
@@ -654,6 +658,7 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		"/extensions/:eid/erds/:erd-id-slug",
 		r.AuditMW.AuditWithType("DeleteExtensionResourceDefinitionByID"),
 		r.AuthMW.AuthRequired(deleteScopesWithOpenID("governor:extensions")),
+		r.mwUserAuthRequired(AuthRoleAdmin),
 		r.deleteExtensionResourceDefinition,
 	)
 
@@ -661,6 +666,7 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		"/extensions/:eid/erds/:erd-id-slug/:erd-version",
 		r.AuditMW.AuditWithType("DeleteExtensionResourceDefinitionBySlug"),
 		r.AuthMW.AuthRequired(deleteScopesWithOpenID("governor:extensions")),
+		r.mwUserAuthRequired(AuthRoleAdmin),
 		r.deleteExtensionResourceDefinition,
 	)
 
@@ -669,6 +675,7 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version",
 		r.AuditMW.AuditWithType("CreateSystemExtensionResource"),
 		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
+		r.mwUserAuthRequired(AuthRoleAdmin),
 		r.createSystemExtensionResource,
 	)
 
@@ -690,6 +697,7 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version/:resource-id",
 		r.AuditMW.AuditWithType("UpdateSystemExtensionResource"),
 		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
+		r.mwUserAuthRequired(AuthRoleAdmin),
 		r.updateSystemExtensionResource,
 	)
 
@@ -697,6 +705,7 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version/:resource-id",
 		r.AuditMW.AuditWithType("DeleteSystemExtensionResource"),
 		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
+		r.mwUserAuthRequired(AuthRoleAdmin),
 		r.deleteSystemExtensionResource,
 	)
 
