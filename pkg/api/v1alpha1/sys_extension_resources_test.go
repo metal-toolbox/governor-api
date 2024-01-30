@@ -156,7 +156,9 @@ func (s *SystemExtensionResourceTestSuite) TestFindERDForExtensionResource() {
 
 	for _, tt := range tests {
 		s.T().Run(tt.name, func(t *testing.T) {
-			ext, erd, err := findERDForExtensionResource(context.Background(), s.db, tt.extensionSlug, tt.erdSlugPlural, tt.erdVersion)
+			c, _ := gin.CreateTestContext(httptest.NewRecorder())
+			c.Request = httptest.NewRequest("GET", "/", nil)
+			ext, erd, err := findERDForExtensionResource(c, s.db, tt.extensionSlug, tt.erdSlugPlural, tt.erdVersion)
 
 			if tt.expectedErr != nil {
 				assert.NotNil(t, err)
