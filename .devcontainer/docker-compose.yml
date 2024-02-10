@@ -1,4 +1,4 @@
-version: '3.9'
+version: "3.9"
 
 volumes:
   crdb-data:
@@ -11,7 +11,6 @@ volumes:
 networks:
   governor:
 
-
 services:
   devcontainer:
     build:
@@ -20,6 +19,8 @@ services:
     depends_on:
       - nats
     command: sleep infinity
+    ports:
+      - "3001:3001"
     env_file:
       - .env
     volumes:
@@ -112,7 +113,7 @@ services:
       - nats-init
     command:
       - -c
-      - '/etc/nats/nats-server.conf'
+      - "/etc/nats/nats-server.conf"
       - -D
     volumes:
       - ./nats:/etc/nats
