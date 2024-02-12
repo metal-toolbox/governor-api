@@ -223,7 +223,7 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		"/groups/:id/requests/:rid",
 		r.AuditMW.AuditWithType("ProcessGroupRequest"),
 		r.AuthMW.AuthRequired([]string{oidcScope}),
-		r.mwGroupAuthRequired(AuthRoleAdminOrGroupAdmin),
+		r.mwGroupAuthRequired(AuthRoleAdminOrGroupAdminOrGroupApprover),
 		r.processGroupRequest,
 	)
 
