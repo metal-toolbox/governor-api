@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"regexp"
 
+	"github.com/volatiletech/null/v8"
+
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/metal-toolbox/auditevent/ginaudit"
@@ -30,9 +32,10 @@ type Group struct {
 
 // GroupReq is a group creation/update request
 type GroupReq struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Note        string `json:"note"`
+	Name            string `json:"name"`
+	Description     string `json:"description"`
+	Note            string `json:"note"`
+	ApproverGroupID string `json:"approver_group_id,omitempty"`
 }
 
 // listGroups lists the groups as JSON
@@ -168,10 +171,20 @@ func (r *Router) createGroup(c *gin.Context) {
 		return
 	}
 
+	var approverGroupID null.String
+
+	if req.ApproverGroupID != "" {
+		approverGroupID = null.String{
+			String: req.ApproverGroupID,
+			Valid:  true,
+		}
+	}
+
 	group := &models.Group{
-		Description: req.Description,
-		Name:        req.Name,
-		Note:        req.Note,
+		Description:   req.Description,
+		Name:          req.Name,
+		Note:          req.Note,
+		ApproverGroup: approverGroupID,
 	}
 
 	// Validation
@@ -280,6 +293,17 @@ func (r *Router) updateGroup(c *gin.Context) {
 		sendError(c, http.StatusBadRequest, "unable to bind request: "+err.Error())
 		return
 	}
+
+	var approverGroupID null.String
+
+	if req.ApproverGroupID != "" {
+		approverGroupID = null.String{
+			String: req.ApproverGroupID,
+			Valid:  true,
+		}
+	}
+
+	group.ApproverGroup = approverGroupID
 
 	group.Description = req.Description
 

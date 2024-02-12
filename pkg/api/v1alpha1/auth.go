@@ -34,6 +34,8 @@ const (
 	AuthRoleGroupAdmin
 	// AuthRoleAdminOrGroupAdmin indicates an authenticated user who is an admin in the given group or governor admin
 	AuthRoleAdminOrGroupAdmin
+	// AuthRoleAdminOrGroupAdminOrGroupApprover indicates an authenticated user who is an admin in the given group or governor admin or a member of the approver group
+	AuthRoleAdminOrGroupAdminOrGroupApprover
 )
 
 func (u mwAuthRole) String() string {
@@ -43,14 +45,16 @@ func (u mwAuthRole) String() string {
 		"AuthRoleGroupMember",
 		"AuthRoleGroupAdmin",
 		"AuthRoleAdminOrGroupAdmin",
+		"AuthRoleAdminOrGroupAdminOrGroupApprover",
 	}[u]
 }
 
 const (
-	contextKeyUser        = "current_user"
-	contextKeyAdmin       = "is_admin"
-	contextKeyGroupAdmin  = "is_group_admin"
-	contextKeyGroupMember = "is_group_member"
+	contextKeyUser          = "current_user"
+	contextKeyAdmin         = "is_admin"
+	contextKeyGroupAdmin    = "is_group_admin"
+	contextKeyGroupMember   = "is_group_member"
+	contextKeyGroupApprover = "is_group_approver"
 )
 
 // oidcScope is the scope that is required for the oidcAuthRequired check
@@ -272,6 +276,7 @@ func (r *Router) mwUserAuthRequired(authRole mwAuthRole) gin.HandlerFunc {
 // mwGroupAuthRequired checks if the current authenticated user is a member or admin in the given group
 // and adds user information to the gin context. It expects to find the group id (could be also the slug)
 // in the id context param.
+// nolint:gocyclo
 func (r *Router) mwGroupAuthRequired(authRole mwAuthRole) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		r.Logger.Debug("mwGroupAuthRequired", zap.String("role", authRole.String()))
@@ -294,6 +299,22 @@ func (r *Router) mwGroupAuthRequired(authRole mwAuthRole) gin.HandlerFunc {
 		}
 
 		queryMods := []qm.QueryMod{
+			models.GroupWhere.ID.EQ(id),
+		}
+
+		group, err := models.Groups(queryMods...).One(c.Request.Context(), r.DB)
+		if err != nil {
+			if !errors.Is(err, sql.ErrNoRows) {
+				sendError(c, http.StatusInternalServerError, "error getting group: "+err.Error())
+				return
+			}
+
+			sendError(c, http.StatusUnauthorized, "group not found")
+
+			return
+		}
+
+		queryMods = []qm.QueryMod{
 			models.UserWhere.ExternalID.EQ(null.StringFrom(c.GetString("jwt.user"))),
 		}
 
@@ -313,6 +334,7 @@ func (r *Router) mwGroupAuthRequired(authRole mwAuthRole) gin.HandlerFunc {
 
 		isGroupMember := false
 		isGroupAdmin := false
+		isGroupApprover := false
 
 		idIsSlug := false
 		if _, err := uuid.Parse(id); err != nil {
@@ -345,12 +367,17 @@ func (r *Router) mwGroupAuthRequired(authRole mwAuthRole) gin.HandlerFunc {
 
 				break
 			}
+
+			if group.ApproverGroup.Valid && group.ApproverGroup.String == groupID {
+				isGroupApprover = true
+			}
 		}
 
 		// add user to gin context
 		setCtxUser(c, user)
 		setCtxGroupAdmin(c, &isGroupAdmin)
 		setCtxGroupMember(c, &isGroupMember)
+		setCtxGroupApprover(c, &isGroupApprover)
 
 		if authRole == AuthRoleGroupMember {
 			if !isGroupMember {
@@ -413,6 +440,43 @@ func (r *Router) mwGroupAuthRequired(authRole mwAuthRole) gin.HandlerFunc {
 			return
 		}
 
+		if authRole == AuthRoleAdminOrGroupAdminOrGroupApprover {
+			isAdmin := false
+
+			memberships := make([]string, len(enumeratedMemberships))
+			for i, m := range enumeratedMemberships {
+				memberships[i] = m.GroupID
+			}
+
+			ag := make([]interface{}, len(r.AdminGroups))
+			for i, a := range r.AdminGroups {
+				ag[i] = a
+			}
+
+			adminGroups, err := models.Groups(qm.WhereIn("slug IN ?", ag...)).All(c.Request.Context(), r.DB)
+			if err != nil {
+				sendError(c, http.StatusInternalServerError, "error getting admin groups: "+err.Error())
+				return
+			}
+
+			for _, g := range adminGroups {
+				if contains(memberships, g.ID) {
+					isAdmin = true
+					break
+				}
+			}
+
+			if !isGroupAdmin && !isAdmin && !isGroupApprover {
+				r.Logger.Debug("user is not admin or group admin", zap.String("group id", id))
+
+				sendError(c, http.StatusUnauthorized, "user not admin or group admin")
+
+				return
+			}
+
+			return
+		}
+
 		r.Logger.Debug("unsupported auth role")
 		sendError(c, http.StatusUnauthorized, "unsupported auth role")
 	}
@@ -460,6 +524,10 @@ func setCtxGroupAdmin(c *gin.Context, a *bool) {
 
 func setCtxGroupMember(c *gin.Context, m *bool) {
 	c.Set(contextKeyGroupMember, m)
+}
+
+func setCtxGroupApprover(c *gin.Context, a *bool) {
+	c.Set(contextKeyGroupApprover, a)
 }
 
 func getCtxAuditID(c *gin.Context) string {
