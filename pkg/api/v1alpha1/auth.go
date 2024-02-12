@@ -402,9 +402,9 @@ func (r *Router) mwGroupAuthRequired(authRole mwAuthRole) gin.HandlerFunc {
 		if authRole == AuthRoleAdminOrGroupAdmin {
 			isAdmin := false
 
-			memberships := make(map[string]bool)
+			memberships := make(map[string]struct{})
 			for _, m := range enumeratedMemberships {
-				memberships[m.GroupID] = true
+				memberships[m.GroupID] = struct{}{}
 			}
 
 			ag := make([]interface{}, len(r.AdminGroups))
@@ -438,9 +438,9 @@ func (r *Router) mwGroupAuthRequired(authRole mwAuthRole) gin.HandlerFunc {
 		if authRole == AuthRoleAdminOrGroupAdminOrGroupApprover {
 			isAdmin := false
 
-			memberships := make(map[string]bool)
+			memberships := make(map[string]struct{})
 			for _, m := range enumeratedMemberships {
-				memberships[m.GroupID] = true
+				memberships[m.GroupID] = struct{}{}
 			}
 
 			ag := make([]interface{}, len(r.AdminGroups))
