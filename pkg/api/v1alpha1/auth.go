@@ -298,11 +298,7 @@ func (r *Router) mwGroupAuthRequired(authRole mwAuthRole) gin.HandlerFunc {
 			return
 		}
 
-		queryMods := []qm.QueryMod{
-			models.GroupWhere.ID.EQ(id),
-		}
-
-		group, err := models.Groups(queryMods...).One(c.Request.Context(), r.DB)
+		group, err := models.FindGroup(c.Request.Context(), r.DB, id)
 		if err != nil {
 			if !errors.Is(err, sql.ErrNoRows) {
 				sendError(c, http.StatusInternalServerError, "error getting group: "+err.Error())
@@ -314,7 +310,7 @@ func (r *Router) mwGroupAuthRequired(authRole mwAuthRole) gin.HandlerFunc {
 			return
 		}
 
-		queryMods = []qm.QueryMod{
+		queryMods := []qm.QueryMod{
 			models.UserWhere.ExternalID.EQ(null.StringFrom(c.GetString("jwt.user"))),
 		}
 
@@ -406,9 +402,9 @@ func (r *Router) mwGroupAuthRequired(authRole mwAuthRole) gin.HandlerFunc {
 		if authRole == AuthRoleAdminOrGroupAdmin {
 			isAdmin := false
 
-			memberships := make([]string, len(enumeratedMemberships))
-			for i, m := range enumeratedMemberships {
-				memberships[i] = m.GroupID
+			memberships := make(map[string]bool)
+			for _, m := range enumeratedMemberships {
+				memberships[m.GroupID] = true
 			}
 
 			ag := make([]interface{}, len(r.AdminGroups))
@@ -423,9 +419,8 @@ func (r *Router) mwGroupAuthRequired(authRole mwAuthRole) gin.HandlerFunc {
 			}
 
 			for _, g := range adminGroups {
-				if contains(memberships, g.ID) {
+				if _, found := memberships[g.ID]; found {
 					isAdmin = true
-					break
 				}
 			}
 
@@ -443,9 +438,9 @@ func (r *Router) mwGroupAuthRequired(authRole mwAuthRole) gin.HandlerFunc {
 		if authRole == AuthRoleAdminOrGroupAdminOrGroupApprover {
 			isAdmin := false
 
-			memberships := make([]string, len(enumeratedMemberships))
-			for i, m := range enumeratedMemberships {
-				memberships[i] = m.GroupID
+			memberships := make(map[string]bool)
+			for _, m := range enumeratedMemberships {
+				memberships[m.GroupID] = true
 			}
 
 			ag := make([]interface{}, len(r.AdminGroups))
@@ -460,9 +455,8 @@ func (r *Router) mwGroupAuthRequired(authRole mwAuthRole) gin.HandlerFunc {
 			}
 
 			for _, g := range adminGroups {
-				if contains(memberships, g.ID) {
+				if _, found := memberships[g.ID]; found {
 					isAdmin = true
-					break
 				}
 			}
 
