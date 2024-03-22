@@ -33,7 +33,7 @@ create NAME [sql|go] Creates new migration file with the current timestamp
 fix                  Apply sequential ordering to migrations
 	`,
 	Args: cobra.MinimumNArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, args []string) {
 		migrate(args[0], args[1:])
 	},
 }

@@ -51,7 +51,7 @@ func TestServerRunning(t *testing.T) {
 	scan := r.Scan(&c)
 
 	assert.NoError(t, scan)
-	assert.Equal(t, c, 4)
+	assert.Equal(t, c, 5)
 }
 
 func TestGetMembershipsForUser(t *testing.T) {
@@ -127,6 +127,7 @@ func TestGetMembershipsForUser(t *testing.T) {
 				ExpiresAt: null.Time{},
 			},
 		},
+		"00000001-0000-0000-0000-000000000005": {},
 	}
 
 	for user, expect := range testCases {
@@ -236,6 +237,7 @@ func TestHierarchyWouldCreateCycle(t *testing.T) {
 		{parent: "00000002-0000-0000-0000-000000000003", member: "00000002-0000-0000-0000-000000000001"}: true,
 		{parent: "00000002-0000-0000-0000-000000000003", member: "00000002-0000-0000-0000-000000000002"}: true,
 		{parent: "00000002-0000-0000-0000-000000000003", member: "00000002-0000-0000-0000-000000000003"}: true,
+		{parent: "00000002-0000-0000-0000-000000000005", member: "00000002-0000-0000-0000-000000000002"}: false, // tests that cycle detection ignores deleted groups
 	}
 
 	for test, expect := range testCases {
@@ -249,23 +251,25 @@ func TestHierarchyWouldCreateCycle(t *testing.T) {
 	}
 }
 
+// nolint:all
 // Sets this up:
-//
-//	                ┌──────┐
-//	            ┌───┤Group1│
-//	            │   └─┬─┬──┘
-//	            ▼     │ │
-//	        ┌──────┐  │ ▼
-//	    ┌───┤Group2│  │User1
-//	    │   └───┬──┘  │
-//	    ▼       │     │
-//	┌──────┐    ▼     │
-//	│Group3│   User2  │
-//	└┬──┬──┘          │
-//	 │  │             │
-//	 │  ▼             │
-//	 │ User3          ▼
-//	 └────────────► User4
+//                                        ┌──────┐
+//                                    ┌───┤Group1│
+//                                    │   └─┬─┬──┘
+//                                    ▼     │ │
+//                                ┌──────┐  │ ▼
+//          ┌─────────────────┬───┤Group2│  │User1
+//          │                 │   └───┬──┘  │
+//          ▼                 ▼       │     │
+// ┌────────────────┐     ┌──────┐    ▼     │
+// │Group4 (Deleted)│     │Group3│   User2  │
+// └───┬────────┬───┘     └┬──┬──┘          │
+//     │        │          │  │             │
+//     ▼        ▼          │  ▼             │
+// ┌──────┐   User5        │ User3          ▼
+// │Group5│                └────────────► User4
+// └──────┘
+
 func seedTestDB(db *sql.DB) error {
 	testData := []string{
 		`INSERT INTO "users" ("id", "external_id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
@@ -276,6 +280,8 @@ func seedTestDB(db *sql.DB) error {
 		('00000001-0000-0000-0000-000000000003', NULL, 'User3', 'user3@email.com', 0, NULL, NULL, '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL, NULL, NULL, 'pending');`,
 		`INSERT INTO "users" ("id", "external_id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
 		('00000001-0000-0000-0000-000000000004', NULL, 'User4', 'user4@email.com', 0, NULL, NULL, '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL, NULL, NULL, 'pending');`,
+		`INSERT INTO "users" ("id", "external_id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
+		('00000001-0000-0000-0000-000000000005', NULL, 'User5', 'user5@email.com', 0, NULL, NULL, '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL, NULL, NULL, 'pending');`,
 
 		`INSERT INTO "groups" ("id", "name", "slug", "description", "created_at", "updated_at", "deleted_at", "note") VALUES
 		('00000002-0000-0000-0000-000000000001', 'Group1', 'group-1', 'group-1', '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL, '');`,
@@ -283,6 +289,10 @@ func seedTestDB(db *sql.DB) error {
 		('00000002-0000-0000-0000-000000000002', 'Group2', 'group-2', 'group-2', '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL, '');`,
 		`INSERT INTO "groups" ("id", "name", "slug", "description", "created_at", "updated_at", "deleted_at", "note") VALUES
 		('00000002-0000-0000-0000-000000000003', 'Group3', 'group-3', 'group-3', '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL, '');`,
+		`INSERT INTO "groups" ("id", "name", "slug", "description", "created_at", "updated_at", "deleted_at", "note") VALUES
+		('00000002-0000-0000-0000-000000000004', 'Group4', 'group-4', 'group-4', '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', '');`,
+		`INSERT INTO "groups" ("id", "name", "slug", "description", "created_at", "updated_at", "deleted_at", "note") VALUES
+		('00000002-0000-0000-0000-000000000005', 'Group5', 'group-5', 'group-5', '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL, '');`,
 
 		`INSERT INTO "group_memberships" ("id", "group_id", "user_id", "is_admin", "created_at", "updated_at", "expires_at") VALUES
 		('00000003-0000-0000-0000-000000000001', '00000002-0000-0000-0000-000000000001', '00000001-0000-0000-0000-000000000001', 't', '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL);`,
@@ -294,11 +304,17 @@ func seedTestDB(db *sql.DB) error {
 		('00000003-0000-0000-0000-000000000004', '00000002-0000-0000-0000-000000000001', '00000001-0000-0000-0000-000000000004', 'f', '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL);`,
 		`INSERT INTO "group_memberships" ("id", "group_id", "user_id", "is_admin", "created_at", "updated_at", "expires_at") VALUES
 		('00000003-0000-0000-0000-000000000005', '00000002-0000-0000-0000-000000000003', '00000001-0000-0000-0000-000000000004', 'f', '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL);`,
+		`INSERT INTO "group_memberships" ("id", "group_id", "user_id", "is_admin", "created_at", "updated_at", "expires_at") VALUES
+		('00000003-0000-0000-0000-000000000006', '00000002-0000-0000-0000-000000000004', '00000001-0000-0000-0000-000000000005', 'f', '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL);`,
 
 		`INSERT INTO "group_hierarchies" ("id", "parent_group_id", "member_group_id", "created_at", "updated_at", "expires_at") VALUES
 		('00000004-0000-0000-0000-000000000001', '00000002-0000-0000-0000-000000000001', '00000002-0000-0000-0000-000000000002', '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL);`,
 		`INSERT INTO "group_hierarchies" ("id", "parent_group_id", "member_group_id", "created_at", "updated_at", "expires_at") VALUES
 		('00000004-0000-0000-0000-000000000002', '00000002-0000-0000-0000-000000000002', '00000002-0000-0000-0000-000000000003', '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL);`,
+		`INSERT INTO "group_hierarchies" ("id", "parent_group_id", "member_group_id", "created_at", "updated_at", "expires_at") VALUES
+		('00000004-0000-0000-0000-000000000003', '00000002-0000-0000-0000-000000000002', '00000002-0000-0000-0000-000000000004', '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL);`,
+		`INSERT INTO "group_hierarchies" ("id", "parent_group_id", "member_group_id", "created_at", "updated_at", "expires_at") VALUES
+		('00000004-0000-0000-0000-000000000004', '00000002-0000-0000-0000-000000000004', '00000002-0000-0000-0000-000000000005', '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL);`,
 	}
 	for _, q := range testData {
 		_, err := db.Query(q)

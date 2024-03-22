@@ -19,7 +19,7 @@ import (
 var serveCmd = &cobra.Command{
 	Use:   "serve",
 	Short: "starts the governor api server",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return startAPI()
 	},
 }

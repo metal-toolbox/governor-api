@@ -169,6 +169,7 @@ func TestClient_Publish(t *testing.T) {
 				tracer: otel.GetTracerProvider().Tracer("test"),
 			}
 			err := c.Publish(context.TODO(), tt.sub, tt.event)
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return

@@ -415,6 +415,7 @@ func (s *UserExtensionResourceTestSuite) TestListUserExtensionResources() {
 					body, tt.expectedErrMsg, "Expected error message to contain %q, got %s",
 					tt.expectedErrMsg, body,
 				)
+
 				return
 			}
 
@@ -572,6 +573,7 @@ func (s *UserExtensionResourceTestSuite) TestGetUserExtensionResource() {
 					body, tt.expectedErrMsg, "Expected error message to contain %q, got %s",
 					tt.expectedErrMsg, body,
 				)
+
 				return
 			}
 
@@ -753,6 +755,7 @@ func (s *UserExtensionResourceTestSuite) TestCreateUserExtensionResource() {
 					body, tt.expectedErrMsg, "Expected error message to contain %q, got %s",
 					tt.expectedErrMsg, body,
 				)
+
 				return
 			}
 
@@ -956,6 +959,7 @@ func (s *UserExtensionResourceTestSuite) TestUpdateUserExtensionResource() {
 					body, tt.expectedErrMsg, "Expected error message to contain %q, got %s",
 					tt.expectedErrMsg, body,
 				)
+
 				return
 			}
 

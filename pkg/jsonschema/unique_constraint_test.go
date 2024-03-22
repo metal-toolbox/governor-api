@@ -174,6 +174,7 @@ func (s *UniqueConstrainTestSuite) TestCompile() {
 				db:  nil,
 			}
 			_, err := uc.Compile(jsonschema.CompilerContext{}, tt.inputMap)
+
 			if tt.expectedErr == "" {
 				assert.Nil(t, err)
 			} else {
@@ -307,12 +308,14 @@ func TestAssertStringSlice(t *testing.T) {
 
 			if tt.expectedErr == "" {
 				assert.Nil(t, err)
+
 				if !reflect.DeepEqual(actual, tt.expected) {
 					t.Errorf("assertStringSlice() = %v, expected %v", actual, tt.expected)
 				}
 			} else {
 				assert.NotNil(t, err)
 				assert.Contains(t, err.Error(), tt.expectedErr)
+
 				return
 			}
 		})

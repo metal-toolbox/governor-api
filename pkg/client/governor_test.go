@@ -415,6 +415,7 @@ func TestClient_Organization(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			got, err := c.Organization(context.TODO(), tt.id)
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -489,6 +490,7 @@ func TestClient_Organizations(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			got, err := c.Organizations(context.TODO())
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return

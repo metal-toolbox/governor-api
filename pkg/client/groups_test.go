@@ -175,6 +175,7 @@ func TestClient_Groups(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			got, err := c.Groups(context.TODO())
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -275,6 +276,7 @@ func TestClient_Group(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			got, err := c.Group(context.TODO(), tt.id, false)
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -365,6 +367,7 @@ func TestClient_GroupMembers(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			got, err := c.GroupMembers(context.TODO(), tt.id)
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -455,6 +458,7 @@ func TestClient_GroupMemberRequests(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			got, err := c.GroupMemberRequests(context.TODO(), tt.id)
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -562,6 +566,7 @@ func TestClient_CreateGroup(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			got, err := c.CreateGroup(context.TODO(), tt.req)
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -636,6 +641,7 @@ func TestClient_DeleteGroup(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			err := c.DeleteGroup(context.TODO(), tt.id)
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -735,6 +741,7 @@ func TestClient_AddGroupMember(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			err := c.AddGroupMember(context.TODO(), tt.groupID, tt.userID, false)
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -834,6 +841,7 @@ func TestClient_RemoveGroupMember(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			err := c.RemoveGroupMember(context.TODO(), tt.groupID, tt.userID)
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -933,6 +941,7 @@ func TestClient_AddGroupToOrganization(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			err := c.AddGroupToOrganization(context.TODO(), tt.groupID, tt.orgID)
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -1032,6 +1041,7 @@ func TestClient_RemoveGroupFromOrganization(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			err := c.RemoveGroupFromOrganization(context.TODO(), tt.groupID, tt.orgID)
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -1106,6 +1116,7 @@ func TestClient_GroupMembersAll(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			got, err := c.GroupMembersAll(context.TODO(), false)
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -1181,6 +1192,7 @@ func TestClient_GroupMemberRequestsAll(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			got, err := c.GroupMembershipRequestsAll(context.TODO(), false)
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
