@@ -57,6 +57,8 @@ const (
 		FROM
 			membership_query AS a
 			INNER JOIN group_hierarchies AS b ON a.group_id = b.member_group_id
+			INNER JOIN groups ON groups.id = b.member_group_id
+		WHERE groups.deleted_at IS NULL
 	)
 	SELECT
 		group_id,
@@ -88,7 +90,8 @@ const (
 			TRUE AS direct
 		FROM
 			group_memberships
-		WHERE user_id = $1
+			INNER JOIN groups ON groups.id = group_memberships.group_id
+		WHERE user_id = $1 AND groups.deleted_at IS NULL
 		UNION ALL
 		SELECT
 			b.parent_group_id,
@@ -100,6 +103,8 @@ const (
 		FROM
 			membership_query AS a
 			INNER JOIN group_hierarchies AS b ON a.group_id = b.member_group_id
+			INNER JOIN groups ON groups.id = b.member_group_id
+		WHERE groups.deleted_at IS NULL
 	)
 	SELECT
 		group_id,
@@ -138,6 +143,8 @@ const (
 		FROM
 			hierarchical_groups AS a
 			INNER JOIN group_hierarchies AS b ON a.group_id = b.parent_group_id
+			INNER JOIN groups ON groups.id = a.group_id
+		WHERE groups.deleted_at IS NULL
 	),
 	ensure_root AS (
 		SELECT
@@ -172,6 +179,9 @@ const (
 	FROM
 		ensure_root
 		INNER JOIN group_memberships ON group_memberships.group_id = ensure_root.group_id
+		INNER JOIN groups ON groups.id = group_memberships.group_id
+	WHERE
+		groups.deleted_at IS NULL
 	GROUP BY
 		group_memberships.user_id;`
 )
@@ -255,7 +265,12 @@ func GetAllGroupMemberships(ctx context.Context, db boil.ContextExecutor, should
 func HierarchyWouldCreateCycle(ctx context.Context, db boil.ContextExecutor, parentGroupID, memberGroupID string) (bool, error) {
 	hierarchies := make(map[string][]string)
 
-	hierarchyRows, err := models.GroupHierarchies().All(ctx, db)
+	queryMods := []qm.QueryMod{
+		qm.InnerJoin("groups AS parentgroup ON parentgroup.id = parent_group_id AND parentgroup.deleted_at IS NULL"),
+		qm.InnerJoin("groups AS membergroup ON membergroup.id = member_group_id AND membergroup.deleted_at IS NULL"),
+	}
+
+	hierarchyRows, err := models.GroupHierarchies(queryMods...).All(ctx, db)
 	if err != nil {
 		return false, err
 	}

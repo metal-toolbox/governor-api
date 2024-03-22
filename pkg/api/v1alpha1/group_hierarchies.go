@@ -31,20 +31,17 @@ type GroupHierarchy struct {
 func (r *Router) listMemberGroups(c *gin.Context) {
 	gid := c.Param("id")
 
-	queryMods := []qm.QueryMod{
-		qm.Load(models.GroupHierarchyRels.ParentGroup),
-		qm.Load(models.GroupHierarchyRels.MemberGroup),
-	}
-
-	q := qm.Where("parent_group_id = ?", gid)
-
 	if _, err := uuid.Parse(gid); err != nil {
 		sendError(c, http.StatusNotFound, "could not parse uuid: "+err.Error())
 
 		return
 	}
 
-	queryMods = append(queryMods, q)
+	queryMods := []qm.QueryMod{
+		qm.Load(models.GroupHierarchyRels.ParentGroup),
+		qm.Load(models.GroupHierarchyRels.MemberGroup, qm.Where("deleted_at IS NULL")),
+		qm.Where("parent_group_id = ?", gid),
+	}
 
 	groups, err := models.GroupHierarchies(queryMods...).All(c.Request.Context(), r.DB)
 	if err != nil {
@@ -53,15 +50,18 @@ func (r *Router) listMemberGroups(c *gin.Context) {
 		return
 	}
 
-	hierarchies := make([]GroupHierarchy, len(groups))
-	for i, h := range groups {
-		hierarchies[i] = GroupHierarchy{
-			ID:              h.ID,
-			ParentGroupID:   h.ParentGroupID,
-			ParentGroupSlug: h.R.ParentGroup.Slug,
-			MemberGroupID:   h.MemberGroupID,
-			MemberGroupSlug: h.R.MemberGroup.Slug,
-			ExpiresAt:       h.ExpiresAt,
+	var hierarchies []GroupHierarchy
+
+	for _, h := range groups {
+		if h.R.MemberGroup != nil {
+			hierarchies = append(hierarchies, GroupHierarchy{
+				ID:              h.ID,
+				ParentGroupID:   h.ParentGroupID,
+				ParentGroupSlug: h.R.ParentGroup.Slug,
+				MemberGroupID:   h.MemberGroupID,
+				MemberGroupSlug: h.R.MemberGroup.Slug,
+				ExpiresAt:       h.ExpiresAt,
+			})
 		}
 	}
 
@@ -118,6 +118,7 @@ func (r *Router) addMemberGroup(c *gin.Context) {
 	}
 
 	exists, err := models.GroupHierarchies(
+		qm.InnerJoin("groups ON groups.id = member_group_id AND groups.deleted_at IS NULL"),
 		qm.Where("parent_group_id = ?", parentGroup.ID),
 		qm.And("member_group_id = ?", memberGroup.ID),
 	).Exists(c.Request.Context(), tx)
