@@ -65,6 +65,7 @@ func TestClient_GroupHierarchies(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			got, err := c.GroupHierarchies(context.TODO())
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -153,6 +154,7 @@ func TestClient_MemberGroups(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			got, err := c.MemberGroups(context.TODO(), tt.id)
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -224,6 +226,7 @@ func TestClient_AddMemberGroup(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			err := c.AddMemberGroup(context.TODO(), tt.parentGroupID, tt.memberGroupID, tt.expiresAt)
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -294,6 +297,7 @@ func TestClient_UpdateMemberGroup(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			err := c.UpdateMemberGroup(context.TODO(), tt.parentGroupID, tt.memberGroupID, tt.expiresAt)
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -361,6 +365,7 @@ func TestClient_DeleteMemberGroup(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			err := c.DeleteMemberGroup(context.TODO(), tt.parentGroupID, tt.memberGroupID)
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return

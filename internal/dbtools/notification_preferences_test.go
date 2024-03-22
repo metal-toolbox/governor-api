@@ -153,7 +153,7 @@ func (s *NotificationPreferencesTestSuite) TestNotificationDefaults() {
 	}
 
 	for _, tc := range tests {
-		s.T().Run(tc.name, func(t *testing.T) {
+		s.T().Run(tc.name, func(_ *testing.T) {
 			_, err := s.db.Query(tc.q)
 
 			if tc.wantQueryErr {
@@ -442,7 +442,7 @@ func (s *NotificationPreferencesTestSuite) TestNotificationPreferences() {
 	}
 
 	for _, tc := range tests {
-		s.T().Run(tc.name, func(t *testing.T) {
+		s.T().Run(tc.name, func(_ *testing.T) {
 			if tc.action != nil {
 				err := tc.action()
 

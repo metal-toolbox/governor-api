@@ -127,6 +127,7 @@ func TestClient_Extensions(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			got, err := c.Extensions(context.TODO(), false)
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -217,6 +218,7 @@ func TestClient_Extension(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			got, err := c.Extension(context.TODO(), tt.id, false)
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -326,6 +328,7 @@ func TestClient_CreateExtension(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			got, err := c.CreateExtension(context.TODO(), tt.req)
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -444,6 +447,7 @@ func TestClient_UpdateExtension(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			got, err := c.UpdateExtension(context.TODO(), tt.id, tt.req)
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -521,6 +525,7 @@ func TestClient_DeleteExtension(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			err := c.DeleteExtension(context.TODO(), tt.id)
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return

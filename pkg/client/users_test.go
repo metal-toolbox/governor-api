@@ -77,6 +77,7 @@ func TestClient_Users(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			got, err := c.Users(context.TODO(), false)
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -151,6 +152,7 @@ func TestClient_UsersV2(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			got, err := c.UsersV2(context.TODO(), map[string][]string{})
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -239,6 +241,7 @@ func TestClient_User(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			got, err := c.User(context.TODO(), tt.id, false)
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -345,6 +348,7 @@ func TestClient_CreateUser(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			got, err := c.CreateUser(context.TODO(), tt.req)
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -421,6 +425,7 @@ func TestClient_DeleteUser(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			err := c.DeleteUser(context.TODO(), tt.id)
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -547,6 +552,7 @@ func TestClient_UpdateUser(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			got, err := c.UpdateUser(context.TODO(), tt.id, tt.req)
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return

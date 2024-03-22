@@ -137,6 +137,7 @@ func TestClient_NotificationPreferences(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			got, err := c.NotificationPreferences(context.TODO(), "")
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return

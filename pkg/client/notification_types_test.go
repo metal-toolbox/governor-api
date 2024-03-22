@@ -134,6 +134,7 @@ func TestClient_NotificationTypes(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			got, err := c.NotificationTypes(context.TODO(), false)
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -224,6 +225,7 @@ func TestClient_NotificationType(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			got, err := c.NotificationType(context.TODO(), tt.id, false)
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -327,6 +329,7 @@ func TestClient_CreateNotificationType(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			got, err := c.CreateNotificationType(context.TODO(), tt.req)
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -450,6 +453,7 @@ func TestClient_UpdateNotificationType(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			got, err := c.UpdateNotificationType(context.TODO(), tt.id, tt.req)
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -527,6 +531,7 @@ func TestClient_DeleteNotificationType(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			err := c.DeleteNotificationType(context.TODO(), tt.id)
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				return

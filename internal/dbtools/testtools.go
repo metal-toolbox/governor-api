@@ -65,7 +65,9 @@ func DatabaseTest(t *testing.T) *sqlx.DB {
 
 	t.Cleanup(func() {
 		cleanDB()
+
 		err := addFixtures()
+
 		require.NoError(t, err, "Unexpected error setting up fixture data")
 	})
 

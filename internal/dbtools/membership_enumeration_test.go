@@ -251,23 +251,25 @@ func TestHierarchyWouldCreateCycle(t *testing.T) {
 	}
 }
 
-// Sets this up:										
-//                                        ┌──────┐         
-//                                    ┌───┤Group1│         
-//                                    │   └─┬─┬──┘         
-//                                    ▼     │ │            
-//                                ┌──────┐  │ ▼            
-//          ┌─────────────────┬───┤Group2│  │User1         
-//          │                 │   └───┬──┘  │              
-//          ▼                 ▼       │     │              
-// ┌────────────────┐     ┌──────┐    ▼     │              
-// │Group4 (Deleted)│     │Group3│   User2  │              
-// └───┬────────┬───┘     └┬──┬──┘          │              
-//     │        │          │  │             │              
-//     ▼        ▼          │  ▼             │              
-// ┌──────┐   User5        │ User3          ▼              
-// │Group5│                └────────────► User4            
-// └──────┘                                                
+// nolint:all
+// Sets this up:
+//                                        ┌──────┐
+//                                    ┌───┤Group1│
+//                                    │   └─┬─┬──┘
+//                                    ▼     │ │
+//                                ┌──────┐  │ ▼
+//          ┌─────────────────┬───┤Group2│  │User1
+//          │                 │   └───┬──┘  │
+//          ▼                 ▼       │     │
+// ┌────────────────┐     ┌──────┐    ▼     │
+// │Group4 (Deleted)│     │Group3│   User2  │
+// └───┬────────┬───┘     └┬──┬──┘          │
+//     │        │          │  │             │
+//     ▼        ▼          │  ▼             │
+// ┌──────┐   User5        │ User3          ▼
+// │Group5│                └────────────► User4
+// └──────┘
+
 func seedTestDB(db *sql.DB) error {
 	testData := []string{
 		`INSERT INTO "users" ("id", "external_id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
