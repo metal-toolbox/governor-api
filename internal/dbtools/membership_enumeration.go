@@ -46,6 +46,8 @@ const (
 			TRUE AS direct
 		FROM
 			group_memberships
+		INNER JOIN groups ON groups.id = group_memberships.group_id
+			WHERE groups.deleted_at IS NULL
 		UNION ALL
 		SELECT
 			b.parent_group_id,
