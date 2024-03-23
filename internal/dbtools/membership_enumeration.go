@@ -59,8 +59,8 @@ const (
 		FROM
 			membership_query AS a
 			INNER JOIN group_hierarchies AS b ON a.group_id = b.member_group_id
-			INNER JOIN groups ON groups.id = b.member_group_id
-		WHERE groups.deleted_at IS NULL
+			INNER JOIN groups as parentgroup ON parentgroup.id = b.parent_group_id AND parentgroup.deleted_at IS NULL
+			INNER JOIN groups as membergroup ON membergroup.id = b.member_group_id AND membergroup.deleted_at IS NULL
 	)
 	SELECT
 		group_id,
@@ -92,8 +92,8 @@ const (
 			TRUE AS direct
 		FROM
 			group_memberships
-			INNER JOIN groups ON groups.id = group_memberships.group_id
-		WHERE user_id = $1 AND groups.deleted_at IS NULL
+		INNER JOIN groups ON groups.id = group_memberships.group_id
+			WHERE user_id = $1 AND groups.deleted_at IS NULL
 		UNION ALL
 		SELECT
 			b.parent_group_id,
@@ -105,8 +105,8 @@ const (
 		FROM
 			membership_query AS a
 			INNER JOIN group_hierarchies AS b ON a.group_id = b.member_group_id
-			INNER JOIN groups ON groups.id = b.member_group_id
-		WHERE groups.deleted_at IS NULL
+			INNER JOIN groups as parentgroup ON parentgroup.id = b.parent_group_id AND parentgroup.deleted_at IS NULL
+			INNER JOIN groups as membergroup ON membergroup.id = b.member_group_id AND membergroup.deleted_at IS NULL
 	)
 	SELECT
 		group_id,
