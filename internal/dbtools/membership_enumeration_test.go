@@ -54,6 +54,87 @@ func TestServerRunning(t *testing.T) {
 	assert.Equal(t, c, 5)
 }
 
+func TestGetAllGroupMemberships(t *testing.T) {
+	expect := []EnumeratedMembership{
+		{
+			UserID:    "00000001-0000-0000-0000-000000000001",
+			GroupID:   "00000002-0000-0000-0000-000000000001",
+			IsAdmin:   true,
+			Direct:    true,
+			ExpiresAt: null.Time{},
+		},
+		{
+			UserID:    "00000001-0000-0000-0000-000000000002",
+			GroupID:   "00000002-0000-0000-0000-000000000002",
+			IsAdmin:   false,
+			Direct:    true,
+			ExpiresAt: null.Time{},
+		},
+		{
+			UserID:    "00000001-0000-0000-0000-000000000002",
+			GroupID:   "00000002-0000-0000-0000-000000000001",
+			IsAdmin:   false,
+			Direct:    false,
+			ExpiresAt: null.Time{},
+		},
+		{
+			UserID:    "00000001-0000-0000-0000-000000000003",
+			GroupID:   "00000002-0000-0000-0000-000000000003",
+			IsAdmin:   false,
+			Direct:    true,
+			ExpiresAt: null.Time{},
+		},
+		{
+			UserID:    "00000001-0000-0000-0000-000000000003",
+			GroupID:   "00000002-0000-0000-0000-000000000002",
+			IsAdmin:   false,
+			Direct:    false,
+			ExpiresAt: null.Time{},
+		},
+		{
+			UserID:    "00000001-0000-0000-0000-000000000003",
+			GroupID:   "00000002-0000-0000-0000-000000000001",
+			IsAdmin:   false,
+			Direct:    false,
+			ExpiresAt: null.Time{},
+		},
+		{
+			UserID:    "00000001-0000-0000-0000-000000000004",
+			GroupID:   "00000002-0000-0000-0000-000000000001",
+			IsAdmin:   false,
+			Direct:    true,
+			ExpiresAt: null.Time{},
+		},
+		{
+			UserID:    "00000001-0000-0000-0000-000000000004",
+			GroupID:   "00000002-0000-0000-0000-000000000003",
+			IsAdmin:   false,
+			Direct:    true,
+			ExpiresAt: null.Time{},
+		},
+		{
+			UserID:    "00000001-0000-0000-0000-000000000004",
+			GroupID:   "00000002-0000-0000-0000-000000000002",
+			IsAdmin:   false,
+			Direct:    false,
+			ExpiresAt: null.Time{},
+		},
+		{
+			UserID:    "00000001-0000-0000-0000-000000000005",
+			GroupID:   "00000002-0000-0000-0000-000000000005",
+			IsAdmin:   false,
+			Direct:    true,
+			ExpiresAt: null.Time{},
+		},
+	}
+
+	allMemberships, err := GetAllGroupMemberships(context.TODO(), db, false)
+
+	if assert.NoError(t, err) {
+		assert.True(t, assert.ElementsMatch(t, allMemberships, expect))
+	}
+}
+
 func TestGetMembershipsForUser(t *testing.T) {
 	testCases := map[string][]EnumeratedMembership{
 		"00000001-0000-0000-0000-000000000001": {
@@ -127,7 +208,15 @@ func TestGetMembershipsForUser(t *testing.T) {
 				ExpiresAt: null.Time{},
 			},
 		},
-		"00000001-0000-0000-0000-000000000005": {},
+		"00000001-0000-0000-0000-000000000005": {
+			{
+				UserID:    "00000001-0000-0000-0000-000000000005",
+				GroupID:   "00000002-0000-0000-0000-000000000005",
+				IsAdmin:   false,
+				Direct:    true,
+				ExpiresAt: null.Time{},
+			},
+		},
 	}
 
 	for user, expect := range testCases {
@@ -135,7 +224,7 @@ func TestGetMembershipsForUser(t *testing.T) {
 			enumeratedMemberships, err := GetMembershipsForUser(context.TODO(), db, user, false)
 
 			if assert.NoError(t, err) {
-				assert.True(t, assert.ObjectsAreEqualValues(enumeratedMemberships, expect))
+				assert.True(t, assert.ElementsMatch(t, enumeratedMemberships, expect))
 			}
 		})
 	}
@@ -212,6 +301,15 @@ func TestGetMembersOfGroup(t *testing.T) {
 				ExpiresAt: null.Time{},
 			},
 		},
+		"00000002-0000-0000-0000-000000000005": {
+			{
+				UserID:    "00000001-0000-0000-0000-000000000005",
+				GroupID:   "00000002-0000-0000-0000-000000000005",
+				IsAdmin:   false,
+				Direct:    true,
+				ExpiresAt: null.Time{},
+			},
+		},
 	}
 
 	for user, expect := range testCases {
@@ -219,7 +317,7 @@ func TestGetMembersOfGroup(t *testing.T) {
 			enumeratedMemberships, err := GetMembersOfGroup(context.TODO(), db, user, false)
 
 			if assert.NoError(t, err) {
-				assert.True(t, assert.ObjectsAreEqualValues(enumeratedMemberships, expect))
+				assert.True(t, assert.ElementsMatch(t, enumeratedMemberships, expect))
 			}
 		})
 	}
@@ -253,22 +351,24 @@ func TestHierarchyWouldCreateCycle(t *testing.T) {
 
 // nolint:all
 // Sets this up:
-//                                        ┌──────┐
-//                                    ┌───┤Group1│
-//                                    │   └─┬─┬──┘
-//                                    ▼     │ │
-//                                ┌──────┐  │ ▼
-//          ┌─────────────────┬───┤Group2│  │User1
-//          │                 │   └───┬──┘  │
-//          ▼                 ▼       │     │
-// ┌────────────────┐     ┌──────┐    ▼     │
-// │Group4 (Deleted)│     │Group3│   User2  │
-// └───┬────────┬───┘     └┬──┬──┘          │
-//     │        │          │  │             │
-//     ▼        ▼          │  ▼             │
-// ┌──────┐   User5        │ User3          ▼
-// │Group5│                └────────────► User4
-// └──────┘
+//                                        ┌──────┐  
+//                                    ┌───┤Group1│  
+//                                    │   └─┬─┬──┘  
+//                                    ▼     │ │     
+//                                ┌──────┐  │ ▼     
+//          ┌─────────────────┬───┤Group2│  │User1  
+//          │                 │   └───┬──┘  │       
+//          ▼                 ▼       │     │       
+// ┌────────────────┐     ┌──────┐    ▼     │       
+// │Group4 (Deleted)│     │Group3│   User2  │       
+// └───┬────────┬───┘     └┬──┬──┘          │       
+//     │        │          │  │             │       
+//     ▼        │          │  ▼             │       
+// ┌──────┐     │          │ User3          ▼       
+// │Group5│     │          └────────────► User4     
+// └───┬──┘     │                                   
+//     │        ▼                                   
+//     └────► User5                                 
 
 func seedTestDB(db *sql.DB) error {
 	testData := []string{
@@ -306,6 +406,8 @@ func seedTestDB(db *sql.DB) error {
 		('00000003-0000-0000-0000-000000000005', '00000002-0000-0000-0000-000000000003', '00000001-0000-0000-0000-000000000004', 'f', '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL);`,
 		`INSERT INTO "group_memberships" ("id", "group_id", "user_id", "is_admin", "created_at", "updated_at", "expires_at") VALUES
 		('00000003-0000-0000-0000-000000000006', '00000002-0000-0000-0000-000000000004', '00000001-0000-0000-0000-000000000005', 'f', '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL);`,
+		`INSERT INTO "group_memberships" ("id", "group_id", "user_id", "is_admin", "created_at", "updated_at", "expires_at") VALUES
+		('00000003-0000-0000-0000-000000000007', '00000002-0000-0000-0000-000000000005', '00000001-0000-0000-0000-000000000005', 'f', '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL);`,
 
 		`INSERT INTO "group_hierarchies" ("id", "parent_group_id", "member_group_id", "created_at", "updated_at", "expires_at") VALUES
 		('00000004-0000-0000-0000-000000000001', '00000002-0000-0000-0000-000000000001', '00000002-0000-0000-0000-000000000002', '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL);`,
