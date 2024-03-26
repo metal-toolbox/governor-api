@@ -269,7 +269,7 @@ func (r *Router) getAuthenticatedUserGroupApprovals(c *gin.Context) {
 			}
 		}
 
-		if groupHasNoAdmins && len(m.R.Group.R.ApproverGroupGroup.R.GroupMemberships) > 0 {
+		if groupHasNoAdmins && m.R.Group.ApproverGroup.Valid && len(m.R.Group.R.ApproverGroupGroup.R.GroupMemberships) > 0 {
 			groupHasNoAdmins = false
 		}
 
