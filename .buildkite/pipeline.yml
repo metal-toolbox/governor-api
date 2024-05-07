@@ -4,17 +4,14 @@ env:
   IMAGE_TAG: ${BUILDKITE_BUILD_NUMBER}-${BUILDKITE_COMMIT:0:8}
 
 steps:
-  - label: ":golangci-lint: lint :lint-roller:"
-    key: "lint"
-    plugins:
-      - docker#v5.10.0:
-          environment:
-            - GOPRIVATE
-            - GOFLAGS=-buildvcs=false
-          image: "registry.hub.docker.com/golangci/golangci-lint:v1.57-alpine"
-          command: ["golangci-lint", "run", "-v"]
-          volumes:
-            - "/var/lib/buildkite-agent/.gitconfig/:/root/.gitconfig/"
+- label: ":golangci-lint: lint :lint-roller:"
+  key: "lint"
+  plugins:
+    - docker#v5.10.0:
+        environment:
+          - GOFLAGS=-buildvcs=false
+        image: "registry.hub.docker.com/golangci/golangci-lint:v1.57-alpine"
+        command: ["golangci-lint", "run", "-v", "--timeout", "5m"]
 
 - label: ":test_tube: test"
   key: "test"
