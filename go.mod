@@ -2,8 +2,6 @@ module github.com/metal-toolbox/governor-api
 
 go 1.22
 
-toolchain go1.22.2
-
 require (
 	github.com/XSAM/otelsql v0.31.0
 	github.com/cockroachdb/cockroach-go/v2 v2.3.8
@@ -15,12 +13,12 @@ require (
 	github.com/goccy/go-json v0.10.2
 	github.com/google/uuid v1.6.0
 	github.com/gosimple/slug v1.14.0
-	github.com/jmoiron/sqlx v1.4.0
+	github.com/jmoiron/sqlx v1.3.5
 	github.com/lib/pq v1.10.9
 	github.com/metal-toolbox/auditevent v0.8.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/nats-io/nats.go v1.34.1
-	github.com/pressly/goose/v3 v3.20.0
+	github.com/pressly/goose/v3 v3.18.0
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
