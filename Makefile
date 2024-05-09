@@ -3,9 +3,11 @@ PHONY: test test-local coverage lint golint clean vendor local-dev-databases doc
 
 GOOS=linux
 DB_STRING=host=localhost port=26257 user=root sslmode=disable
+DB_STRING_DC=host=crdb port=26257 user=root sslmode=disable
 DB_NAME=governor
 DEV_DB=${DB_STRING} dbname=${DB_NAME}
 TEST_DB=${DB_STRING} dbname=${DB_NAME}_test
+TEST_DB_DC=${DB_STRING_DC} dbname=${DB_NAME}_test
 
 # OAuth client generated secret
 SECRET := $(shell bash -c 'openssl rand -hex 16')
@@ -118,6 +120,12 @@ ci-test: | unit-test
 	cockroach sql --url ${GOVERNOR_DB_URI} --insecure -e "create database ${DB_NAME}_test"
 	go run main.go migrate up
 
+test-database-dc: | vendor
+	@cockroach sql --insecure -e "select version()"
+	@cockroach sql --insecure -e "drop database if exists ${DB_NAME}_test"
+	@cockroach sql --insecure -e "create database ${DB_NAME}_test"
+	GOVERNOR_DB_URI="${TEST_DB_DC}" go run main.go migrate up
+
 test-database: | vendor
 	docker-compose -f docker-compose.yml up -d crdb
 	sleep 10
@@ -129,6 +137,10 @@ test-database: | vendor
 setup-test-database: | vendor
 	cockroach sql --insecure -e "drop database if exists governor_test; create database governor_test;"
 	GOVERNOR_DB_URI="host=crdb port=26257 user=root sslmode=disable dbname=governor_test" go run main.go migrate up
+
+generate-models-dc:
+	$(MAKE) test-database-dc
+	sqlboiler --add-soft-deletes crdb
 
 generate-models:
 	go install github.com/volatiletech/sqlboiler/v4@latest

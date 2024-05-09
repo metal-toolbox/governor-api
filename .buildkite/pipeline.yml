@@ -7,8 +7,10 @@ steps:
 - label: ":golangci-lint: lint :lint-roller:"
   key: "lint"
   plugins:
-    - docker#v5.9.0:
-        image: "registry.hub.docker.com/golangci/golangci-lint:v1.53-alpine"
+    - docker#v5.10.0:
+        environment:
+          - GOFLAGS=-buildvcs=false
+        image: "registry.hub.docker.com/golangci/golangci-lint:v1.57-alpine"
         command: ["golangci-lint", "run", "-v", "--timeout", "5m"]
 
 - label: ":test_tube: test"
@@ -24,8 +26,8 @@ steps:
   key: "gobuild"
   artifact_paths: "bin/${APP_NAME}"
   plugins:
-    - docker#v5.9.0:
-        image: "golang:1.20"
+    - docker#v5.10.0:
+        image: "golang:1.22"
         environment:
           - CGO_ENABLED=0
           - GOOS=linux
