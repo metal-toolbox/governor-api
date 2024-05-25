@@ -83,7 +83,7 @@ func (c *Client) UserExtensionResource(
 // UserExtensionResources lists all user extension resources for a user
 func (c *Client) UserExtensionResources(
 	ctx context.Context, userID, extensionSlug, erdSlugPlural, erdVersion string,
-	deleted bool,
+	deleted bool, queries map[string]string,
 ) ([]*v1alpha1.UserExtensionResource, error) {
 	if userID == "" {
 		return nil, ErrMissingUserID
@@ -108,7 +108,24 @@ func (c *Client) UserExtensionResources(
 	)
 
 	if deleted {
-		u += "?deleted"
+		queries["deleted"] = ""
+	}
+
+	i := 0
+	for k, v := range queries {
+		if i == 0 {
+			u += "?"
+		} else {
+			u += "&"
+		}
+
+		if v == "" {
+			u += k
+		} else {
+			u += fmt.Sprintf("%s=%s", k, v)
+		}
+
+		i++
 	}
 
 	req, err := c.newGovernorRequest(ctx, http.MethodGet, u)
@@ -196,7 +213,7 @@ func (c *Client) CreateUserExtensionResource(
 		return nil, handleResourceStatusNotFound(respBody)
 	}
 
-	if resp.StatusCode != http.StatusOK &&
+	if resp.StatusCode != http.StatusCreated &&
 		resp.StatusCode != http.StatusAccepted &&
 		resp.StatusCode != http.StatusNoContent {
 		return nil, ErrRequestNonSuccess

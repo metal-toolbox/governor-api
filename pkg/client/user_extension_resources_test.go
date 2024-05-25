@@ -117,7 +117,7 @@ func TestClient_UserExtensionResources(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			got, err := c.UserExtensionResources(
-				context.TODO(), "user-1", "test-extension-1", "some-resources", "v1", false,
+				context.TODO(), "user-1", "test-extension-1", "some-resources", "v1", false, nil,
 			)
 
 			if tt.expectedErr != nil {
@@ -422,7 +422,7 @@ func TestClient_CreateUserExtensionResource(t *testing.T) {
 				httpClient: &mockHTTPDoer{
 					t:          t,
 					resp:       []byte(testExtensionResourceResponse),
-					statusCode: http.StatusOK,
+					statusCode: http.StatusCreated,
 				},
 			},
 			req:       testExtensionResourcePayload,
@@ -471,7 +471,7 @@ func TestClient_CreateUserExtensionResource(t *testing.T) {
 			fields: fields{
 				httpClient: &mockHTTPDoer{
 					t:          t,
-					statusCode: http.StatusOK,
+					statusCode: http.StatusCreated,
 					resp:       []byte(`{`),
 				},
 			},
@@ -488,7 +488,7 @@ func TestClient_CreateUserExtensionResource(t *testing.T) {
 				httpClient: &mockHTTPDoer{
 					t:          t,
 					resp:       []byte(testExtensionResourceResponse),
-					statusCode: http.StatusOK,
+					statusCode: http.StatusCreated,
 				},
 			},
 			req:         testExtensionResourcePayload,
@@ -505,7 +505,7 @@ func TestClient_CreateUserExtensionResource(t *testing.T) {
 				httpClient: &mockHTTPDoer{
 					t:          t,
 					resp:       []byte(testExtensionResourceResponse),
-					statusCode: http.StatusOK,
+					statusCode: http.StatusCreated,
 				},
 			},
 			req:         testExtensionResourcePayload,
@@ -522,7 +522,7 @@ func TestClient_CreateUserExtensionResource(t *testing.T) {
 				httpClient: &mockHTTPDoer{
 					t:          t,
 					resp:       []byte(testExtensionResourceResponse),
-					statusCode: http.StatusOK,
+					statusCode: http.StatusCreated,
 				},
 			},
 			req:         testExtensionResourcePayload,
