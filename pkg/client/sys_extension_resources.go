@@ -105,7 +105,8 @@ func (c *Client) SystemExtensionResource(
 
 // SystemExtensionResources list all system resources
 func (c *Client) SystemExtensionResources(
-	ctx context.Context, extensionSlug, erdSlugPlural, erdVersion string, deleted bool,
+	ctx context.Context, extensionSlug, erdSlugPlural, erdVersion string,
+	deleted bool, queries map[string]string,
 ) ([]*v1alpha1.SystemExtensionResource, error) {
 	if extensionSlug == "" {
 		return nil, ErrMissingExtensionIDOrSlug
@@ -121,7 +122,24 @@ func (c *Client) SystemExtensionResources(
 	)
 
 	if deleted {
-		u += "?deleted"
+		queries["deleted"] = ""
+	}
+
+	i := 0
+	for k, v := range queries {
+		if i == 0 {
+			u += "?"
+		} else {
+			u += "&"
+		}
+
+		if v == "" {
+			u += k
+		} else {
+			u += fmt.Sprintf("%s=%s", k, v)
+		}
+
+		i++
 	}
 
 	req, err := c.newGovernorRequest(ctx, http.MethodGet, u)
@@ -209,7 +227,7 @@ func (c *Client) CreateSystemExtensionResource(
 		return nil, handleResourceStatusNotFound(respBody)
 	}
 
-	if resp.StatusCode != http.StatusOK &&
+	if resp.StatusCode != http.StatusCreated &&
 		resp.StatusCode != http.StatusAccepted &&
 		resp.StatusCode != http.StatusNoContent {
 		return nil, ErrRequestNonSuccess
