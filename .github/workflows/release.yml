@@ -29,7 +29,7 @@ jobs:
         name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: "1.20"
+          go-version: "1.22"
       -
         name: install cosign
         uses: sigstore/cosign-installer@main
@@ -44,4 +44,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COSIGN_EXPERIMENTAL: 1
-          GOVERSION: "1.20"
+          GOVERSION: "1.22"
