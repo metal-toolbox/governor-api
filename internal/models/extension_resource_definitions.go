@@ -25,19 +25,20 @@ import (
 
 // ExtensionResourceDefinition is an object representing the database table.
 type ExtensionResourceDefinition struct {
-	ID           string     `boil:"id" json:"id" toml:"id" yaml:"id"`
-	Name         string     `boil:"name" json:"name" toml:"name" yaml:"name"`
-	Description  string     `boil:"description" json:"description" toml:"description" yaml:"description"`
-	Enabled      bool       `boil:"enabled" json:"enabled" toml:"enabled" yaml:"enabled"`
-	SlugSingular string     `boil:"slug_singular" json:"slug_singular" toml:"slug_singular" yaml:"slug_singular"`
-	SlugPlural   string     `boil:"slug_plural" json:"slug_plural" toml:"slug_plural" yaml:"slug_plural"`
-	Version      string     `boil:"version" json:"version" toml:"version" yaml:"version"`
-	Scope        string     `boil:"scope" json:"scope" toml:"scope" yaml:"scope"`
-	Schema       types.JSON `boil:"schema" json:"schema" toml:"schema" yaml:"schema"`
-	CreatedAt    time.Time  `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
-	UpdatedAt    time.Time  `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
-	DeletedAt    null.Time  `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
-	ExtensionID  string     `boil:"extension_id" json:"extension_id" toml:"extension_id" yaml:"extension_id"`
+	ID           string      `boil:"id" json:"id" toml:"id" yaml:"id"`
+	Name         string      `boil:"name" json:"name" toml:"name" yaml:"name"`
+	Description  string      `boil:"description" json:"description" toml:"description" yaml:"description"`
+	Enabled      bool        `boil:"enabled" json:"enabled" toml:"enabled" yaml:"enabled"`
+	SlugSingular string      `boil:"slug_singular" json:"slug_singular" toml:"slug_singular" yaml:"slug_singular"`
+	SlugPlural   string      `boil:"slug_plural" json:"slug_plural" toml:"slug_plural" yaml:"slug_plural"`
+	Version      string      `boil:"version" json:"version" toml:"version" yaml:"version"`
+	Scope        string      `boil:"scope" json:"scope" toml:"scope" yaml:"scope"`
+	Schema       types.JSON  `boil:"schema" json:"schema" toml:"schema" yaml:"schema"`
+	CreatedAt    time.Time   `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
+	UpdatedAt    time.Time   `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
+	DeletedAt    null.Time   `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
+	ExtensionID  string      `boil:"extension_id" json:"extension_id" toml:"extension_id" yaml:"extension_id"`
+	AdminGroup   null.String `boil:"admin_group" json:"admin_group,omitempty" toml:"admin_group" yaml:"admin_group,omitempty"`
 
 	R *extensionResourceDefinitionR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L extensionResourceDefinitionL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -57,6 +58,7 @@ var ExtensionResourceDefinitionColumns = struct {
 	UpdatedAt    string
 	DeletedAt    string
 	ExtensionID  string
+	AdminGroup   string
 }{
 	ID:           "id",
 	Name:         "name",
@@ -71,6 +73,7 @@ var ExtensionResourceDefinitionColumns = struct {
 	UpdatedAt:    "updated_at",
 	DeletedAt:    "deleted_at",
 	ExtensionID:  "extension_id",
+	AdminGroup:   "admin_group",
 }
 
 var ExtensionResourceDefinitionTableColumns = struct {
@@ -87,6 +90,7 @@ var ExtensionResourceDefinitionTableColumns = struct {
 	UpdatedAt    string
 	DeletedAt    string
 	ExtensionID  string
+	AdminGroup   string
 }{
 	ID:           "extension_resource_definitions.id",
 	Name:         "extension_resource_definitions.name",
@@ -101,6 +105,7 @@ var ExtensionResourceDefinitionTableColumns = struct {
 	UpdatedAt:    "extension_resource_definitions.updated_at",
 	DeletedAt:    "extension_resource_definitions.deleted_at",
 	ExtensionID:  "extension_resource_definitions.extension_id",
+	AdminGroup:   "extension_resource_definitions.admin_group",
 }
 
 // Generated where
@@ -149,6 +154,7 @@ var ExtensionResourceDefinitionWhere = struct {
 	UpdatedAt    whereHelpertime_Time
 	DeletedAt    whereHelpernull_Time
 	ExtensionID  whereHelperstring
+	AdminGroup   whereHelpernull_String
 }{
 	ID:           whereHelperstring{field: "\"extension_resource_definitions\".\"id\""},
 	Name:         whereHelperstring{field: "\"extension_resource_definitions\".\"name\""},
@@ -163,15 +169,18 @@ var ExtensionResourceDefinitionWhere = struct {
 	UpdatedAt:    whereHelpertime_Time{field: "\"extension_resource_definitions\".\"updated_at\""},
 	DeletedAt:    whereHelpernull_Time{field: "\"extension_resource_definitions\".\"deleted_at\""},
 	ExtensionID:  whereHelperstring{field: "\"extension_resource_definitions\".\"extension_id\""},
+	AdminGroup:   whereHelpernull_String{field: "\"extension_resource_definitions\".\"admin_group\""},
 }
 
 // ExtensionResourceDefinitionRels is where relationship names are stored.
 var ExtensionResourceDefinitionRels = struct {
 	Extension                string
+	AdminGroupGroup          string
 	SystemExtensionResources string
 	UserExtensionResources   string
 }{
 	Extension:                "Extension",
+	AdminGroupGroup:          "AdminGroupGroup",
 	SystemExtensionResources: "SystemExtensionResources",
 	UserExtensionResources:   "UserExtensionResources",
 }
@@ -179,6 +188,7 @@ var ExtensionResourceDefinitionRels = struct {
 // extensionResourceDefinitionR is where relationships are stored.
 type extensionResourceDefinitionR struct {
 	Extension                *Extension                   `boil:"Extension" json:"Extension" toml:"Extension" yaml:"Extension"`
+	AdminGroupGroup          *Group                       `boil:"AdminGroupGroup" json:"AdminGroupGroup" toml:"AdminGroupGroup" yaml:"AdminGroupGroup"`
 	SystemExtensionResources SystemExtensionResourceSlice `boil:"SystemExtensionResources" json:"SystemExtensionResources" toml:"SystemExtensionResources" yaml:"SystemExtensionResources"`
 	UserExtensionResources   UserExtensionResourceSlice   `boil:"UserExtensionResources" json:"UserExtensionResources" toml:"UserExtensionResources" yaml:"UserExtensionResources"`
 }
@@ -193,6 +203,13 @@ func (r *extensionResourceDefinitionR) GetExtension() *Extension {
 		return nil
 	}
 	return r.Extension
+}
+
+func (r *extensionResourceDefinitionR) GetAdminGroupGroup() *Group {
+	if r == nil {
+		return nil
+	}
+	return r.AdminGroupGroup
 }
 
 func (r *extensionResourceDefinitionR) GetSystemExtensionResources() SystemExtensionResourceSlice {
@@ -213,9 +230,9 @@ func (r *extensionResourceDefinitionR) GetUserExtensionResources() UserExtension
 type extensionResourceDefinitionL struct{}
 
 var (
-	extensionResourceDefinitionAllColumns            = []string{"id", "name", "description", "enabled", "slug_singular", "slug_plural", "version", "scope", "schema", "created_at", "updated_at", "deleted_at", "extension_id"}
+	extensionResourceDefinitionAllColumns            = []string{"id", "name", "description", "enabled", "slug_singular", "slug_plural", "version", "scope", "schema", "created_at", "updated_at", "deleted_at", "extension_id", "admin_group"}
 	extensionResourceDefinitionColumnsWithoutDefault = []string{"name", "description", "slug_singular", "slug_plural", "version", "scope", "schema", "extension_id"}
-	extensionResourceDefinitionColumnsWithDefault    = []string{"id", "enabled", "created_at", "updated_at", "deleted_at"}
+	extensionResourceDefinitionColumnsWithDefault    = []string{"id", "enabled", "created_at", "updated_at", "deleted_at", "admin_group"}
 	extensionResourceDefinitionPrimaryKeyColumns     = []string{"id"}
 	extensionResourceDefinitionGeneratedColumns      = []string{}
 )
@@ -536,6 +553,17 @@ func (o *ExtensionResourceDefinition) Extension(mods ...qm.QueryMod) extensionQu
 	return Extensions(queryMods...)
 }
 
+// AdminGroupGroup pointed to by the foreign key.
+func (o *ExtensionResourceDefinition) AdminGroupGroup(mods ...qm.QueryMod) groupQuery {
+	queryMods := []qm.QueryMod{
+		qm.Where("\"id\" = ?", o.AdminGroup),
+	}
+
+	queryMods = append(queryMods, mods...)
+
+	return Groups(queryMods...)
+}
+
 // SystemExtensionResources retrieves all the system_extension_resource's SystemExtensionResources with an executor.
 func (o *ExtensionResourceDefinition) SystemExtensionResources(mods ...qm.QueryMod) systemExtensionResourceQuery {
 	var queryMods []qm.QueryMod
@@ -677,6 +705,131 @@ func (extensionResourceDefinitionL) LoadExtension(ctx context.Context, e boil.Co
 					foreign.R = &extensionR{}
 				}
 				foreign.R.ExtensionResourceDefinitions = append(foreign.R.ExtensionResourceDefinitions, local)
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadAdminGroupGroup allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for an N-1 relationship.
+func (extensionResourceDefinitionL) LoadAdminGroupGroup(ctx context.Context, e boil.ContextExecutor, singular bool, maybeExtensionResourceDefinition interface{}, mods queries.Applicator) error {
+	var slice []*ExtensionResourceDefinition
+	var object *ExtensionResourceDefinition
+
+	if singular {
+		var ok bool
+		object, ok = maybeExtensionResourceDefinition.(*ExtensionResourceDefinition)
+		if !ok {
+			object = new(ExtensionResourceDefinition)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeExtensionResourceDefinition)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeExtensionResourceDefinition))
+			}
+		}
+	} else {
+		s, ok := maybeExtensionResourceDefinition.(*[]*ExtensionResourceDefinition)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeExtensionResourceDefinition)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeExtensionResourceDefinition))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &extensionResourceDefinitionR{}
+		}
+		if !queries.IsNil(object.AdminGroup) {
+			args[object.AdminGroup] = struct{}{}
+		}
+
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &extensionResourceDefinitionR{}
+			}
+
+			if !queries.IsNil(obj.AdminGroup) {
+				args[obj.AdminGroup] = struct{}{}
+			}
+
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`groups`),
+		qm.WhereIn(`groups.id in ?`, argsSlice...),
+		qmhelper.WhereIsNull(`groups.deleted_at`),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load Group")
+	}
+
+	var resultSlice []*Group
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice Group")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results of eager load for groups")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for groups")
+	}
+
+	if len(groupAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(resultSlice) == 0 {
+		return nil
+	}
+
+	if singular {
+		foreign := resultSlice[0]
+		object.R.AdminGroupGroup = foreign
+		if foreign.R == nil {
+			foreign.R = &groupR{}
+		}
+		foreign.R.AdminGroupExtensionResourceDefinitions = append(foreign.R.AdminGroupExtensionResourceDefinitions, object)
+		return nil
+	}
+
+	for _, local := range slice {
+		for _, foreign := range resultSlice {
+			if queries.Equal(local.AdminGroup, foreign.ID) {
+				local.R.AdminGroupGroup = foreign
+				if foreign.R == nil {
+					foreign.R = &groupR{}
+				}
+				foreign.R.AdminGroupExtensionResourceDefinitions = append(foreign.R.AdminGroupExtensionResourceDefinitions, local)
 				break
 			}
 		}
@@ -957,6 +1110,86 @@ func (o *ExtensionResourceDefinition) SetExtension(ctx context.Context, exec boi
 		related.R.ExtensionResourceDefinitions = append(related.R.ExtensionResourceDefinitions, o)
 	}
 
+	return nil
+}
+
+// SetAdminGroupGroup of the extensionResourceDefinition to the related item.
+// Sets o.R.AdminGroupGroup to related.
+// Adds o to related.R.AdminGroupExtensionResourceDefinitions.
+func (o *ExtensionResourceDefinition) SetAdminGroupGroup(ctx context.Context, exec boil.ContextExecutor, insert bool, related *Group) error {
+	var err error
+	if insert {
+		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+			return errors.Wrap(err, "failed to insert into foreign table")
+		}
+	}
+
+	updateQuery := fmt.Sprintf(
+		"UPDATE \"extension_resource_definitions\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, []string{"admin_group"}),
+		strmangle.WhereClause("\"", "\"", 2, extensionResourceDefinitionPrimaryKeyColumns),
+	)
+	values := []interface{}{related.ID, o.ID}
+
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, updateQuery)
+		fmt.Fprintln(writer, values)
+	}
+	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	queries.Assign(&o.AdminGroup, related.ID)
+	if o.R == nil {
+		o.R = &extensionResourceDefinitionR{
+			AdminGroupGroup: related,
+		}
+	} else {
+		o.R.AdminGroupGroup = related
+	}
+
+	if related.R == nil {
+		related.R = &groupR{
+			AdminGroupExtensionResourceDefinitions: ExtensionResourceDefinitionSlice{o},
+		}
+	} else {
+		related.R.AdminGroupExtensionResourceDefinitions = append(related.R.AdminGroupExtensionResourceDefinitions, o)
+	}
+
+	return nil
+}
+
+// RemoveAdminGroupGroup relationship.
+// Sets o.R.AdminGroupGroup to nil.
+// Removes o from all passed in related items' relationships struct.
+func (o *ExtensionResourceDefinition) RemoveAdminGroupGroup(ctx context.Context, exec boil.ContextExecutor, related *Group) error {
+	var err error
+
+	queries.SetScanner(&o.AdminGroup, nil)
+	if _, err = o.Update(ctx, exec, boil.Whitelist("admin_group")); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	if o.R != nil {
+		o.R.AdminGroupGroup = nil
+	}
+	if related == nil || related.R == nil {
+		return nil
+	}
+
+	for i, ri := range related.R.AdminGroupExtensionResourceDefinitions {
+		if queries.Equal(o.AdminGroup, ri.AdminGroup) {
+			continue
+		}
+
+		ln := len(related.R.AdminGroupExtensionResourceDefinitions)
+		if ln > 1 && i < ln-1 {
+			related.R.AdminGroupExtensionResourceDefinitions[i] = related.R.AdminGroupExtensionResourceDefinitions[ln-1]
+		}
+		related.R.AdminGroupExtensionResourceDefinitions = related.R.AdminGroupExtensionResourceDefinitions[:ln-1]
+		break
+	}
 	return nil
 }
 
