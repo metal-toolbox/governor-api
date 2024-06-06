@@ -1318,10 +1318,8 @@ func (r *Router) getGroupMembershipsAll(c *gin.Context) {
 	} else {
 		enumeratedMemberships, err := dbtools.GetAllGroupMemberships(c, r.DB.DB, true)
 		if err != nil {
-			if err != nil {
-				sendError(c, http.StatusInternalServerError, "error getting group memberships"+err.Error())
-				return
-			}
+			sendError(c, http.StatusInternalServerError, "error getting group memberships"+err.Error())
+			return
 		}
 
 		response = make([]GroupMembership, len(enumeratedMemberships))

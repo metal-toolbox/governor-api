@@ -67,24 +67,22 @@ func findERDForExtensionResource(
 	extensionSlug, erdSlugPlural, erdVersion string,
 ) (extension *models.Extension, erd *models.ExtensionResourceDefinition, err error) {
 	// fetch extension
-	if extension == nil {
-		extensionQM := qm.Where("slug = ?", extensionSlug)
+	extensionQM := qm.Where("slug = ?", extensionSlug)
 
-		// fetch ERD
-		queryMods := []qm.QueryMod{
-			qm.Where("slug_plural = ?", erdSlugPlural),
-			qm.Where("version = ?", erdVersion),
-		}
+	// fetch ERD
+	queryMods := []qm.QueryMod{
+		qm.Where("slug_plural = ?", erdSlugPlural),
+		qm.Where("version = ?", erdVersion),
+	}
 
-		extension, err = fetchExtension(c, exec, extensionQM,
-			qm.Load(
-				models.ExtensionRels.ExtensionResourceDefinitions,
-				queryMods...,
-			),
-		)
-		if err != nil {
-			return
-		}
+	extension, err = fetchExtension(c, exec, extensionQM,
+		qm.Load(
+			models.ExtensionRels.ExtensionResourceDefinitions,
+			queryMods...,
+		),
+	)
+	if err != nil {
+		return
 	}
 
 	if len(extension.R.ExtensionResourceDefinitions) < 1 {
