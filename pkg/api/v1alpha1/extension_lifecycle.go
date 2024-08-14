@@ -107,19 +107,31 @@ func (r *Router) mwExtensionResourcesEnabledCheck(c *gin.Context) {
 	)
 
 	// find ERD
-	ext, erd, err := findERDForExtensionResource(
-		c, r.DB,
-		extensionSlug, erdSlugPlural, erdVersion,
-	)
-	if err != nil {
-		if errors.Is(err, ErrExtensionNotFound) || errors.Is(err, ErrERDNotFound) {
-			sendError(c, http.StatusNotFound, err.Error())
+
+	ext := getCtxExtension(c)
+	erd := getCtxERD(c)
+
+	// only check DB if extension or ERD is not loaded
+	if ext == nil || erd == nil {
+		var err error
+
+		ext, erd, err = findERDForExtensionResource(
+			c, r.DB,
+			extensionSlug, erdSlugPlural, erdVersion,
+		)
+		if err != nil {
+			if errors.Is(err, ErrExtensionNotFound) || errors.Is(err, ErrERDNotFound) {
+				sendError(c, http.StatusNotFound, err.Error())
+				return
+			}
+
+			sendError(c, http.StatusBadRequest, err.Error())
+
 			return
 		}
 
-		sendError(c, http.StatusBadRequest, err.Error())
-
-		return
+		setCtxExtension(c, ext)
+		setCtxERD(c, erd)
 	}
 
 	if !ext.Enabled {

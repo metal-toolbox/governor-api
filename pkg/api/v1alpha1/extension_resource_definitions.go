@@ -14,6 +14,7 @@ import (
 	"github.com/metal-toolbox/governor-api/internal/models"
 	events "github.com/metal-toolbox/governor-api/pkg/events/v1alpha1"
 	"github.com/metal-toolbox/governor-api/pkg/jsonschema"
+	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
@@ -48,6 +49,7 @@ type ExtensionResourceDefinitionReq struct {
 	Scope        ExtensionResourceDefinitionScope `json:"scope"`
 	Schema       json.RawMessage                  `json:"schema"`
 	Enabled      *bool                            `json:"enabled"`
+	AdminGroup   string                           `json:"admin_group"`
 }
 
 func isValidSlug(s string) bool {
@@ -230,6 +232,7 @@ func (r *Router) createExtensionResourceDefinition(c *gin.Context) {
 		Scope:        string(req.Scope),
 		Schema:       []byte(schema),
 		Enabled:      *req.Enabled,
+		AdminGroup:   null.NewString(req.AdminGroup, req.AdminGroup != ""),
 	}
 
 	var extensionQM qm.QueryMod
@@ -539,6 +542,8 @@ func (r *Router) updateExtensionResourceDefinition(c *gin.Context) {
 	if req.Enabled != nil {
 		erd.Enabled = *req.Enabled
 	}
+
+	erd.AdminGroup = null.NewString(req.AdminGroup, req.AdminGroup != "")
 
 	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
 	if err != nil {

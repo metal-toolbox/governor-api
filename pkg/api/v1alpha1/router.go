@@ -675,7 +675,8 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version",
 		r.AuditMW.AuditWithType("CreateSystemExtensionResource"),
 		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
-		r.mwUserAuthRequired(AuthRoleAdmin),
+		r.mwUserAuthRequired(AuthRoleUser),
+		r.mwSystemExtensionResourceGroupAuth,
 		r.mwExtensionResourcesEnabledCheck,
 		r.createSystemExtensionResource,
 	)
@@ -684,6 +685,7 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version",
 		r.AuditMW.AuditWithType("ListSystemExtensionResources"),
 		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
+		r.mwUserAuthRequired(AuthRoleUser),
 		r.listSystemExtensionResources,
 	)
 
@@ -691,6 +693,7 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version/:resource-id",
 		r.AuditMW.AuditWithType("GetSystemExtensionResource"),
 		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
+		r.mwUserAuthRequired(AuthRoleUser),
 		r.getSystemExtensionResource,
 	)
 
@@ -698,7 +701,8 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version/:resource-id",
 		r.AuditMW.AuditWithType("UpdateSystemExtensionResource"),
 		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
-		r.mwUserAuthRequired(AuthRoleAdmin),
+		r.mwUserAuthRequired(AuthRoleUser),
+		r.mwSystemExtensionResourceGroupAuth,
 		r.mwExtensionResourcesEnabledCheck,
 		r.updateSystemExtensionResource,
 	)
@@ -707,7 +711,8 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version/:resource-id",
 		r.AuditMW.AuditWithType("DeleteSystemExtensionResource"),
 		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
-		r.mwUserAuthRequired(AuthRoleAdmin),
+		r.mwUserAuthRequired(AuthRoleUser),
+		r.mwSystemExtensionResourceGroupAuth,
 		r.mwExtensionResourcesEnabledCheck,
 		r.deleteSystemExtensionResource,
 	)
