@@ -108,47 +108,50 @@ var GroupWhere = struct {
 
 // GroupRels is where relationship names are stored.
 var GroupRels = struct {
-	ApproverGroupGroup                    string
-	ApproverGroupApplications             string
-	SubjectGroupAuditEvents               string
-	GroupApplicationRequests              string
-	ApproverGroupGroupApplicationRequests string
-	GroupApplications                     string
-	ParentGroupGroupHierarchies           string
-	MemberGroupGroupHierarchies           string
-	GroupMembershipRequests               string
-	GroupMemberships                      string
-	GroupOrganizations                    string
-	ApproverGroupGroups                   string
+	ApproverGroupGroup                     string
+	ApproverGroupApplications              string
+	SubjectGroupAuditEvents                string
+	AdminGroupExtensionResourceDefinitions string
+	GroupApplicationRequests               string
+	ApproverGroupGroupApplicationRequests  string
+	GroupApplications                      string
+	ParentGroupGroupHierarchies            string
+	MemberGroupGroupHierarchies            string
+	GroupMembershipRequests                string
+	GroupMemberships                       string
+	GroupOrganizations                     string
+	ApproverGroupGroups                    string
 }{
-	ApproverGroupGroup:                    "ApproverGroupGroup",
-	ApproverGroupApplications:             "ApproverGroupApplications",
-	SubjectGroupAuditEvents:               "SubjectGroupAuditEvents",
-	GroupApplicationRequests:              "GroupApplicationRequests",
-	ApproverGroupGroupApplicationRequests: "ApproverGroupGroupApplicationRequests",
-	GroupApplications:                     "GroupApplications",
-	ParentGroupGroupHierarchies:           "ParentGroupGroupHierarchies",
-	MemberGroupGroupHierarchies:           "MemberGroupGroupHierarchies",
-	GroupMembershipRequests:               "GroupMembershipRequests",
-	GroupMemberships:                      "GroupMemberships",
-	GroupOrganizations:                    "GroupOrganizations",
-	ApproverGroupGroups:                   "ApproverGroupGroups",
+	ApproverGroupGroup:                     "ApproverGroupGroup",
+	ApproverGroupApplications:              "ApproverGroupApplications",
+	SubjectGroupAuditEvents:                "SubjectGroupAuditEvents",
+	AdminGroupExtensionResourceDefinitions: "AdminGroupExtensionResourceDefinitions",
+	GroupApplicationRequests:               "GroupApplicationRequests",
+	ApproverGroupGroupApplicationRequests:  "ApproverGroupGroupApplicationRequests",
+	GroupApplications:                      "GroupApplications",
+	ParentGroupGroupHierarchies:            "ParentGroupGroupHierarchies",
+	MemberGroupGroupHierarchies:            "MemberGroupGroupHierarchies",
+	GroupMembershipRequests:                "GroupMembershipRequests",
+	GroupMemberships:                       "GroupMemberships",
+	GroupOrganizations:                     "GroupOrganizations",
+	ApproverGroupGroups:                    "ApproverGroupGroups",
 }
 
 // groupR is where relationships are stored.
 type groupR struct {
-	ApproverGroupGroup                    *Group                       `boil:"ApproverGroupGroup" json:"ApproverGroupGroup" toml:"ApproverGroupGroup" yaml:"ApproverGroupGroup"`
-	ApproverGroupApplications             ApplicationSlice             `boil:"ApproverGroupApplications" json:"ApproverGroupApplications" toml:"ApproverGroupApplications" yaml:"ApproverGroupApplications"`
-	SubjectGroupAuditEvents               AuditEventSlice              `boil:"SubjectGroupAuditEvents" json:"SubjectGroupAuditEvents" toml:"SubjectGroupAuditEvents" yaml:"SubjectGroupAuditEvents"`
-	GroupApplicationRequests              GroupApplicationRequestSlice `boil:"GroupApplicationRequests" json:"GroupApplicationRequests" toml:"GroupApplicationRequests" yaml:"GroupApplicationRequests"`
-	ApproverGroupGroupApplicationRequests GroupApplicationRequestSlice `boil:"ApproverGroupGroupApplicationRequests" json:"ApproverGroupGroupApplicationRequests" toml:"ApproverGroupGroupApplicationRequests" yaml:"ApproverGroupGroupApplicationRequests"`
-	GroupApplications                     GroupApplicationSlice        `boil:"GroupApplications" json:"GroupApplications" toml:"GroupApplications" yaml:"GroupApplications"`
-	ParentGroupGroupHierarchies           GroupHierarchySlice          `boil:"ParentGroupGroupHierarchies" json:"ParentGroupGroupHierarchies" toml:"ParentGroupGroupHierarchies" yaml:"ParentGroupGroupHierarchies"`
-	MemberGroupGroupHierarchies           GroupHierarchySlice          `boil:"MemberGroupGroupHierarchies" json:"MemberGroupGroupHierarchies" toml:"MemberGroupGroupHierarchies" yaml:"MemberGroupGroupHierarchies"`
-	GroupMembershipRequests               GroupMembershipRequestSlice  `boil:"GroupMembershipRequests" json:"GroupMembershipRequests" toml:"GroupMembershipRequests" yaml:"GroupMembershipRequests"`
-	GroupMemberships                      GroupMembershipSlice         `boil:"GroupMemberships" json:"GroupMemberships" toml:"GroupMemberships" yaml:"GroupMemberships"`
-	GroupOrganizations                    GroupOrganizationSlice       `boil:"GroupOrganizations" json:"GroupOrganizations" toml:"GroupOrganizations" yaml:"GroupOrganizations"`
-	ApproverGroupGroups                   GroupSlice                   `boil:"ApproverGroupGroups" json:"ApproverGroupGroups" toml:"ApproverGroupGroups" yaml:"ApproverGroupGroups"`
+	ApproverGroupGroup                     *Group                           `boil:"ApproverGroupGroup" json:"ApproverGroupGroup" toml:"ApproverGroupGroup" yaml:"ApproverGroupGroup"`
+	ApproverGroupApplications              ApplicationSlice                 `boil:"ApproverGroupApplications" json:"ApproverGroupApplications" toml:"ApproverGroupApplications" yaml:"ApproverGroupApplications"`
+	SubjectGroupAuditEvents                AuditEventSlice                  `boil:"SubjectGroupAuditEvents" json:"SubjectGroupAuditEvents" toml:"SubjectGroupAuditEvents" yaml:"SubjectGroupAuditEvents"`
+	AdminGroupExtensionResourceDefinitions ExtensionResourceDefinitionSlice `boil:"AdminGroupExtensionResourceDefinitions" json:"AdminGroupExtensionResourceDefinitions" toml:"AdminGroupExtensionResourceDefinitions" yaml:"AdminGroupExtensionResourceDefinitions"`
+	GroupApplicationRequests               GroupApplicationRequestSlice     `boil:"GroupApplicationRequests" json:"GroupApplicationRequests" toml:"GroupApplicationRequests" yaml:"GroupApplicationRequests"`
+	ApproverGroupGroupApplicationRequests  GroupApplicationRequestSlice     `boil:"ApproverGroupGroupApplicationRequests" json:"ApproverGroupGroupApplicationRequests" toml:"ApproverGroupGroupApplicationRequests" yaml:"ApproverGroupGroupApplicationRequests"`
+	GroupApplications                      GroupApplicationSlice            `boil:"GroupApplications" json:"GroupApplications" toml:"GroupApplications" yaml:"GroupApplications"`
+	ParentGroupGroupHierarchies            GroupHierarchySlice              `boil:"ParentGroupGroupHierarchies" json:"ParentGroupGroupHierarchies" toml:"ParentGroupGroupHierarchies" yaml:"ParentGroupGroupHierarchies"`
+	MemberGroupGroupHierarchies            GroupHierarchySlice              `boil:"MemberGroupGroupHierarchies" json:"MemberGroupGroupHierarchies" toml:"MemberGroupGroupHierarchies" yaml:"MemberGroupGroupHierarchies"`
+	GroupMembershipRequests                GroupMembershipRequestSlice      `boil:"GroupMembershipRequests" json:"GroupMembershipRequests" toml:"GroupMembershipRequests" yaml:"GroupMembershipRequests"`
+	GroupMemberships                       GroupMembershipSlice             `boil:"GroupMemberships" json:"GroupMemberships" toml:"GroupMemberships" yaml:"GroupMemberships"`
+	GroupOrganizations                     GroupOrganizationSlice           `boil:"GroupOrganizations" json:"GroupOrganizations" toml:"GroupOrganizations" yaml:"GroupOrganizations"`
+	ApproverGroupGroups                    GroupSlice                       `boil:"ApproverGroupGroups" json:"ApproverGroupGroups" toml:"ApproverGroupGroups" yaml:"ApproverGroupGroups"`
 }
 
 // NewStruct creates a new relationship struct
@@ -175,6 +178,13 @@ func (r *groupR) GetSubjectGroupAuditEvents() AuditEventSlice {
 		return nil
 	}
 	return r.SubjectGroupAuditEvents
+}
+
+func (r *groupR) GetAdminGroupExtensionResourceDefinitions() ExtensionResourceDefinitionSlice {
+	if r == nil {
+		return nil
+	}
+	return r.AdminGroupExtensionResourceDefinitions
 }
 
 func (r *groupR) GetGroupApplicationRequests() GroupApplicationRequestSlice {
@@ -593,6 +603,20 @@ func (o *Group) SubjectGroupAuditEvents(mods ...qm.QueryMod) auditEventQuery {
 	)
 
 	return AuditEvents(queryMods...)
+}
+
+// AdminGroupExtensionResourceDefinitions retrieves all the extension_resource_definition's ExtensionResourceDefinitions with an executor via admin_group column.
+func (o *Group) AdminGroupExtensionResourceDefinitions(mods ...qm.QueryMod) extensionResourceDefinitionQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"extension_resource_definitions\".\"admin_group\"=?", o.ID),
+	)
+
+	return ExtensionResourceDefinitions(queryMods...)
 }
 
 // GroupApplicationRequests retrieves all the group_application_request's GroupApplicationRequests with an executor.
@@ -1065,6 +1089,120 @@ func (groupL) LoadSubjectGroupAuditEvents(ctx context.Context, e boil.ContextExe
 					foreign.R = &auditEventR{}
 				}
 				foreign.R.SubjectGroup = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadAdminGroupExtensionResourceDefinitions allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (groupL) LoadAdminGroupExtensionResourceDefinitions(ctx context.Context, e boil.ContextExecutor, singular bool, maybeGroup interface{}, mods queries.Applicator) error {
+	var slice []*Group
+	var object *Group
+
+	if singular {
+		var ok bool
+		object, ok = maybeGroup.(*Group)
+		if !ok {
+			object = new(Group)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeGroup)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeGroup))
+			}
+		}
+	} else {
+		s, ok := maybeGroup.(*[]*Group)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeGroup)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeGroup))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &groupR{}
+		}
+		args[object.ID] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &groupR{}
+			}
+			args[obj.ID] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`extension_resource_definitions`),
+		qm.WhereIn(`extension_resource_definitions.admin_group in ?`, argsSlice...),
+		qmhelper.WhereIsNull(`extension_resource_definitions.deleted_at`),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load extension_resource_definitions")
+	}
+
+	var resultSlice []*ExtensionResourceDefinition
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice extension_resource_definitions")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on extension_resource_definitions")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for extension_resource_definitions")
+	}
+
+	if len(extensionResourceDefinitionAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.AdminGroupExtensionResourceDefinitions = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &extensionResourceDefinitionR{}
+			}
+			foreign.R.AdminGroupGroup = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if queries.Equal(local.ID, foreign.AdminGroup) {
+				local.R.AdminGroupExtensionResourceDefinitions = append(local.R.AdminGroupExtensionResourceDefinitions, foreign)
+				if foreign.R == nil {
+					foreign.R = &extensionResourceDefinitionR{}
+				}
+				foreign.R.AdminGroupGroup = local
 				break
 			}
 		}
@@ -2419,6 +2557,133 @@ func (o *Group) RemoveSubjectGroupAuditEvents(ctx context.Context, exec boil.Con
 				o.R.SubjectGroupAuditEvents[i] = o.R.SubjectGroupAuditEvents[ln-1]
 			}
 			o.R.SubjectGroupAuditEvents = o.R.SubjectGroupAuditEvents[:ln-1]
+			break
+		}
+	}
+
+	return nil
+}
+
+// AddAdminGroupExtensionResourceDefinitions adds the given related objects to the existing relationships
+// of the group, optionally inserting them as new records.
+// Appends related to o.R.AdminGroupExtensionResourceDefinitions.
+// Sets related.R.AdminGroupGroup appropriately.
+func (o *Group) AddAdminGroupExtensionResourceDefinitions(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*ExtensionResourceDefinition) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			queries.Assign(&rel.AdminGroup, o.ID)
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"extension_resource_definitions\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"admin_group"}),
+				strmangle.WhereClause("\"", "\"", 2, extensionResourceDefinitionPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			queries.Assign(&rel.AdminGroup, o.ID)
+		}
+	}
+
+	if o.R == nil {
+		o.R = &groupR{
+			AdminGroupExtensionResourceDefinitions: related,
+		}
+	} else {
+		o.R.AdminGroupExtensionResourceDefinitions = append(o.R.AdminGroupExtensionResourceDefinitions, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &extensionResourceDefinitionR{
+				AdminGroupGroup: o,
+			}
+		} else {
+			rel.R.AdminGroupGroup = o
+		}
+	}
+	return nil
+}
+
+// SetAdminGroupExtensionResourceDefinitions removes all previously related items of the
+// group replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.AdminGroupGroup's AdminGroupExtensionResourceDefinitions accordingly.
+// Replaces o.R.AdminGroupExtensionResourceDefinitions with related.
+// Sets related.R.AdminGroupGroup's AdminGroupExtensionResourceDefinitions accordingly.
+func (o *Group) SetAdminGroupExtensionResourceDefinitions(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*ExtensionResourceDefinition) error {
+	query := "update \"extension_resource_definitions\" set \"admin_group\" = null where \"admin_group\" = $1"
+	values := []interface{}{o.ID}
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, query)
+		fmt.Fprintln(writer, values)
+	}
+	_, err := exec.ExecContext(ctx, query, values...)
+	if err != nil {
+		return errors.Wrap(err, "failed to remove relationships before set")
+	}
+
+	if o.R != nil {
+		for _, rel := range o.R.AdminGroupExtensionResourceDefinitions {
+			queries.SetScanner(&rel.AdminGroup, nil)
+			if rel.R == nil {
+				continue
+			}
+
+			rel.R.AdminGroupGroup = nil
+		}
+		o.R.AdminGroupExtensionResourceDefinitions = nil
+	}
+
+	return o.AddAdminGroupExtensionResourceDefinitions(ctx, exec, insert, related...)
+}
+
+// RemoveAdminGroupExtensionResourceDefinitions relationships from objects passed in.
+// Removes related items from R.AdminGroupExtensionResourceDefinitions (uses pointer comparison, removal does not keep order)
+// Sets related.R.AdminGroupGroup.
+func (o *Group) RemoveAdminGroupExtensionResourceDefinitions(ctx context.Context, exec boil.ContextExecutor, related ...*ExtensionResourceDefinition) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	var err error
+	for _, rel := range related {
+		queries.SetScanner(&rel.AdminGroup, nil)
+		if rel.R != nil {
+			rel.R.AdminGroupGroup = nil
+		}
+		if _, err = rel.Update(ctx, exec, boil.Whitelist("admin_group")); err != nil {
+			return err
+		}
+	}
+	if o.R == nil {
+		return nil
+	}
+
+	for _, rel := range related {
+		for i, ri := range o.R.AdminGroupExtensionResourceDefinitions {
+			if rel != ri {
+				continue
+			}
+
+			ln := len(o.R.AdminGroupExtensionResourceDefinitions)
+			if ln > 1 && i < ln-1 {
+				o.R.AdminGroupExtensionResourceDefinitions[i] = o.R.AdminGroupExtensionResourceDefinitions[ln-1]
+			}
+			o.R.AdminGroupExtensionResourceDefinitions = o.R.AdminGroupExtensionResourceDefinitions[:ln-1]
 			break
 		}
 	}

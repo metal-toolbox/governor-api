@@ -67,24 +67,22 @@ func findERDForExtensionResource(
 	extensionSlug, erdSlugPlural, erdVersion string,
 ) (extension *models.Extension, erd *models.ExtensionResourceDefinition, err error) {
 	// fetch extension
-	if extension == nil {
-		extensionQM := qm.Where("slug = ?", extensionSlug)
+	extensionQM := qm.Where("slug = ?", extensionSlug)
 
-		// fetch ERD
-		queryMods := []qm.QueryMod{
-			qm.Where("slug_plural = ?", erdSlugPlural),
-			qm.Where("version = ?", erdVersion),
-		}
+	// fetch ERD
+	queryMods := []qm.QueryMod{
+		qm.Where("slug_plural = ?", erdSlugPlural),
+		qm.Where("version = ?", erdVersion),
+	}
 
-		extension, err = fetchExtension(c, exec, extensionQM,
-			qm.Load(
-				models.ExtensionRels.ExtensionResourceDefinitions,
-				queryMods...,
-			),
-		)
-		if err != nil {
-			return
-		}
+	extension, err = fetchExtension(c, exec, extensionQM,
+		qm.Load(
+			models.ExtensionRels.ExtensionResourceDefinitions,
+			queryMods...,
+		),
+	)
+	if err != nil {
+		return
 	}
 
 	if len(extension.R.ExtensionResourceDefinitions) < 1 {
@@ -109,19 +107,31 @@ func (r *Router) mwExtensionResourcesEnabledCheck(c *gin.Context) {
 	)
 
 	// find ERD
-	ext, erd, err := findERDForExtensionResource(
-		c, r.DB,
-		extensionSlug, erdSlugPlural, erdVersion,
-	)
-	if err != nil {
-		if errors.Is(err, ErrExtensionNotFound) || errors.Is(err, ErrERDNotFound) {
-			sendError(c, http.StatusNotFound, err.Error())
+
+	ext := getCtxExtension(c)
+	erd := getCtxERD(c)
+
+	// only check DB if extension or ERD is not loaded
+	if ext == nil || erd == nil {
+		var err error
+
+		ext, erd, err = findERDForExtensionResource(
+			c, r.DB,
+			extensionSlug, erdSlugPlural, erdVersion,
+		)
+		if err != nil {
+			if errors.Is(err, ErrExtensionNotFound) || errors.Is(err, ErrERDNotFound) {
+				sendError(c, http.StatusNotFound, err.Error())
+				return
+			}
+
+			sendError(c, http.StatusBadRequest, err.Error())
+
 			return
 		}
 
-		sendError(c, http.StatusBadRequest, err.Error())
-
-		return
+		setCtxExtension(c, ext)
+		setCtxERD(c, erd)
 	}
 
 	if !ext.Enabled {
