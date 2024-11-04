@@ -103,7 +103,7 @@ func (r *Router) listGroupMembers(c *gin.Context) {
 		return
 	}
 
-	enumeratedMembers, err := dbtools.GetMembersOfGroup(c, r.DB.DB, group.ID, true)
+	enumeratedMembers, err := dbtools.GetMembersOfGroup(c.Request.Context(), r.DB.DB, group.ID, true)
 	if err != nil {
 		sendError(c, http.StatusInternalServerError, "error enumerating group membership: "+err.Error())
 		return
@@ -201,7 +201,7 @@ func (r *Router) addGroupMember(c *gin.Context) {
 		return
 	}
 
-	membershipsBefore, err := dbtools.GetMembershipsForUser(c, tx, user.ID, false)
+	membershipsBefore, err := dbtools.GetMembershipsForUser(c.Request.Context(), tx, user.ID, false)
 	if err != nil {
 		msg := "failed to compute new effective memberships: " + err.Error()
 
@@ -251,7 +251,7 @@ func (r *Router) addGroupMember(c *gin.Context) {
 		return
 	}
 
-	membershipsAfter, err := dbtools.GetMembershipsForUser(c, tx, user.ID, false)
+	membershipsAfter, err := dbtools.GetMembershipsForUser(c.Request.Context(), tx, user.ID, false)
 	if err != nil {
 		msg := "failed to compute new effective memberships: " + err.Error()
 
@@ -505,7 +505,7 @@ func (r *Router) removeGroupMember(c *gin.Context) {
 		return
 	}
 
-	membershipsBefore, err := dbtools.GetMembershipsForUser(c, tx, user.ID, false)
+	membershipsBefore, err := dbtools.GetMembershipsForUser(c.Request.Context(), tx, user.ID, false)
 	if err != nil {
 		msg := "failed to compute new effective memberships: " + err.Error()
 
@@ -555,7 +555,7 @@ func (r *Router) removeGroupMember(c *gin.Context) {
 		return
 	}
 
-	membershipsAfter, err := dbtools.GetMembershipsForUser(c, tx, user.ID, false)
+	membershipsAfter, err := dbtools.GetMembershipsForUser(c.Request.Context(), tx, user.ID, false)
 	if err != nil {
 		msg := "failed to compute new effective memberships: " + err.Error()
 
@@ -1057,7 +1057,7 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 			return
 		}
 
-		membershipsBefore, err := dbtools.GetMembershipsForUser(c, tx, user.ID, false)
+		membershipsBefore, err := dbtools.GetMembershipsForUser(c.Request.Context(), tx, user.ID, false)
 		if err != nil {
 			msg := "failed to compute new effective memberships: " + err.Error()
 
@@ -1146,7 +1146,7 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 			return
 		}
 
-		membershipsAfter, err := dbtools.GetMembershipsForUser(c, tx, user.ID, false)
+		membershipsAfter, err := dbtools.GetMembershipsForUser(c.Request.Context(), tx, user.ID, false)
 		if err != nil {
 			msg := "failed to compute new effective memberships: " + err.Error()
 
@@ -1316,7 +1316,7 @@ func (r *Router) getGroupMembershipsAll(c *gin.Context) {
 			}
 		}
 	} else {
-		enumeratedMemberships, err := dbtools.GetAllGroupMemberships(c, r.DB.DB, true)
+		enumeratedMemberships, err := dbtools.GetAllGroupMemberships(c.Request.Context(), r.DB.DB, true)
 		if err != nil {
 			sendError(c, http.StatusInternalServerError, "error getting group memberships"+err.Error())
 			return

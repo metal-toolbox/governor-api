@@ -94,7 +94,7 @@ func (r *Router) getAuthenticatedUser(c *gin.Context) {
 		return
 	}
 
-	enumeratedMemberships, err := dbtools.GetMembershipsForUser(c, r.DB.DB, ctxUser.ID, false)
+	enumeratedMemberships, err := dbtools.GetMembershipsForUser(c.Request.Context(), r.DB.DB, ctxUser.ID, false)
 	if err != nil {
 		sendError(c, http.StatusInternalServerError, "error enumerating group membership: "+err.Error())
 		return
@@ -141,7 +141,7 @@ func (r *Router) getAuthenticatedUserGroups(c *gin.Context) {
 
 	var userDirectGroups []string
 
-	enumeratedMemberships, err := dbtools.GetMembershipsForUser(c, r.DB.DB, ctxUser.ID, false)
+	enumeratedMemberships, err := dbtools.GetMembershipsForUser(c.Request.Context(), r.DB.DB, ctxUser.ID, false)
 	if err != nil {
 		sendError(c, http.StatusInternalServerError, "error enumerating group membership: "+err.Error())
 		return
@@ -214,7 +214,7 @@ func (r *Router) getAuthenticatedUserGroupApprovals(c *gin.Context) {
 
 	var userGroups, userAdminGroups []string
 
-	enumeratedMemberships, err := dbtools.GetMembershipsForUser(c, r.DB.DB, ctxUser.ID, false)
+	enumeratedMemberships, err := dbtools.GetMembershipsForUser(c.Request.Context(), r.DB.DB, ctxUser.ID, false)
 	if err != nil {
 		sendError(c, http.StatusInternalServerError, "error enumerating group membership: "+err.Error())
 		return

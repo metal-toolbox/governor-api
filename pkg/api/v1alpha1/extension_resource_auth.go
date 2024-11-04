@@ -111,7 +111,7 @@ func (r *Router) mwSystemExtensionResourceGroupAuth(c *gin.Context) {
 	adminGroupID := erd.AdminGroup.String
 
 	// check if user is part of the admin group
-	enumeratedMemberships, err := dbtools.GetMembershipsForUser(c, r.DB.DB, user.ID, false)
+	enumeratedMemberships, err := dbtools.GetMembershipsForUser(c.Request.Context(), r.DB.DB, user.ID, false)
 	if err != nil {
 		sendError(c, http.StatusInternalServerError, "error getting enumerated groups: "+err.Error())
 		return

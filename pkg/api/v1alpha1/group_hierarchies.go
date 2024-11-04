@@ -134,7 +134,7 @@ func (r *Router) addMemberGroup(c *gin.Context) {
 		return
 	}
 
-	createsCycle, err := dbtools.HierarchyWouldCreateCycle(c, tx, parentGroup.ID, memberGroup.ID)
+	createsCycle, err := dbtools.HierarchyWouldCreateCycle(c.Request.Context(), tx, parentGroup.ID, memberGroup.ID)
 	if err != nil {
 		rollbackWithError(c, tx, err, http.StatusInternalServerError, "could not determine whether the desired hierarchy creates a cycle")
 
@@ -159,7 +159,7 @@ func (r *Router) addMemberGroup(c *gin.Context) {
 		ExpiresAt:     req.ExpiresAt,
 	}
 
-	membershipsBefore, err := dbtools.GetAllGroupMemberships(c, tx, false)
+	membershipsBefore, err := dbtools.GetAllGroupMemberships(c.Request.Context(), tx, false)
 	if err != nil {
 		rollbackWithError(c, tx, err, http.StatusBadRequest, "failed to compute new effective memberships")
 
@@ -185,7 +185,7 @@ func (r *Router) addMemberGroup(c *gin.Context) {
 		return
 	}
 
-	membershipsAfter, err := dbtools.GetAllGroupMemberships(c, tx, false)
+	membershipsAfter, err := dbtools.GetAllGroupMemberships(c.Request.Context(), tx, false)
 	if err != nil {
 		rollbackWithError(c, tx, err, http.StatusBadRequest, "failed to compute new effective memberships")
 
@@ -334,7 +334,7 @@ func (r *Router) removeMemberGroup(c *gin.Context) {
 		return
 	}
 
-	membershipsBefore, err := dbtools.GetAllGroupMemberships(c, tx, false)
+	membershipsBefore, err := dbtools.GetAllGroupMemberships(c.Request.Context(), tx, false)
 	if err != nil {
 		rollbackWithError(c, tx, err, http.StatusBadRequest, "failed to compute new effective memberships")
 
@@ -360,7 +360,7 @@ func (r *Router) removeMemberGroup(c *gin.Context) {
 		return
 	}
 
-	membershipsAfter, err := dbtools.GetAllGroupMemberships(c, tx, false)
+	membershipsAfter, err := dbtools.GetAllGroupMemberships(c.Request.Context(), tx, false)
 	if err != nil {
 		rollbackWithError(c, tx, err, http.StatusBadRequest, "failed to compute new effective memberships")
 

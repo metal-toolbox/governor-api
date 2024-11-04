@@ -130,7 +130,7 @@ func (r *Router) getUser(c *gin.Context) {
 		return
 	}
 
-	enumeratedMemberships, err := dbtools.GetMembershipsForUser(c, r.DB.DB, user.ID, false)
+	enumeratedMemberships, err := dbtools.GetMembershipsForUser(c.Request.Context(), r.DB.DB, user.ID, false)
 	if err != nil {
 		sendError(c, http.StatusInternalServerError, "error enumerating group membership: "+err.Error())
 		return

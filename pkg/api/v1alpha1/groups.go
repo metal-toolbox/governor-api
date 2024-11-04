@@ -106,7 +106,7 @@ func (r *Router) getGroup(c *gin.Context) {
 		return
 	}
 
-	enumeratedMembers, err := dbtools.GetMembersOfGroup(c, r.DB.DB, group.ID, false)
+	enumeratedMembers, err := dbtools.GetMembersOfGroup(c.Request.Context(), r.DB.DB, group.ID, false)
 	if err != nil {
 		sendError(c, http.StatusInternalServerError, "error enumerating group membership: "+err.Error())
 		return

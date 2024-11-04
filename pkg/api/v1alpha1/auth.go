@@ -218,7 +218,7 @@ func (r *Router) mwUserAuthRequired(authRole mwAuthRole) gin.HandlerFunc {
 
 		r.Logger.Debug("got authenticated user", zap.Any("user", user))
 
-		enumeratedMemberships, err := dbtools.GetMembershipsForUser(c, r.DB.DB, user.ID, false)
+		enumeratedMemberships, err := dbtools.GetMembershipsForUser(c.Request.Context(), r.DB.DB, user.ID, false)
 		if err != nil {
 			sendError(c, http.StatusInternalServerError, "error getting enumerated groups: "+err.Error())
 			return
@@ -338,7 +338,7 @@ func (r *Router) mwGroupAuthRequired(authRole mwAuthRole) gin.HandlerFunc {
 			idIsSlug = true
 		}
 
-		enumeratedMemberships, err := dbtools.GetMembershipsForUser(c, r.DB.DB, user.ID, true)
+		enumeratedMemberships, err := dbtools.GetMembershipsForUser(c.Request.Context(), r.DB.DB, user.ID, true)
 		if err != nil {
 			sendError(c, http.StatusInternalServerError, "error getting enumerated groups: "+err.Error())
 			return
