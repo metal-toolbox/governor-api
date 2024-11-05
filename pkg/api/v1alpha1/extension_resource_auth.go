@@ -52,6 +52,11 @@ func getCtxExtension(c *gin.Context) *models.Extension {
 }
 
 func (r *Router) mwSystemExtensionResourceGroupAuth(c *gin.Context) {
+	if !contains(c.GetStringSlice("jwt.roles"), oidcScope) {
+		r.Logger.Debug("oidc scope not found, skipping user authorization check", zap.String("oidcScope", oidcScope))
+		return
+	}
+
 	user := getCtxUser(c)
 	if user == nil {
 		r.Logger.Error("user not found in context")
