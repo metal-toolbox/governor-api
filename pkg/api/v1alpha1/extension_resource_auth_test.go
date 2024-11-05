@@ -95,6 +95,127 @@ func (s *ExtensionResourcesGroupAuthTestSuite) seedTestDB() error {
 	return nil
 }
 
+// custom routes for test, it skips actual jwt validation
+func extResAuthTestRoutes(rg *gin.RouterGroup, r *Router) {
+	rg.POST(
+		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version",
+		r.AuditMW.AuditWithType("CreateSystemExtensionResource"),
+		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
+		r.mwSystemExtensionResourceGroupAuth,
+		r.mwExtensionResourcesEnabledCheck,
+		r.createSystemExtensionResource,
+	)
+
+	rg.GET(
+		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version",
+		r.AuditMW.AuditWithType("ListSystemExtensionResources"),
+		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
+		r.listSystemExtensionResources,
+	)
+
+	rg.GET(
+		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version/:resource-id",
+		r.AuditMW.AuditWithType("GetSystemExtensionResource"),
+		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
+		r.getSystemExtensionResource,
+	)
+
+	rg.PATCH(
+		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version/:resource-id",
+		r.AuditMW.AuditWithType("UpdateSystemExtensionResource"),
+		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
+		r.mwSystemExtensionResourceGroupAuth,
+		r.mwExtensionResourcesEnabledCheck,
+		r.updateSystemExtensionResource,
+	)
+
+	rg.DELETE(
+		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version/:resource-id",
+		r.AuditMW.AuditWithType("DeleteSystemExtensionResource"),
+		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
+		r.mwSystemExtensionResourceGroupAuth,
+		r.mwExtensionResourcesEnabledCheck,
+		r.deleteSystemExtensionResource,
+	)
+
+	// user extension resources
+	rg.POST(
+		"/users/:id/extension-resources/:ex-slug/:erd-slug-plural/:erd-version",
+		r.AuditMW.AuditWithType("CreateUserExtensionResource"),
+		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:users")),
+		r.mwExtensionResourcesEnabledCheck,
+		r.createUserExtensionResource,
+	)
+
+	rg.POST(
+		"/user/extension-resources/:ex-slug/:erd-slug-plural/:erd-version",
+		r.AuditMW.AuditWithType("CreateAuthenticatedUserExtensionResource"),
+		r.AuthMW.AuthRequired([]string{oidcScope}),
+		r.mwExtensionResourcesEnabledCheck,
+		r.createUserExtensionResource,
+	)
+
+	rg.GET(
+		"/users/:id/extension-resources/:ex-slug/:erd-slug-plural/:erd-version",
+		r.AuditMW.AuditWithType("ListUserExtensionResources"),
+		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:users")),
+		r.listUserExtensionResources,
+	)
+
+	rg.GET(
+		"/user/extension-resources/:ex-slug/:erd-slug-plural/:erd-version",
+		r.AuditMW.AuditWithType("ListAuthenticatedUserExtensionResources"),
+		r.AuthMW.AuthRequired([]string{oidcScope}),
+		r.listUserExtensionResources,
+	)
+
+	rg.GET(
+		"/users/:id/extension-resources/:ex-slug/:erd-slug-plural/:erd-version/:resource-id",
+		r.AuditMW.AuditWithType("GetUserExtensionResource"),
+		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:users")),
+		r.getUserExtensionResource,
+	)
+
+	rg.GET(
+		"/user/extension-resources/:ex-slug/:erd-slug-plural/:erd-version/:resource-id",
+		r.AuditMW.AuditWithType("GetAuthenticatedUserExtensionResources"),
+		r.AuthMW.AuthRequired([]string{oidcScope}),
+		r.getUserExtensionResource,
+	)
+
+	rg.PATCH(
+		"/users/:id/extension-resources/:ex-slug/:erd-slug-plural/:erd-version/:resource-id",
+		r.AuditMW.AuditWithType("UpdateUserExtensionResource"),
+		r.AuthMW.AuthRequired(updateScopesWithOpenID("governor:users")),
+		r.mwExtensionResourcesEnabledCheck,
+		r.updateUserExtensionResource,
+	)
+
+	rg.PATCH(
+		"/user/extension-resources/:ex-slug/:erd-slug-plural/:erd-version/:resource-id",
+		r.AuditMW.AuditWithType("UpdateAuthenticatedUserExtensionResources"),
+		r.AuthMW.AuthRequired([]string{oidcScope}),
+		r.mwExtensionResourcesEnabledCheck,
+		r.updateUserExtensionResource,
+	)
+
+	rg.DELETE(
+		"/users/:id/extension-resources/:ex-slug/:erd-slug-plural/:erd-version/:resource-id",
+		r.AuditMW.AuditWithType("DeleteUserExtensionResource"),
+		r.AuthMW.AuthRequired(deleteScopesWithOpenID("governor:users")),
+		r.mwExtensionResourcesEnabledCheck,
+		r.deleteUserExtensionResource,
+	)
+
+	rg.DELETE(
+		"/user/extension-resources/:ex-slug/:erd-slug-plural/:erd-version/:resource-id",
+		r.AuditMW.AuditWithType("DeleteAuthenticatedUserExtensionResources"),
+		r.AuthMW.AuthRequired([]string{oidcScope}),
+		r.mwExtensionResourcesEnabledCheck,
+		r.deleteUserExtensionResource,
+	)
+}
+
 func (s *ExtensionResourcesGroupAuthTestSuite) SetupSuite() {
 	gin.SetMode(gin.TestMode)
 
@@ -146,6 +267,7 @@ func (s *ExtensionResourcesGroupAuthTestSuite) mwForgeUser(u *models.User, isAdm
 	return func(c *gin.Context) {
 		setCtxUser(c, u)
 		setCtxAdmin(c, &isAdmin)
+		c.Set("jwt.roles", []string{oidcScope})
 	}
 }
 
@@ -211,7 +333,7 @@ func (s *ExtensionResourcesGroupAuthTestSuite) TestGetResources() {
 		r := gin.New()
 		rg := r.Group("/api/v1alpha1")
 		rg.Use(s.mwForgeUser(tc.user, tc.admin))
-		s.v1alpha1.Routes(rg)
+		extResAuthTestRoutes(rg, s.v1alpha1)
 
 		s.T().Run(tc.name, func(_ *testing.T) {
 			w := httptest.NewRecorder()
@@ -260,7 +382,7 @@ func (s *ExtensionResourcesGroupAuthTestSuite) TestListResources() {
 		r := gin.New()
 		rg := r.Group("/api/v1alpha1")
 		rg.Use(s.mwForgeUser(tc.user, tc.admin))
-		s.v1alpha1.Routes(rg)
+		extResAuthTestRoutes(rg, s.v1alpha1)
 
 		s.T().Run(tc.name, func(_ *testing.T) {
 			w := httptest.NewRecorder()
@@ -327,7 +449,7 @@ func (s *ExtensionResourcesGroupAuthTestSuite) TestCreateResource() {
 		r := gin.New()
 		rg := r.Group("/api/v1alpha1")
 		rg.Use(s.mwForgeUser(tc.user, tc.admin))
-		s.v1alpha1.Routes(rg)
+		extResAuthTestRoutes(rg, s.v1alpha1)
 
 		s.T().Run(tc.name, func(_ *testing.T) {
 			w := httptest.NewRecorder()
@@ -399,7 +521,7 @@ func (s *ExtensionResourcesGroupAuthTestSuite) TestUpdateResource() {
 		r := gin.New()
 		rg := r.Group("/api/v1alpha1")
 		rg.Use(s.mwForgeUser(tc.user, tc.admin))
-		s.v1alpha1.Routes(rg)
+		extResAuthTestRoutes(rg, s.v1alpha1)
 
 		s.T().Run(tc.name, func(_ *testing.T) {
 			w := httptest.NewRecorder()
@@ -473,7 +595,7 @@ func (s *ExtensionResourcesGroupAuthTestSuite) TestDeleteResource() {
 		r := gin.New()
 		rg := r.Group("/api/v1alpha1")
 		rg.Use(s.mwForgeUser(tc.user, tc.admin))
-		s.v1alpha1.Routes(rg)
+		extResAuthTestRoutes(rg, s.v1alpha1)
 
 		s.T().Run(tc.name, func(_ *testing.T) {
 			w := httptest.NewRecorder()
