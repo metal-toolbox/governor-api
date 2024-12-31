@@ -88,7 +88,7 @@ services:
         read_only: false
     restart: unless-stopped
 
-  nats-server:
+  nats:
     image: nats:latest
     command:
       - -D
