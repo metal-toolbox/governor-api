@@ -7,17 +7,39 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"go.hollow.sh/toolbox/ginjwt"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAPILivenessCheck(t *testing.T) {
-	apiserver := Server{}
+	t.Log("starting test")
+
+	apiserver := Server{
+		Conf: &Conf{
+			AuthConf: []ginjwt.AuthConfig{
+				{
+					Enabled:  false,
+					Audience: "audience",
+					Issuer:   "issuer",
+					JWKSURI:  "jwksuri",
+				},
+			},
+		},
+	}
+
 	api := apiserver.NewAPI()
 
 	router := api.Handler
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequestWithContext(context.TODO(), "GET", "/healthz/liveness", nil)
+
+	req, err := http.NewRequestWithContext(context.TODO(), "GET", "/healthz/liveness", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log("serving http")
 
 	router.ServeHTTP(w, req)
 
@@ -26,6 +48,7 @@ func TestAPILivenessCheck(t *testing.T) {
 	body, err := io.ReadAll(w.Body)
 	pageOK := err == nil
 
+	t.Log("body", string(body))
 	assert.NotEmpty(t, body)
 
 	assert.True(t, statusOK)
@@ -33,13 +56,29 @@ func TestAPILivenessCheck(t *testing.T) {
 }
 
 func TestAPIHealthzCheck(t *testing.T) {
-	apiserver := Server{}
+	apiserver := Server{
+		Conf: &Conf{
+			AuthConf: []ginjwt.AuthConfig{
+				{
+					Enabled:  false,
+					Audience: "audience",
+					Issuer:   "issuer",
+					JWKSURI:  "jwksuri",
+				},
+			},
+		},
+	}
+
 	api := apiserver.NewAPI()
 
 	router := api.Handler
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequestWithContext(context.TODO(), "GET", "/healthz", nil)
+
+	req, err := http.NewRequestWithContext(context.TODO(), "GET", "/healthz", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	router.ServeHTTP(w, req)
 
