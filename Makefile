@@ -56,7 +56,7 @@ vendor:
 
 docker-up: build
 	@docker-compose -f docker-compose.yml up -d crdb
-	@docker-compose -f docker-compose.yml up -d nats-server
+	@docker-compose -f docker-compose.yml up -d nats
 	@docker-compose -f docker-compose.yml up --build -d api
 
 docker-down:

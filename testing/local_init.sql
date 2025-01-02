@@ -13,10 +13,13 @@ INSERT INTO users (id,name,email,status,created_at,updated_at) VALUES ('00000000
 INSERT INTO groups (id,name,slug,description,created_at,updated_at) VALUES ('00000000-0000-0000-0000-000000000007','Gophers', 'gophers', 'Group for gophers', NOW(), NOW()) ON CONFLICT DO NOTHING;
 INSERT INTO groups (id,name,slug,description,created_at,updated_at) VALUES ('00000000-0000-0000-0000-000000000008', 'Taco locos', 'taco-locos', 'Just for taco lovers', NOW(), NOW()) ON CONFLICT DO NOTHING;
 
+-- Create Application Types
+INSERT INTO application_types (id,name,slug,description,created_at,updated_at) VALUES ('00000000-0000-0000-0000-000000000100', 'test', 'test', 'test application type', NOW(), NOW()) ON CONFLICT DO NOTHING;
+
 -- Create Applications
-INSERT INTO applications (id,name,slug,kind,created_at,updated_at,approver_group_id) VALUES ('00000000-0000-0000-0000-000000000009', 'taco logs', 'taco-logs', 'splunk', NOW(), NOW(), (SELECT id FROM groups WHERE slug = 'gophers')) ON CONFLICT DO NOTHING;
-INSERT INTO applications (id,name,slug,kind,created_at,updated_at,approver_group_id) VALUES ('00000000-0000-0000-0000-000000000010', 'taco ci', 'taco-ci', 'buildkite', NOW(), NOW(), (SELECT id FROM groups WHERE slug = 'gophers')) ON CONFLICT DO NOTHING;
-INSERT INTO applications (id,name,slug,kind,created_at,updated_at) VALUES ('00000000-0000-0000-0000-000000000011', 'taco chat', 'taco-chat', 'slack', NOW(), NOW()) ON CONFLICT DO NOTHING;
+INSERT INTO applications (id,name,slug,created_at,updated_at,approver_group_id,type_id) VALUES ('00000000-0000-0000-0000-000000000009', 'taco logs', 'taco-logs', NOW(), NOW(), (SELECT id FROM groups WHERE slug = 'gophers'),'00000000-0000-0000-0000-000000000100') ON CONFLICT DO NOTHING;
+INSERT INTO applications (id,name,slug,created_at,updated_at,approver_group_id,type_id) VALUES ('00000000-0000-0000-0000-000000000010', 'taco ci', 'taco-ci', NOW(), NOW(), (SELECT id FROM groups WHERE slug = 'gophers'),'00000000-0000-0000-0000-000000000100') ON CONFLICT DO NOTHING;
+INSERT INTO applications (id,name,slug,created_at,updated_at,type_id) VALUES ('00000000-0000-0000-0000-000000000011', 'taco chat', 'taco-chat', NOW(), NOW(),'00000000-0000-0000-0000-000000000100') ON CONFLICT DO NOTHING;
 
 -- Create Orgs
 INSERT INTO organizations (id,name,slug,created_at,updated_at) VALUES ('00000000-0000-0000-0000-000000000012', 'org 1', 'org-1', NOW(), NOW()) ON CONFLICT DO NOTHING;
