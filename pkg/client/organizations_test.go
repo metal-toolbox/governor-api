@@ -203,6 +203,37 @@ var (
 	}
 ]
 `)
+	testOrganizationGroupsResponse = []byte(`
+	[
+		{
+			"id": "70674d51-43e0-4539-b6be-b030c0f9e6aa",
+			"name": "Streets and Sanitation",
+			"slug": "streets-and-sanitation",
+			"description": "Keepin it clean",
+			"created_at": "2022-08-11T14:38:33.027346Z",
+			"updated_at": "2022-08-11T14:38:33.027346Z",
+			"deleted_at": null
+		},
+		{
+			"id": "6a603c55-4787-4916-9934-70dbeb8467f7",
+			"name": "Arts and Culture",
+			"slug": "arts-and-culture",
+			"description": "Keepin it classy",
+			"created_at": "2022-08-11T14:38:33.027346Z",
+			"updated_at": "2022-08-11T14:38:33.027346Z",
+			"deleted_at": null
+		},
+		{
+			"id": "6a603c55-4787-4916-9934-70dbeb8467f7",
+			"name": "Budget Office",
+			"slug": "budget-office",
+			"description": "Keepin it real",
+			"created_at": "2022-08-11T14:38:33.027346Z",
+			"updated_at": "2022-08-11T14:38:33.027346Z",
+			"deleted_at": null
+		}
+	]
+	`)
 )
 
 func TestClient_Organization(t *testing.T) {
@@ -358,6 +389,86 @@ func TestClient_Organizations(t *testing.T) {
 				token:                  &oauth2.Token{AccessToken: "topSekret"},
 			}
 			got, err := c.Organizations(context.TODO())
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestClient_OrganizationGroups(t *testing.T) {
+	testResp := func(r []byte) []*v1alpha1.Group {
+		resp := []*v1alpha1.Group{}
+		if err := json.Unmarshal(r, &resp); err != nil {
+			t.Error(err)
+		}
+
+		return resp
+	}
+
+	type fields struct {
+		httpClient HTTPDoer
+	}
+
+	tests := []struct {
+		name    string
+		fields  fields
+		id      string
+		want    []*v1alpha1.Group
+		wantErr bool
+	}{
+		{
+			name: "example request",
+			fields: fields{
+				httpClient: &mockHTTPDoer{
+					t:          t,
+					resp:       testOrganizationGroupsResponse,
+					statusCode: http.StatusOK,
+				},
+			},
+			id:   "186c5a52-4421-4573-8bbf-78d85d3c277e",
+			want: testResp(testOrganizationGroupsResponse),
+		},
+		{
+			name: "non-success",
+			fields: fields{
+				httpClient: &mockHTTPDoer{
+					t:          t,
+					statusCode: http.StatusInternalServerError,
+				},
+			},
+			id:      "186c5a52-4421-4573-8bbf-78d85d3c277e",
+			wantErr: true,
+		},
+		{
+			name: "bad json response",
+			fields: fields{
+				httpClient: &mockHTTPDoer{
+					t:          t,
+					statusCode: http.StatusOK,
+					resp:       []byte(`{`),
+				},
+			},
+			id:      "186c5a52-4421-4573-8bbf-78d85d3c277e",
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Client{
+				url:                    "https://the.gov/",
+				logger:                 zap.NewNop(),
+				httpClient:             tt.fields.httpClient,
+				clientCredentialConfig: &mockTokener{t: t},
+				token:                  &oauth2.Token{AccessToken: "topSekret"},
+			}
+			got, err := c.OrganizationGroups(context.TODO(), tt.id)
 
 			if tt.wantErr {
 				assert.Error(t, err)
