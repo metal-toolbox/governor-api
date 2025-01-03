@@ -17,11 +17,11 @@ linters:
     - bodyclose
     - gocritic
     - gocyclo
-    - goerr113
+    - err113
     - gofmt
     - gofumpt
     - goimports
-    - gomnd
+    - mnd
     - govet
     - misspell
     - noctx
