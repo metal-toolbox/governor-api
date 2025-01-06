@@ -2,18 +2,14 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 	"sync"
 	"time"
 
-	"github.com/goccy/go-json"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/clientcredentials"
-
-	"github.com/metal-toolbox/governor-api/pkg/api/v1alpha1"
 )
 
 const (
@@ -152,60 +148,4 @@ func (c *Client) newGovernorRequest(ctx context.Context, method, u string) (*htt
 	req.Header.Add("Authorization", bearer)
 
 	return req, nil
-}
-
-// Organizations gets the list of organizations from governor
-func (c *Client) Organizations(ctx context.Context) ([]*v1alpha1.Organization, error) {
-	req, err := c.newGovernorRequest(ctx, http.MethodGet, fmt.Sprintf("%s/api/%s/organizations", c.url, governorAPIVersionAlpha))
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := c.httpClient.Do(req.WithContext(ctx))
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, ErrRequestNonSuccess
-	}
-
-	out := []*v1alpha1.Organization{}
-	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
-		return nil, err
-	}
-
-	return out, nil
-}
-
-// Organization gets the details of an org from governor
-func (c *Client) Organization(ctx context.Context, id string) (*v1alpha1.Organization, error) {
-	if id == "" {
-		return nil, ErrMissingOrganizationID
-	}
-
-	req, err := c.newGovernorRequest(ctx, http.MethodGet, fmt.Sprintf("%s/api/%s/organizations/%s", c.url, governorAPIVersionAlpha, id))
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := c.httpClient.Do(req.WithContext(ctx))
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, ErrRequestNonSuccess
-	}
-
-	out := v1alpha1.Organization{}
-	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
-		return nil, err
-	}
-
-	return &out, nil
 }
