@@ -1,6 +1,6 @@
 module github.com/metal-toolbox/governor-api
 
-go 1.22
+go 1.23
 
 require (
 	github.com/XSAM/otelsql v0.31.0
