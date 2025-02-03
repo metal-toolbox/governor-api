@@ -9,11 +9,9 @@
       "matchDatasources": [
         "go"
       ],
-      "matchPackagePrefixes": [
-        "go.opentelemetry.io/"
-      ],
       "matchPackageNames": [
-        "github.com/XSAM/otelsql"
+        "github.com/XSAM/otelsql",
+        "go.opentelemetry.io/{/,}**"
       ]
     }
   ],
