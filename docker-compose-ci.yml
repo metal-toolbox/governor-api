@@ -9,7 +9,7 @@ services:
       - governor
 
   go:
-    image: golang:1.22
+    image: golang:1.23
     depends_on:
       - crdb
     environment:

@@ -39,7 +39,7 @@ func SetApplicationTypeSlug(a *models.ApplicationType) {
 	a.Slug = slug.Make(a.Name)
 }
 
-func changesetLine(set []string, key string, old, new interface{}) []string {
+func changesetLine(set []string, key string, old, new interface{}) []string { //nolint:revive
 	if reflect.DeepEqual(old, new) {
 		return set
 	}
@@ -73,7 +73,7 @@ func changesetLine(set []string, key string, old, new interface{}) []string {
 // more information for the reflect package can be found here: https://pkg.go.dev/reflect
 // alternatively see the go dev blog: https://go.dev/blog/laws-of-reflection
 // go playground: https://go.dev/play/p/OdraKtlfUCA
-func calculateChangeset(original, new interface{}) []string {
+func calculateChangeset(original, new interface{}) []string { //nolint:revive
 	changeset := []string{}
 
 	a := reflect.ValueOf(original).Elem()
@@ -128,7 +128,7 @@ func AuditUserCreatedWithActor(ctx context.Context, exec boil.ContextExecutor, p
 }
 
 // AuditUserDeleted inserts an event representing user delete into the event table
-func AuditUserDeleted(ctx context.Context, exec boil.ContextExecutor, pID string, actor, original, new *models.User) (*models.AuditEvent, error) {
+func AuditUserDeleted(ctx context.Context, exec boil.ContextExecutor, pID string, actor, original, new *models.User) (*models.AuditEvent, error) { //nolint:revive
 	// TODO non-user API actors don't exist in the governor database,
 	// we need to figure out how to handle that relationship in the audit table
 	var actorID null.String
@@ -148,7 +148,7 @@ func AuditUserDeleted(ctx context.Context, exec boil.ContextExecutor, pID string
 }
 
 // AuditUserUpdated inserts an event representing a user update request into the events table
-func AuditUserUpdated(ctx context.Context, exec boil.ContextExecutor, pID string, actor, original, new *models.User) (*models.AuditEvent, error) {
+func AuditUserUpdated(ctx context.Context, exec boil.ContextExecutor, pID string, actor, original, new *models.User) (*models.AuditEvent, error) { //nolint:revive
 	// TODO non-user API actors don't exist in the governor database,
 	// we need to figure out how to handle that relationship in the audit table
 	var actorID null.String
