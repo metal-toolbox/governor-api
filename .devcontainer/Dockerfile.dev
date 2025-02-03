@@ -1,11 +1,11 @@
 ARG VARIANT=bullseye
-ARG GO_VERSION=1.22
+ARG GO_VERSION=1.23
 ARG CRDB_VERSION=22.1.11
 
 # Used to install cockroachdb into the devcontainer
-FROM --platform=linux/amd64 cockroachdb/cockroach:v${CRDB_VERSION} as CRDB
+FROM cockroachdb/cockroach:v${CRDB_VERSION} as CRDB
 
-FROM --platform=linux/amd64 mcr.microsoft.com/vscode/devcontainers/go:${GO_VERSION}-${VARIANT}
+FROM mcr.microsoft.com/vscode/devcontainers/go:${GO_VERSION}-${VARIANT}
 ENV HYDRA_VERSION=1.11.10
 ENV NATS_CLI_VERSION=0.0.35
 
