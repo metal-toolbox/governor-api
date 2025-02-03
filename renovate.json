@@ -2,6 +2,21 @@
   "extends": [
     "config:recommended"
   ],
+  "packageRules": [
+    {
+      "groupName": "go opentelemetry packages and libraries",
+      "groupSlug": "opentelemetry-go and libraries",
+      "matchDatasources": [
+        "go"
+      ],
+      "matchPackagePrefixes": [
+        "go.opentelemetry.io/"
+      ],
+      "matchPackageNames": [
+        "github.com/XSAM/otelsql"
+      ]
+    }
+  ],
   "postUpdateOptions": [
     "gomodTidy"
   ]
