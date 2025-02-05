@@ -1,3 +1,4 @@
+version: 2
 project_name: governor-api
 
 before:
@@ -22,7 +23,7 @@ builds:
       - -X github.com/metal-toolbox/governor-api/pkg/version.builtBy=goreleaser
 
 changelog:
-  skip: false
+  disable: false
   sort: asc
   filters:
     exclude:
@@ -39,13 +40,13 @@ changelog:
       order: 999
 
 archives:
-  - format: binary
+  - formats: ["binary"]
 
 checksum:
   name_template: 'checksums.txt'
 
 snapshot:
-  name_template: "{{ .Tag }}-next"
+  version_template: "{{ .Tag }}-next"
 
 release:
   mode: prepend
