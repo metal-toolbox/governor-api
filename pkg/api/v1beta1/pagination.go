@@ -23,6 +23,7 @@ const (
 // PaginationParams is the params to be parsed from query params from a gin context
 type PaginationParams struct {
 	Limit      int    `json:"limit,omitempty"`
+	Offset     int    `json:"offset,omitempty"`
 	Last       bool   `json:"last,omitempty"`
 	NextCursor string `json:"next_cursor,omitempty"`
 	PrevCursor string `json:"prev_cursor,omitempty"`
