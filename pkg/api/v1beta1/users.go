@@ -23,7 +23,7 @@ const (
 )
 
 var (
-	permittedListUsersParams = []string{"external_id", "email", "deleted", "limit", "sort_by", "sort_order", "search", "status[]", "next_cursor", "prev_cursor", "last"}
+	permittedListUsersParams = []string{"external_id", "email", "deleted", "limit", "sort_by", "sort_order", "search", "status[]", "next_cursor", "prev_cursor", "last", "offset"}
 	validStatuses            = []string{UserStatusActive, UserStatusPending, UserStatusSuspended}
 	allowedSortCols          = []string{"name", "email", "id"}
 )
@@ -115,6 +115,11 @@ func (r *Router) listUsers(c *gin.Context) {
 
 	// retrieve limit used + 1 so we can check if there are more records
 	queryMods = append(queryMods, qm.Limit(p.Limit+1))
+
+	// allow for pagination by offset, useful for random page access
+	if _, ok := c.GetQuery("offset"); ok {
+		queryMods = append(queryMods, qm.Offset(p.Offset))
+	}
 
 	if contains(allowedSortCols, strings.ToLower(p.SortBy)) {
 		queryMods = append(queryMods, qm.OrderBy(p.SortBy+" "+p.SortOrder))
