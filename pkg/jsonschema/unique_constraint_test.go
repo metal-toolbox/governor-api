@@ -10,11 +10,13 @@ import (
 	dbm "github.com/metal-toolbox/governor-api/db"
 	"github.com/metal-toolbox/governor-api/internal/models"
 	"github.com/pressly/goose/v3"
-	"github.com/santhosh-tekuri/jsonschema/v5"
+	jsonschemav6 "github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
 )
 
 type UniqueConstrainTestSuite struct {
@@ -173,11 +175,16 @@ func (s *UniqueConstrainTestSuite) TestCompile() {
 				ctx: context.Background(),
 				db:  nil,
 			}
-			_, err := uc.Compile(jsonschema.CompilerContext{}, tt.inputMap)
+
+			v, err := uc.Compile()
+			assert.Nil(t, err)
+
+			_, err = v.Compile(&jsonschemav6.CompilerContext{}, tt.inputMap)
 
 			if tt.expectedErr == "" {
 				assert.Nil(t, err)
 			} else {
+				assert.NotNil(t, err)
 				assert.Contains(t, err.Error(), tt.expectedErr)
 			}
 		})
@@ -256,20 +263,29 @@ func (s *UniqueConstrainTestSuite) TestValidate() {
 
 	for _, tt := range tests {
 		s.T().Run(tt.name, func(t *testing.T) {
+			errHandler := &TestErrorHandler{}
+
 			schema := &UniqueConstraintSchema{
 				UniqueFieldTypesMap: tt.uniqueFields,
 				ERD:                 erd,
 				ctx:                 context.Background(),
 				db:                  tt.db,
 				ResourceID:          tt.resourceID,
+
+				errHandler: errHandler,
 			}
 
-			err := schema.Validate(jsonschema.ValidationContext{}, tt.value)
+			schema.Validate(&jsonschemav6.ValidatorContext{}, tt.value)
+
 			if tt.expectedErr == "" {
-				assert.Nil(t, err)
+				assert.Nil(t, errHandler.Error)
 			} else {
-				assert.NotNil(t, err)
-				assert.Contains(t, err.Error(), tt.expectedErr)
+				assert.NotNil(t, errHandler.Error)
+
+				p := message.NewPrinter(language.English)
+				errmsg := errHandler.Error.LocalizedString(p)
+
+				assert.Contains(t, errmsg, tt.expectedErr)
 			}
 		})
 	}

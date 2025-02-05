@@ -507,7 +507,7 @@ func (s *SystemExtensionResourceTestSuite) TestCreateSystemExtensionResource() {
 			name:           "json schema validation failed",
 			url:            "/api/v1alpha1/extension-resources/test-extension/test-resources/v1",
 			expectedStatus: http.StatusBadRequest,
-			expectedErrMsg: "'/age' does not validate with",
+			expectedErrMsg: "'/age': minimum: got -1, want 0",
 			payload:        `{ "age": -1, "firstName": "test", "lastName": "2" }`,
 			params: gin.Params{
 				gin.Param{Key: "ex-slug", Value: "test-extension"},
@@ -669,7 +669,7 @@ func (s *SystemExtensionResourceTestSuite) TestUpdateSystemExtensionResource() {
 			name:           "json schema validation failed",
 			url:            "/api/v1alpha1/extension-resources/test-extension/test-resources/v1/00000001-0000-0000-0000-000000000004",
 			expectedStatus: http.StatusBadRequest,
-			expectedErrMsg: "'/age' does not validate with",
+			expectedErrMsg: "'/age': minimum: got -1, want 0",
 			payload:        `{ "age": -1, "firstName": "test", "lastName": "2" }`,
 			params: gin.Params{
 				gin.Param{Key: "ex-slug", Value: "test-extension"},
