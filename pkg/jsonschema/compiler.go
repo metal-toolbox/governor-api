@@ -6,17 +6,19 @@ import (
 	"strings"
 
 	"github.com/metal-toolbox/governor-api/internal/models"
-	"github.com/santhosh-tekuri/jsonschema/v5"
+	jsonschemav6 "github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 )
 
 // Compiler is a struct for a JSON schema compiler
 type Compiler struct {
-	jsonschema.Compiler
+	jsonschemav6.Compiler
 
 	extensionID   string
 	erdSlugPlural string
 	version       string
+
+	schemaExts []SchemaExtension
 }
 
 // Option is a functional configuration option for JSON schema compiler
@@ -27,9 +29,11 @@ func NewCompiler(
 	extensionID, slugPlural, version string,
 	opts ...Option,
 ) *Compiler {
-	c := &Compiler{*jsonschema.NewCompiler(), extensionID, slugPlural, version}
-	c.Compiler.AssertFormat = true
-	c.Compiler.AssertContent = true
+	c := &Compiler{*jsonschemav6.NewCompiler(), extensionID, slugPlural, version, []SchemaExtension{}}
+
+	c.Compiler.AssertFormat()
+	c.Compiler.AssertContent()
+	c.Compiler.AssertVocabs()
 
 	for _, opt := range opts {
 		opt(c)
@@ -50,11 +54,8 @@ func WithUniqueConstraint(
 	db boil.ContextExecutor,
 ) Option {
 	return func(c *Compiler) {
-		c.RegisterExtension(
-			"uniqueConstraint",
-			JSONSchemaUniqueConstraint,
-			&UniqueConstraintCompiler{extensionResourceDefinition, resourceID, ctx, db},
-		)
+		uc := &UniqueConstraintCompiler{extensionResourceDefinition, resourceID, ctx, db}
+		c.schemaExts = append(c.schemaExts, uc)
 	}
 }
 
@@ -66,11 +67,25 @@ func (c *Compiler) schemaURL() string {
 }
 
 // Compile compiles the schema string
-func (c *Compiler) Compile(schema string) (*jsonschema.Schema, error) {
+func (c *Compiler) Compile(schemaStr string) (*jsonschemav6.Schema, error) {
 	url := c.schemaURL()
 
-	if err := c.AddResource(url, strings.NewReader(schema)); err != nil {
+	schemaJSON, err := jsonschemav6.UnmarshalJSON(strings.NewReader(schemaStr))
+	if err != nil {
 		return nil, err
+	}
+
+	if err := c.AddResource(url, schemaJSON); err != nil {
+		return nil, err
+	}
+
+	for _, se := range c.schemaExts {
+		v, err := se.Compile()
+		if err != nil {
+			return nil, err
+		}
+
+		c.RegisterVocabulary(v)
 	}
 
 	return c.Compiler.Compile(url)

@@ -4,18 +4,19 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/metal-toolbox/governor-api/internal/models"
-	"github.com/santhosh-tekuri/jsonschema/v5"
+	jsonschemav6 "github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
-// JSONSchemaUniqueConstraint is a JSON schema extension that provides a
-// "unique" property of type array
-var JSONSchemaUniqueConstraint = jsonschema.MustCompileString(
-	"https://governor/json-schemas/unique.json",
-	`{
+var (
+	// SchemaURL is the URL for the unique constraint JSON schema extension
+	SchemaURL = "https://governor/json-schemas/unique.json"
+	// UniqueConstraintSchemaStr is the JSON schema string for the unique constraint JSON schema extension
+	UniqueConstraintSchemaStr = `{
 		"properties": {
 			"unique": {
 				"type": "array",
@@ -24,7 +25,7 @@ var JSONSchemaUniqueConstraint = jsonschema.MustCompileString(
 				}
 			}
 		}
-	}`,
+	}`
 )
 
 // UniqueConstraintSchema is the schema struct for the unique constraint JSON schema extension
@@ -34,31 +35,34 @@ type UniqueConstraintSchema struct {
 	ResourceID          *string
 	ctx                 context.Context
 	db                  boil.ContextExecutor
+
+	errHandler ValidatorErrorHandler
 }
 
-// UniqueConstraintSchema implements jsonschema.ExtSchema
-var _ jsonschema.ExtSchema = (*UniqueConstraintSchema)(nil)
+// UniqueConstraintSchema implements jsonschema.SchemaExt
+var _ jsonschemav6.SchemaExt = (*UniqueConstraintSchema)(nil)
 
 // Validate checks the uniqueness of the provided value against a database
 // to ensure the unique constraint is satisfied.
-func (s *UniqueConstraintSchema) Validate(_ jsonschema.ValidationContext, v interface{}) error {
+func (s *UniqueConstraintSchema) Validate(ctx *jsonschemav6.ValidatorContext, v interface{}) {
 	// Skip validation if no database is provided
 	if s.db == nil {
-		return nil
+		return
 	}
 
 	// Skip validation if no constraint is provided
 	if len(s.UniqueFieldTypesMap) == 0 {
-		return nil
+		return
 	}
 
 	// Try to assert the provided value as a map, skip validation otherwise
 	mappedValue, ok := v.(map[string]interface{})
 	if !ok {
-		return nil
+		return
 	}
 
 	qms := []qm.QueryMod{}
+	props := []string{}
 
 	if s.ResourceID != nil {
 		qms = append(qms, qm.Where("id != ?", *s.ResourceID))
@@ -71,11 +75,13 @@ func (s *UniqueConstraintSchema) Validate(_ jsonschema.ValidationContext, v inte
 		}
 
 		qms = append(qms, qm.Where(`resource->>? = ?`, k, v))
+		props = append(props, k)
 	}
 
-	var exists bool
-
-	var err error
+	var (
+		exists bool
+		err    error
+	)
 
 	if s.ERD.Scope == "system" {
 		exists, err = s.ERD.SystemExtensionResources(qms...).Exists(s.ctx, s.db)
@@ -84,20 +90,24 @@ func (s *UniqueConstraintSchema) Validate(_ jsonschema.ValidationContext, v inte
 	}
 
 	if err != nil {
-		return &jsonschema.ValidationError{
+		s.errHandler.AddError(ctx, &ErrUniquePropertyViolation{
 			Message: err.Error(),
-		}
+		})
+
+		return
 	}
 
 	if exists {
-		return &jsonschema.ValidationError{
-			InstanceLocation: s.ERD.Name,
-			KeywordLocation:  "unique",
-			Message:          ErrUniqueConstraintViolation.Error(),
-		}
+		s.errHandler.AddError(ctx, &ErrUniquePropertyViolation{
+			Message: fmt.Sprintf("resource with the same [%s] already exists", strings.Join(props, ",")),
+		})
 	}
+}
 
-	return nil
+// SchemaExtension is an interface for JSON schema extensions
+type SchemaExtension interface {
+	// Compile compiles the JSON schema extension
+	Compile() (*jsonschemav6.Vocabulary, error)
 }
 
 // UniqueConstraintCompiler is the compiler struct for the unique constraint JSON schema extension
@@ -108,13 +118,39 @@ type UniqueConstraintCompiler struct {
 	db         boil.ContextExecutor
 }
 
-// UniqueConstraintCompiler implements jsonschema.ExtCompiler
-var _ jsonschema.ExtCompiler = (*UniqueConstraintCompiler)(nil)
+// UniqueConstraintCompiler implements SchemaExtension
+var _ SchemaExtension = (*UniqueConstraintCompiler)(nil)
 
 // Compile compiles the unique constraint JSON schema extension
-func (uc *UniqueConstraintCompiler) Compile(
-	_ jsonschema.CompilerContext, m map[string]interface{},
-) (jsonschema.ExtSchema, error) {
+func (uc *UniqueConstraintCompiler) Compile() (*jsonschemav6.Vocabulary, error) {
+	schemaJSON, err := jsonschemav6.UnmarshalJSON(strings.NewReader(UniqueConstraintSchemaStr))
+	if err != nil {
+		return nil, err
+	}
+
+	c := jsonschemav6.NewCompiler()
+
+	if err := c.AddResource(SchemaURL, schemaJSON); err != nil {
+		return nil, err
+	}
+
+	schema, err := c.Compile(SchemaURL)
+	if err != nil {
+		return nil, err
+	}
+
+	vocab := &jsonschemav6.Vocabulary{
+		URL:     SchemaURL,
+		Schema:  schema,
+		Compile: uc.compileUniqueConstraint,
+	}
+
+	return vocab, nil
+}
+
+func (uc *UniqueConstraintCompiler) compileUniqueConstraint(
+	_ *jsonschemav6.CompilerContext, m map[string]interface{},
+) (jsonschemav6.SchemaExt, error) {
 	unique, ok := m["unique"]
 	if !ok {
 		// If "unique" is not in the map, skip processing
@@ -157,12 +193,6 @@ func (uc *UniqueConstraintCompiler) Compile(
 		)
 	}
 
-	return uc.compileUniqueConstraint(uniqueFields, requiredMap, propertiesMap)
-}
-
-func (uc *UniqueConstraintCompiler) compileUniqueConstraint(
-	uniqueFields []string, requiredMap map[string]bool, propertiesMap map[string]interface{},
-) (jsonschema.ExtSchema, error) {
 	// map fieldName => fieldType
 	resultUniqueFields := make(map[string]string)
 
@@ -197,7 +227,11 @@ func (uc *UniqueConstraintCompiler) compileUniqueConstraint(
 		resultUniqueFields[fieldName] = fieldType
 	}
 
-	return &UniqueConstraintSchema{resultUniqueFields, uc.ERD, uc.ResourceID, uc.ctx, uc.db}, nil
+	return &UniqueConstraintSchema{
+		resultUniqueFields, uc.ERD, uc.ResourceID,
+		uc.ctx, uc.db,
+		&V6ValidationContextErrorHandler{},
+	}, nil
 }
 
 // Checks if the provided field type is valid for unique constraints

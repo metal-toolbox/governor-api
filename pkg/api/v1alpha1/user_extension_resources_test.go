@@ -652,7 +652,7 @@ func (s *UserExtensionResourceTestSuite) TestCreateUserExtensionResource() {
 			},
 			payload:        `{"age": 10, "firstName": "Hello"}`,
 			expectedStatus: http.StatusBadRequest,
-			expectedErrMsg: "missing properties: 'lastName'",
+			expectedErrMsg: "missing property 'lastName'",
 		},
 		{
 			name: "json schema violation (unique constrain)",
@@ -851,7 +851,7 @@ func (s *UserExtensionResourceTestSuite) TestUpdateUserExtensionResource() {
 			},
 			payload:        `{"age": 10, "firstName": "Hello"}`,
 			expectedStatus: http.StatusBadRequest,
-			expectedErrMsg: "missing properties: 'lastName'",
+			expectedErrMsg: "missing property 'lastName'",
 		},
 		{
 			name: "json schema violation (unique constrain)",
