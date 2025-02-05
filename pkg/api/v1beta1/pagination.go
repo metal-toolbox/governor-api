@@ -67,6 +67,17 @@ func parsePagination(c *gin.Context) (PaginationParams, error) {
 		}
 	}
 
+	if offsetStr, ok := c.GetQuery("offset"); ok {
+		val, err := strconv.Atoi(offsetStr)
+		if err != nil {
+			return PaginationParams{}, invalidQueryParameterValue("offset, " + offsetStr)
+		}
+
+		if val > 0 {
+			p.Offset = val
+		}
+	}
+
 	if nextCursor, ok := c.GetQuery("next_cursor"); ok {
 		p.NextCursor = nextCursor
 	}
