@@ -117,7 +117,7 @@ func (r *Router) listUsers(c *gin.Context) {
 	queryMods = append(queryMods, qm.Limit(p.Limit+1))
 
 	// allow for pagination by offset, useful for random page access
-	if _, ok := c.GetQuery("offset"); ok {
+	if p.Offset > 0 {
 		queryMods = append(queryMods, qm.Offset(p.Offset))
 	}
 
