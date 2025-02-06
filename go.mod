@@ -4,7 +4,7 @@ go 1.23
 
 require (
 	github.com/XSAM/otelsql v0.36.0
-	github.com/cockroachdb/cockroach-go/v2 v2.3.8
+	github.com/cockroachdb/cockroach-go/v2 v2.4.0
 	github.com/coreos/go-oidc/v3 v3.12.0
 	github.com/friendsofgo/errors v0.9.2
 	github.com/gin-contrib/cors v1.7.3
@@ -44,7 +44,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect
 	github.com/go-jose/go-jose/v4 v4.0.2 // indirect
-	github.com/gofrs/flock v0.8.1 // indirect
+	github.com/gofrs/flock v0.12.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.25.1 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
