@@ -1,6 +1,6 @@
 services:
   crdb:
-    image: cockroachdb/cockroach:v22.1.11
+    image: cockroachdb/cockroach:v24.3.6
     command: start-single-node --insecure
     ports:
       - "26257:26257"
