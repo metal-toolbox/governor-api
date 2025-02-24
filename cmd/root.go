@@ -3,6 +3,7 @@ package cmd
 
 import (
 	"strings"
+	"time"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
@@ -11,7 +12,10 @@ import (
 	"go.uber.org/zap"
 )
 
-const appName = "governor-api"
+const (
+	appName                         = "governor-api"
+	defaultIAMRuntimeTimeoutSeconds = 15
+)
 
 var (
 	cfgFile string
@@ -60,6 +64,16 @@ func init() {
 
 	rootCmd.PersistentFlags().String("nats-subject-prefix", "governor.events", "prefix for NATS subjects")
 	viperBindFlag("nats.subject-prefix", rootCmd.PersistentFlags().Lookup("nats-subject-prefix"))
+
+	rootCmd.PersistentFlags().Bool("nats-use-runtime-access-token", false, "use IAM runtime to authenticate to NATS")
+	viperBindFlag("nats.use-runtime-access-token", rootCmd.PersistentFlags().Lookup("nats-use-runtime-access-token"))
+
+	// IAM runtime
+	rootCmd.PersistentFlags().String("iam-runtime-socket", "unix:///tmp/runtime.sock", "IAM runtime socket path")
+	viperBindFlag("iam-runtime.socket", rootCmd.PersistentFlags().Lookup("iam-runtime-socket"))
+
+	rootCmd.PersistentFlags().Duration("iam-runtime-timeout", defaultIAMRuntimeTimeoutSeconds*time.Second, "IAM runtime timeout")
+	viperBindFlag("iam-runtime.timeout", rootCmd.PersistentFlags().Lookup("iam-runtime-timeout"))
 }
 
 // initConfig reads in config file and ENV variables if set.
