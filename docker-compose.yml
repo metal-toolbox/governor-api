@@ -26,7 +26,7 @@ services:
       - governor
 
   crdb:
-    image: cockroachdb/cockroach:v22.1.11
+    image: cockroachdb/cockroach:v24.3.6
     volumes:
       - db:/cockroach/cockroach-data
     command: start-single-node --insecure
