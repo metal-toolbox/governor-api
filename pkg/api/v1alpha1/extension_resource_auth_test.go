@@ -10,12 +10,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/cockroachdb/cockroach-go/v2/testserver"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/metal-toolbox/auditevent/ginaudit"
 	dbm "github.com/metal-toolbox/governor-api/db"
+	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	"github.com/metal-toolbox/governor-api/internal/eventbus"
 	"github.com/metal-toolbox/governor-api/internal/models"
 	"github.com/pressly/goose/v3"
@@ -221,7 +221,7 @@ func (s *ExtensionResourcesGroupAuthTestSuite) SetupSuite() {
 
 	s.conn = &mockNATSConn{}
 
-	ts, err := testserver.NewTestServer()
+	ts, err := dbtools.NewCRDBTestServer()
 	if err != nil {
 		panic(err)
 	}
