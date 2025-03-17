@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/cockroachdb/cockroach-go/v2/testserver"
 	dbm "github.com/metal-toolbox/governor-api/db"
 	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/assert"
@@ -16,7 +15,7 @@ import (
 var db *sql.DB
 
 func init() {
-	ts, err := testserver.NewTestServer()
+	ts, err := NewCRDBTestServer()
 	if err != nil {
 		panic(err)
 	}
@@ -351,24 +350,24 @@ func TestHierarchyWouldCreateCycle(t *testing.T) {
 
 // nolint:all
 // Sets this up:
-//                                        ┌──────┐  
-//                                    ┌───┤Group1│  
-//                                    │   └─┬─┬──┘  
-//                                    ▼     │ │     
-//                                ┌──────┐  │ ▼     
-//          ┌─────────────────┬───┤Group2│  │User1  
-//          │                 │   └───┬──┘  │       
-//          ▼                 ▼       │     │       
-// ┌────────────────┐     ┌──────┐    ▼     │       
-// │Group4 (Deleted)│     │Group3│   User2  │       
-// └───┬────────┬───┘     └┬──┬──┘          │       
-//     │        │          │  │             │       
-//     ▼        │          │  ▼             │       
-// ┌──────┐     │          │ User3          ▼       
-// │Group5│     │          └────────────► User4     
-// └───┬──┘     │                                   
-//     │        ▼                                   
-//     └────► User5                                 
+//                                        ┌──────┐
+//                                    ┌───┤Group1│
+//                                    │   └─┬─┬──┘
+//                                    ▼     │ │
+//                                ┌──────┐  │ ▼
+//          ┌─────────────────┬───┤Group2│  │User1
+//          │                 │   └───┬──┘  │
+//          ▼                 ▼       │     │
+// ┌────────────────┐     ┌──────┐    ▼     │
+// │Group4 (Deleted)│     │Group3│   User2  │
+// └───┬────────┬───┘     └┬──┬──┘          │
+//     │        │          │  │             │
+//     ▼        │          │  ▼             │
+// ┌──────┐     │          │ User3          ▼
+// │Group5│     │          └────────────► User4
+// └───┬──┘     │
+//     │        ▼
+//     └────► User5
 
 func seedTestDB(db *sql.DB) error {
 	testData := []string{

@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -14,11 +15,11 @@ import (
 	events "github.com/metal-toolbox/governor-api/pkg/events/v1alpha1"
 	"go.uber.org/zap"
 
-	"github.com/cockroachdb/cockroach-go/v2/testserver"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/metal-toolbox/auditevent/ginaudit"
 	dbm "github.com/metal-toolbox/governor-api/db"
+	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	"github.com/metal-toolbox/governor-api/internal/eventbus"
 	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/assert"
@@ -93,7 +94,7 @@ func (s *SystemExtensionResourceTestSuite) SetupSuite() {
 
 	s.conn = &mockNATSConn{}
 
-	ts, err := testserver.NewTestServer()
+	ts, err := dbtools.NewCRDBTestServer()
 	if err != nil {
 		panic(err)
 	}
@@ -106,7 +107,7 @@ func (s *SystemExtensionResourceTestSuite) SetupSuite() {
 	goose.SetBaseFS(dbm.Migrations)
 
 	if err := goose.Up(s.db, "migrations"); err != nil {
-		panic("migration failed - could not set up test db")
+		panic(fmt.Sprintf("migration failed - could not set up test db: %s", err.Error()))
 	}
 
 	if err := s.seedTestDB(); err != nil {

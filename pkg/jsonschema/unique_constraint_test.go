@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/cockroachdb/cockroach-go/v2/testserver"
 	dbm "github.com/metal-toolbox/governor-api/db"
+	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	"github.com/metal-toolbox/governor-api/internal/models"
 	"github.com/pressly/goose/v3"
 	jsonschemav6 "github.com/santhosh-tekuri/jsonschema/v6"
@@ -50,7 +50,7 @@ func (s *UniqueConstrainTestSuite) seedTestDB() error {
 }
 
 func (s *UniqueConstrainTestSuite) SetupSuite() {
-	ts, err := testserver.NewTestServer()
+	ts, err := dbtools.NewCRDBTestServer()
 	if err != nil {
 		panic(err)
 	}

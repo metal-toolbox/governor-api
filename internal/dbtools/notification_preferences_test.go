@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/cockroachdb/cockroach-go/v2/testserver"
 	"github.com/jmoiron/sqlx"
 	dbm "github.com/metal-toolbox/governor-api/db"
 	"github.com/metal-toolbox/governor-api/internal/models"
@@ -49,7 +48,7 @@ func (s *NotificationPreferencesTestSuite) seedTestDB() error {
 }
 
 func (s *NotificationPreferencesTestSuite) SetupSuite() {
-	ts, err := testserver.NewTestServer()
+	ts, err := NewCRDBTestServer()
 	if err != nil {
 		panic(err)
 	}
