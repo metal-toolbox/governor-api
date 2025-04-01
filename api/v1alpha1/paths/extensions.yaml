@@ -1,0 +1,787 @@
+user-resources:
+  post:
+    summary: Create an extension resource for the authenticated user
+    operationId: createAuthenticatedUserExtensionResource
+    parameters:
+      - name: ex-slug
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Extension slug
+      - name: erd-slug-plural
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Extension resource definition slug (plural form)
+      - name: erd-version
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Extension resource definition version
+    tags:
+      - Extensions
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/ExtensionResource'
+    responses:
+      '201':
+        description: Created
+    security:
+      - bearerAuth: []  # User authentication only
+
+user-resources-id:
+  get:
+    summary: Get an extension resource for the authenticated user
+    operationId: getAuthenticatedUserExtensionResource
+    tags:
+      - Extensions
+    parameters:
+      - name: ex-slug
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Extension slug
+      - name: erd-slug-plural
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Extension resource definition slug (plural form)
+      - name: erd-version
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Extension resource definition version
+      - name: resource-id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Resource ID
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ExtensionResource'
+    security:
+      - bearerAuth: []  # User authentication only
+
+extensions:
+  get:
+    summary: List extensions
+    operationId: listExtensions
+    tags:
+      - Extensions
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../components/schemas.yaml#/Extension'
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:extensions:read']
+
+extensions-id:
+  get:
+    summary: Get an extension by ID
+    operationId: getExtension
+    tags:
+      - Extensions
+    parameters:
+      - name: eid
+        in: path
+        required: true
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/Extension'
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:extensions:read']
+
+erds:
+  get:
+    summary: List extension resource definitions for an extension
+    operationId: listExtensionResourceDefinitions
+    tags:
+      - Extensions
+    parameters:
+      - name: eid
+        in: path
+        required: true
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../components/schemas.yaml#/ExtensionResourceDefinition'
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:extensions:read']
+
+  post:
+    summary: Create an extension resource definition
+    operationId: createExtensionResourceDefinition
+    tags:
+      - Extensions
+    parameters:
+      - name: eid
+        in: path
+        required: true
+        schema:
+          type: string
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/ExtensionResourceDefinition'
+    responses:
+      '201':
+        description: Created
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:extensions:create']
+
+erds-slug:
+  get:
+    summary: Get an extension resource definition by slug
+    operationId: getExtensionResourceDefinitionBySlug
+    tags:
+      - Extensions
+    parameters:
+      - name: eid
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: erd-id-slug
+        in: path
+        required: true
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ExtensionResourceDefinition'
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:extensions:read']
+
+  patch:
+    summary: Update an extension resource definition by slug
+    operationId: updateExtensionResourceDefinitionBySlug
+    tags:
+      - Extensions
+    parameters:
+      - name: eid
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: erd-id-slug
+        in: path
+        required: true
+        schema:
+          type: string
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/ExtensionResourceDefinition'
+    responses:
+      '200':
+        description: Successful response
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:extensions:write']
+
+  delete:
+    summary: Delete an extension resource definition by slug
+    operationId: deleteExtensionResourceDefinitionBySlug
+    tags:
+      - Extensions
+    parameters:
+      - name: eid
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: erd-id-slug
+        in: path
+        required: true
+        schema:
+          type: string
+    responses:
+      '204':
+        description: No content
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:extensions:delete']
+
+erds-slug-version:
+  get:
+    summary: Get an extension resource definition by slug and version
+    operationId: getExtensionResourceDefinitionBySlugVersion
+    tags:
+      - Extensions
+    parameters:
+      - name: eid
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: erd-id-slug
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: erd-version
+        in: path
+        required: true
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ExtensionResourceDefinition'
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:extensions:read']
+
+  patch:
+    summary: Update an extension resource definition by slug and version
+    operationId: updateExtensionResourceDefinitionBySlugVersion
+    tags:
+      - Extensions
+    parameters:
+      - name: eid
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: erd-id-slug
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: erd-version
+        in: path
+        required: true
+        schema:
+          type: string
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/ExtensionResourceDefinition'
+    responses:
+      '200':
+        description: Successful response
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:extensions:write']
+
+  delete:
+    summary: Delete an extension resource definition by slug and version
+    operationId: deleteExtensionResourceDefinitionBySlugVersion
+    tags:
+      - Extensions
+    parameters:
+      - name: eid
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: erd-id-slug
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: erd-version
+        in: path
+        required: true
+        schema:
+          type: string
+    responses:
+      '204':
+        description: No content
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:extensions:delete']
+
+resources:
+  get:
+    summary: List system-wide extension resources
+    operationId: listSystemExtensionResources
+    tags:
+      - Extensions
+    parameters:
+      - name: ex-slug
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: erd-slug-plural
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: erd-version
+        in: path
+        required: true
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../components/schemas.yaml#/ExtensionResource'
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:extensionresources:read']
+
+  post:
+    summary: Create a system-wide extension resource
+    operationId: createSystemExtensionResource
+    tags:
+      - Extensions
+    parameters:
+      - name: ex-slug
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: erd-slug-plural
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: erd-version
+        in: path
+        required: true
+        schema:
+          type: string
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/ExtensionResource'
+    responses:
+      '201':
+        description: Created
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:extensionresources:create']
+
+resources-id:
+  get:
+    summary: Get a system-wide extension resource by ID
+    operationId: getSystemExtensionResource
+    tags:
+      - Extensions
+    parameters:
+      - name: ex-slug
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: erd-slug-plural
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: erd-version
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: resource-id
+        in: path
+        required: true
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ExtensionResource'
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:extensionresources:read']
+
+  patch:
+    summary: Update a system-wide extension resource by ID
+    operationId: updateSystemExtensionResource
+    tags:
+      - Extensions
+    parameters:
+      - name: ex-slug
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: erd-slug-plural
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: erd-version
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: resource-id
+        in: path
+        required: true
+        schema:
+          type: string
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/ExtensionResource'
+    responses:
+      '200':
+        description: Successful response
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:extensionresources:write']
+
+  delete:
+    summary: Delete a system-wide extension resource by ID
+    operationId: deleteSystemExtensionResource
+    tags:
+      - Extensions
+    parameters:
+      - name: ex-slug
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: erd-slug-plural
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: erd-version
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: resource-id
+        in: path
+        required: true
+        schema:
+          type: string
+    responses:
+      '204':
+        description: No content
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:extensionresources:delete']
+
+users-resources:
+  post:
+    summary: Create extension resource for specific user
+    operationId: createUserExtensionResource
+    tags:
+      - Extensions
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: User ID
+      - name: ex-slug
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Extension slug
+      - name: erd-slug-plural
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Extension resource definition slug (plural form)
+      - name: erd-version
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Extension resource definition version
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:users:create']
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/ExtensionResource'
+    responses:
+      '201':
+        description: Resource created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ExtensionResource'
+      '400':
+        $ref: '../openapi.yaml#/components/responses/BadRequest'
+      '401':
+        $ref: '../openapi.yaml#/components/responses/Unauthorized'
+      '403':
+        $ref: '../openapi.yaml#/components/responses/Forbidden'
+  
+  get:
+    summary: List extension resources for specific user
+    operationId: listUserExtensionResources
+    tags:
+      - Extensions
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: User ID
+      - name: ex-slug
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Extension slug
+      - name: erd-slug-plural
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Extension resource definition slug (plural form)
+      - name: erd-version
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Extension resource definition version
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:users:read']
+    responses:
+      '200':
+        description: Successful operation
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../components/schemas.yaml#/ExtensionResource'
+      '401':
+        $ref: '../openapi.yaml#/components/responses/Unauthorized'
+      '403':
+        $ref: '../openapi.yaml#/components/responses/Forbidden'
+
+users-resources-id:
+  get:
+    summary: Get specific extension resource for specific user
+    operationId: getUserExtensionResource
+    tags:
+      - Extensions
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: User ID
+      - name: ex-slug
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Extension slug
+      - name: erd-slug-plural
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Extension resource definition slug (plural form)
+      - name: erd-version
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Extension resource definition version
+      - name: resource-id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Resource ID
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:users:read']
+    responses:
+      '200':
+        description: Successful operation
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ExtensionResource'
+      '401':
+        $ref: '../openapi.yaml#/components/responses/Unauthorized'
+      '403':
+        $ref: '../openapi.yaml#/components/responses/Forbidden'
+      '404':
+        $ref: '../openapi.yaml#/components/responses/NotFound'
+
+  patch:
+    summary: Update specific extension resource for specific user
+    operationId: updateUserExtensionResource
+    tags:
+      - Extensions
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: User ID
+      - name: ex-slug
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Extension slug
+      - name: erd-slug-plural
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Extension resource definition slug (plural form)
+      - name: erd-version
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Extension resource definition version
+      - name: resource-id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Resource ID
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:users:write']
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/ExtensionResource'
+    responses:
+      '200':
+        description: Resource updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ExtensionResource'
+      '400':
+        $ref: '../openapi.yaml#/components/responses/BadRequest'
+      '401':
+        $ref: '../openapi.yaml#/components/responses/Unauthorized'
+      '403':
+        $ref: '../openapi.yaml#/components/responses/Forbidden'
+      '404':
+        $ref: '../openapi.yaml#/components/responses/NotFound'
+
+  delete:
+    summary: Delete specific extension resource for specific user
+    operationId: deleteUserExtensionResource
+    tags:
+      - Extensions
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: User ID
+      - name: ex-slug
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Extension slug
+      - name: erd-slug-plural
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Extension resource definition slug (plural form)
+      - name: erd-version
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Extension resource definition version
+      - name: resource-id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Resource ID
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:users:delete']
+    responses:
+      '204':
+        description: Resource deleted successfully
+      '401':
+        $ref: '../openapi.yaml#/components/responses/Unauthorized'
+      '403':
+        $ref: '../openapi.yaml#/components/responses/Forbidden'
+      '404':
+        $ref: '../openapi.yaml#/components/responses/NotFound'

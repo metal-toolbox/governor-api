@@ -1,0 +1,140 @@
+NotificationPreferences:
+  type: object
+  properties:
+    user_id:
+      type: string
+      format: uuid
+      description: ID of the user these preferences belong to
+    preferences:
+      type: array
+      items:
+        $ref: '#/NotificationPreference'
+      description: List of notification preferences for the user
+  required:
+    - user_id
+    - preferences
+
+NotificationPreference:
+  type: object
+  properties:
+    notification_type_id:
+      type: string
+      format: uuid
+      description: ID of the notification type
+    notification_target_id:
+      type: string
+      format: uuid
+      description: ID of the notification target (if applicable)
+    enabled:
+      type: boolean
+      description: Whether this notification preference is enabled
+  required:
+    - notification_type_id
+    - enabled
+
+NotificationPreferencesUpdateRequest:
+  type: object
+  properties:
+    preferences:
+      type: array
+      items:
+        $ref: '#/NotificationPreference'
+      description: List of notification preferences to update
+  required:
+    - preferences
+
+UserNotificationPreferencesUpdate:
+  type: object
+  properties:
+    channels:
+      type: object
+      properties:
+        email:
+          type: boolean
+        slack:
+          type: boolean
+        webhook:
+          type: boolean
+      description: Notification channels to enable/disable
+    notification_types:
+      type: object
+      additionalProperties:
+        type: object
+        properties:
+          enabled:
+            type: boolean
+          channels:
+            type: array
+            items:
+              type: string
+              enum: [email, slack, webhook]
+      description: Settings for specific notification types
+
+NotificationType:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+      description: Unique identifier for the notification type
+    name:
+      type: string
+      description: Name of the notification type
+    description:
+      type: string
+      description: Description of the notification type
+    key:
+      type: string
+      description: Unique key identifier for the notification type
+    default_enabled:
+      type: boolean
+      description: Whether this type is enabled by default
+    available_channels:
+      type: array
+      items:
+        type: string
+        enum: [email, slack, webhook]
+      description: Channels available for this notification type
+  required:
+    - id
+    - name
+    - key
+
+NotificationTarget:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+      description: Unique identifier for the notification target
+    user_id:
+      type: string
+      format: uuid
+      description: ID of the user this target belongs to
+    type:
+      type: string
+      enum: [email, slack, webhook]
+      description: Type of notification target
+    value:
+      type: string
+      description: Target value (email address, Slack handle, webhook URL)
+    verified:
+      type: boolean
+      description: Whether this target has been verified
+    verified_at:
+      type: string
+      format: date-time
+      description: Timestamp when the target was verified
+    created_at:
+      type: string
+      format: date-time
+      description: Timestamp when the target was created
+    updated_at:
+      type: string
+      format: date-time
+      description: Timestamp when the target was last updated
+  required:
+    - id
+    - user_id
+    - type
+    - value

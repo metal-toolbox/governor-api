@@ -1,0 +1,161 @@
+user-groups:
+  get:
+    summary: Get authenticated user's groups
+    operationId: getAuthenticatedUserGroups
+    tags:
+      - AuthenticatedUser
+    security:
+      - bearerAuth: []  # User authentication only, no scope checking
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../components/schemas.yaml#/Group'
+      '401':
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/errors.yaml#/AuthenticationError'
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/errors.yaml#/Error'
+
+user-groups-id:
+  delete:
+    summary: Remove authenticated user from a group
+    operationId: removeAuthenticatedUserGroup
+    tags:
+      - AuthenticatedUser
+    security:
+      - bearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: ID or slug of the group to leave
+    responses:
+      '204':
+        description: No content - Successfully removed from group
+      '401':
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/errors.yaml#/AuthenticationError'
+      '404':
+        description: Group not found or user not a direct member
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/errors.yaml#/NotFoundError'
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/errors.yaml#/Error'
+
+user-groups-requests:
+  get:
+    summary: Get authenticated user's group requests
+    operationId: getAuthenticatedUserGroupRequests
+    tags:
+      - AuthenticatedUser
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../components/schemas.yaml#/GroupRequest'
+
+user-groups-approvals:
+  get:
+    summary: Get authenticated user's group approvals
+    operationId: getAuthenticatedUserGroupApprovals
+    tags:
+      - AuthenticatedUser
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../components/schemas.yaml#/GroupApproval'
+
+user:
+  get:
+    summary: Get authenticated user's profile
+    operationId: getAuthenticatedUserProfile
+    tags:
+      - AuthenticatedUser
+    security:
+      - bearerAuth: []  # User authentication only, no scope checking
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/UserProfile'
+      '401':
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/errors.yaml#/AuthenticationError'
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/errors.yaml#/Error'
+
+  put:
+    summary: Update authenticated user's profile
+    operationId: updateAuthenticatedUserProfile
+    tags:
+      - AuthenticatedUser
+    security:
+      - bearerAuth: []  # User authentication only, no scope checking
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/UserProfile'
+    responses:
+      '200':
+        description: Successful response
+      '400':
+        description: Bad request
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/errors.yaml#/ValidationError'
+      '401':
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/errors.yaml#/AuthenticationError'
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/errors.yaml#/Error'

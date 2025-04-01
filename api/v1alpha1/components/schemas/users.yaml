@@ -1,0 +1,212 @@
+User:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+      description: Unique identifier for the user
+    name:
+      type: string
+      description: Name of the user
+    email:
+      type: string
+      format: email
+      description: Email address of the user
+    external_id:
+      type: string
+      description: External ID for the user from the identity provider
+    avatar_url:
+      type: string
+      format: uri
+      description: URL to user's profile image
+    created_at:
+      type: string
+      format: date-time
+      description: Timestamp when the user was created
+    updated_at:
+      type: string
+      format: date-time
+      description: Timestamp when the user was last updated
+    deleted_at:
+      type: string
+      format: date-time
+      description: Timestamp when the user was deleted (if applicable)
+  required:
+    - id
+    - email
+    - created_at
+    - updated_at
+
+UserProfile:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+      description: Unique identifier for the user
+    name:
+      type: string
+      description: Name of the user
+    email:
+      type: string
+      format: email
+      description: Email address of the user
+    avatar_url:
+      type: string
+      format: uri
+      description: URL to user's profile image
+    status:
+      type: string
+      enum: [active, inactive, pending, suspended]
+      description: Current status of the user account
+    preferences:
+      type: object
+      additionalProperties: true
+      description: User preferences JSON object
+    created_at:
+      type: string
+      format: date-time
+      description: Timestamp when the user was created
+    updated_at:
+      type: string
+      format: date-time
+      description: Timestamp when the user was last updated
+    github_username:
+      type: string
+      description: GitHub username if connected with GitHub
+  required:
+    - id
+    - name
+    - email
+
+AuthenticatedUser:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+      description: Unique identifier for the authenticated user
+    name:
+      type: string
+      description: Full name of the authenticated user
+    email:
+      type: string
+      format: email
+      description: Email address of the authenticated user
+    avatar_url:
+      type: string
+      format: uri
+      description: URL to the user's avatar image
+    status:
+      type: string
+      enum: [active, inactive, pending, suspended]
+      description: Current status of the user account
+    memberships:
+      type: array
+      items:
+        type: string
+        format: uuid
+      description: List of group IDs the user is a member of (directly or indirectly)
+    memberships_direct:
+      type: array
+      items:
+        type: string
+        format: uuid
+      description: List of group IDs the user is directly a member of
+    membership_requests:
+      type: array
+      items:
+        type: string
+        format: uuid
+      description: List of group IDs the user has requested to join
+    notification_preferences:
+      $ref: '../schemas/notifications.yaml#/NotificationPreferences'
+    admin:
+      type: boolean
+      description: Whether the user has admin privileges
+  required:
+    - id
+    - name
+    - email
+    - admin
+
+AuthenticatedUserRequestPayload:
+  type: object
+  properties:
+    avatar_url:
+      type: string
+      format: uri
+      description: URL to the user's avatar image
+    github_username:
+      type: string
+      description: GitHub username if connected with GitHub
+    notification_preferences:
+      $ref: '../schemas/notifications.yaml#/UserNotificationPreferencesUpdate'
+
+UserCreateRequest:
+  type: object
+  properties:
+    name:
+      type: string
+      description: Full name of the user
+      examples: ["Jane Smith"]
+    email:
+      type: string
+      format: email
+      description: Email address of the user
+      examples: ["jane.smith@example.com"]
+    external_id:
+      type: string
+      description: External identity provider user ID
+      examples: ["auth0|123456789"]
+    avatar_url:
+      type: string
+      format: uri
+      description: URL to the user's avatar image
+      examples: ["https://example.com/avatars/jane.jpg"]
+    github_username:
+      type: string
+      description: GitHub username if connected with GitHub
+      examples: ["jane-dev"]
+    status:
+      type: string
+      enum: [active, inactive, pending]
+      default: active
+      description: Initial status for the user account
+  required:
+    - name
+    - email
+
+UserUpdateRequest:
+  type: object
+  properties:
+    name:
+      type: string
+      description: Full name of the user
+    email:
+      type: string
+      format: email
+      description: Email address of the user
+    avatar_url:
+      type: string
+      format: uri
+      description: URL to the user's avatar image
+    github_username:
+      type: string
+      description: GitHub username if connected with GitHub
+    status:
+      type: string
+      enum: [active, inactive, pending, suspended]
+      description: Updated status for the user account
+
+UserWithMemberships:
+  type: object
+  allOf:
+    - $ref: '#/User'
+    - type: object
+      properties:
+        memberships:
+          type: array
+          items:
+            $ref: '../schemas/groups.yaml#/GroupMembership'
+          description: Group memberships for this user

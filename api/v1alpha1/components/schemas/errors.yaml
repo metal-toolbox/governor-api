@@ -1,0 +1,154 @@
+Error:
+  type: object
+  properties:
+    code:
+      type: integer
+      format: int32
+      description: HTTP status code
+    message:
+      type: string
+      description: Error message
+    details:
+      type: object
+      additionalProperties: true
+      description: Additional error details
+  required:
+    - code
+    - message
+
+ValidationError:
+  type: object
+  properties:
+    code:
+      type: integer
+      format: int32
+      description: HTTP status code (typically 400)
+    message:
+      type: string
+      description: General validation error message
+    errors:
+      type: array
+      items:
+        type: object
+        properties:
+          field:
+            type: string
+            description: The field that failed validation
+          message:
+            type: string
+            description: Specific error message for this field
+          code:
+            type: string
+            description: Error code for this validation error
+        required:
+          - field
+          - message
+      description: List of specific validation errors
+  required:
+    - code
+    - message
+    - errors
+
+AuthenticationError:
+  type: object
+  properties:
+    code:
+      type: integer
+      format: int32
+      enum: [401]
+      description: HTTP status code (401 Unauthorized)
+    message:
+      type: string
+      description: Authentication error message
+    reason:
+      type: string
+      enum: [invalid_token, expired_token, missing_token, insufficient_scope]
+      description: Specific reason for the authentication failure
+  required:
+    - code
+    - message
+
+AuthorizationError:
+  type: object
+  properties:
+    code:
+      type: integer
+      format: int32
+      enum: [403]
+      description: HTTP status code (403 Forbidden)
+    message:
+      type: string
+      description: Authorization error message
+    reason:
+      type: string
+      enum: [insufficient_permissions, resource_access_denied]
+      description: Specific reason for the authorization failure
+  required:
+    - code
+    - message
+
+NotFoundError:
+  type: object
+  properties:
+    code:
+      type: integer
+      format: int32
+      enum: [404]
+      description: HTTP status code (404 Not Found)
+    message:
+      type: string
+      description: Not found error message
+    resourceType:
+      type: string
+      description: Type of resource that was not found
+    resourceId:
+      type: string
+      description: ID of the resource that was not found
+  required:
+    - code
+    - message
+
+ConflictError:
+  type: object
+  properties:
+    code:
+      type: integer
+      format: int32
+      enum: [409]
+      description: HTTP status code (409 Conflict)
+    message:
+      type: string
+      description: Conflict error message
+    details:
+      type: object
+      properties:
+        resourceType:
+          type: string
+          description: Type of resource that has a conflict
+        conflictReason:
+          type: string
+          enum: [already_exists, duplicate_key, version_mismatch]
+          description: Specific reason for the conflict
+      description: Additional details about the conflict
+  required:
+    - code
+    - message
+
+RateLimitError:
+  type: object
+  properties:
+    code:
+      type: integer
+      format: int32
+      enum: [429]
+      description: HTTP status code (429 Too Many Requests)
+    message:
+      type: string
+      description: Rate limit exceeded message
+    retryAfter:
+      type: integer
+      description: Seconds to wait before retrying the request
+  required:
+    - code
+    - message
+    - retryAfter

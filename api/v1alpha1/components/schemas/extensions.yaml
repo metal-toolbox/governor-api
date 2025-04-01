@@ -1,0 +1,130 @@
+Extension:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+      description: Unique identifier for the extension
+    name:
+      type: string
+      description: Name of the extension
+    slug:
+      type: string
+      description: URL-friendly identifier for the extension
+    description:
+      type: string
+      description: Description of the extension
+    version:
+      type: string
+      description: Version of the extension
+    created_at:
+      type: string
+      format: date-time
+      description: Timestamp when the extension was created
+    updated_at:
+      type: string
+      format: date-time
+      description: Timestamp when the extension was last updated
+  required:
+    - id
+    - name
+    - slug
+    - version
+    - created_at
+    - updated_at
+
+ExtensionResourceDefinition:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+    extension_id:
+      type: string
+      format: uuid
+    name:
+      type: string
+    description:
+      type: string
+    version:
+      type: string
+    slug_singular:
+      type: string
+    slug_plural:
+      type: string
+    scope:
+      type: string
+    schema:
+      type: object
+      additionalProperties: true
+    admin_group:
+      type: string
+      format: uuid
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+    enabled:
+      type: boolean
+
+ExtensionResource:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+      description: Unique identifier for the extension resource
+    extension_id:
+      type: string
+      format: uuid
+      description: ID of the associated extension
+    definition_id:
+      type: string
+      format: uuid
+      description: ID of the associated extension resource definition
+    user_id:
+      type: string
+      format: uuid
+      description: ID of the user who owns this resource
+    data:
+      type: object
+      additionalProperties: true
+      description: Arbitrary data stored in the resource
+    created_at:
+      type: string
+      format: date-time
+      description: Timestamp when the resource was created
+    updated_at:
+      type: string
+      format: date-time
+      description: Timestamp when the resource was last updated
+  required:
+    - id
+    - extension_id
+    - definition_id
+    - user_id
+    - data
+    - created_at
+    - updated_at
+
+ExtensionResourceCreateRequest:
+  type: object
+  properties:
+    data:
+      type: object
+      additionalProperties: true
+      description: Arbitrary data to store in the resource
+  required:
+    - data
+
+ExtensionResourceUpdateRequest:
+  type: object
+  properties:
+    data:
+      type: object
+      additionalProperties: true
+      description: Updated data to store in the resource
+  required:
+    - data
