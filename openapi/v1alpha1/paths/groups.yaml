@@ -23,7 +23,7 @@ groups:
             schema:
               type: array
               items:
-                $ref: '../components/schemas.yaml#/Group'
+                $ref: '../components/schemas.yaml#/GroupListItem'
       '400':
         $ref: '../components/responses.yaml#/BadRequest'
       '401':
@@ -51,7 +51,7 @@ groups:
         content:
           application/json:
             schema:
-              $ref: '../components/schemas.yaml#/Group'
+              $ref: '../components/schemas.yaml#/GroupListItem'
       '400':
         $ref: '../components/responses.yaml#/BadRequest'
       '401':
@@ -59,11 +59,7 @@ groups:
       '403':
         $ref: '../components/responses.yaml#/Forbidden'
       '409':
-        description: Group already exists
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/errors.yaml#/ConflictError'
+        $ref: '../components/responses.yaml#/BadRequest'
       '500':
         $ref: '../components/responses.yaml#/InternalError'
 
@@ -98,15 +94,30 @@ groups-id:
         required: true
         schema:
           type: string
+        description: Group ID (UUID) or slug
     requestBody:
       required: true
       content:
         application/json:
           schema:
-            $ref: '../components/schemas.yaml#/Group'
+            $ref: '../components/schemas.yaml#/GroupUpdateRequest'
     responses:
       '200':
         description: Successful response
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/GroupListItem'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
 
   delete:
     summary: Delete a group by ID
@@ -251,9 +262,42 @@ groups-id-requests:
               items:
                 $ref: '../components/schemas.yaml#/GroupRequest'
 
+  post:
+    summary: Create a request to join a group or request admin promotion
+    description: Create a new request to either join a group or be promoted to group admin
+    operationId: createGroupRequest
+    tags:
+      - Groups
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Group ID or slug
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/CreateGroupRequest'
+    responses:
+      '204':
+        description: Request created successfully
+      '400':
+        $ref: '../openapi.yaml#/components/responses/BadRequest'
+      '401':
+        $ref: '../openapi.yaml#/components/responses/Unauthorized'
+      '403':
+        $ref: '../openapi.yaml#/components/responses/Forbidden'
+      '404':
+        $ref: '../openapi.yaml#/components/responses/NotFound'
+      '409':
+        $ref: '../components/responses.yaml#/BadRequest'
+
 groups-id-requests-rid:
   put:
-    summary: Process a group request
+    summary: Process (approve or deny) a group request
     operationId: processGroupRequest
     tags:
       - Groups
@@ -263,17 +307,37 @@ groups-id-requests-rid:
         required: true
         schema:
           type: string
+        description: Group ID or slug
       - name: rid
         in: path
         required: true
         schema:
           type: string
+        description: Request ID to process
     security:
       - bearerAuth: []
       - oauth2ClientCredentials: ['governor:groups:write']
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/GroupRequestAction'
     responses:
-      '200':
-        description: Successful response
+      '204':
+        description: Request successfully processed
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '409':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
 
   delete:
     summary: Delete a group request
@@ -370,11 +434,7 @@ groups-id-users-uid:
       '404':
         $ref: '../components/responses.yaml#/NotFound'
       '409':
-        description: User already in the group
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/errors.yaml#/ConflictError'
+        $ref: '../components/responses.yaml#/BadRequest'
       '500':
         $ref: '../components/responses.yaml#/InternalError'
 
@@ -524,11 +584,7 @@ groups-id-hierarchies-member-id:
       '404':
         $ref: '../components/responses.yaml#/NotFound'
       '409':
-        description: Group already a member
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/errors.yaml#/ConflictError'
+        $ref: '../components/responses.yaml#/BadRequest'
       '500':
         $ref: '../components/responses.yaml#/InternalError'
 
@@ -606,38 +662,6 @@ groups-id-hierarchies-member-id:
       '500':
         $ref: '../components/responses.yaml#/InternalError'
 
-groups-id-applications:
-  get:
-    summary: List applications linked to a group
-    operationId: listGroupApplications
-    tags:
-      - Groups
-    parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: string
-        description: Group ID (UUID) or slug
-    security:
-      - bearerAuth: []
-      - oauth2ClientCredentials: ['governor:groups:read']
-    responses:
-      '200':
-        description: Successful response
-        content:
-          application/json:
-            schema:
-              type: array
-              items:
-                $ref: '../components/schemas.yaml#/Application'
-      '401':
-        $ref: '../components/responses.yaml#/Unauthorized'
-      '404':
-        $ref: '../components/responses.yaml#/NotFound'
-      '500':
-        $ref: '../components/responses.yaml#/InternalError'
-
 groups-id-applications-oid:
   put:
     summary: Link an application to a group
@@ -672,11 +696,7 @@ groups-id-applications-oid:
       '404':
         $ref: '../components/responses.yaml#/NotFound'
       '409':
-        description: Application already linked to group
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/errors.yaml#/ConflictError'
+        $ref: '../components/responses.yaml#/BadRequest'
       '500':
         $ref: '../components/responses.yaml#/InternalError'
 
@@ -778,11 +798,7 @@ groups-id-apprequests:
       '404':
         $ref: '../components/responses.yaml#/NotFound'
       '409':
-        description: Application already linked or request already exists
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/errors.yaml#/ConflictError'
+        $ref: '../components/responses.yaml#/BadRequest'
       '500':
         $ref: '../components/responses.yaml#/InternalError'
 
@@ -895,11 +911,7 @@ groups-id-organizations-oid:
       '404':
         $ref: '../components/responses.yaml#/NotFound'
       '409':
-        description: Organization already linked to group
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/errors.yaml#/ConflictError'
+        $ref: '../components/responses.yaml#/BadRequest'
       '500':
         $ref: '../components/responses.yaml#/InternalError'
 

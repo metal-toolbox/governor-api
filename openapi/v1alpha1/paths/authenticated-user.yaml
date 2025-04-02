@@ -16,17 +16,9 @@ user-groups:
               items:
                 $ref: '../components/schemas.yaml#/Group'
       '401':
-        description: Unauthorized
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/errors.yaml#/AuthenticationError'
+        $ref: '../components/responses.yaml#/Unauthorized'
       '500':
-        description: Internal server error
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/errors.yaml#/Error'
+        $ref: '../components/responses.yaml#/InternalError'
 
 user-groups-id:
   delete:
@@ -47,23 +39,11 @@ user-groups-id:
       '204':
         description: No content - Successfully removed from group
       '401':
-        description: Unauthorized
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/errors.yaml#/AuthenticationError'
+        $ref: '../components/responses.yaml#/Unauthorized'
       '404':
-        description: Group not found or user not a direct member
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/errors.yaml#/NotFoundError'
+        $ref: '../components/responses.yaml#/NotFound'
       '500':
-        description: Internal server error
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/errors.yaml#/Error'
+        $ref: '../components/responses.yaml#/InternalError'
 
 user-groups-requests:
   get:
@@ -113,17 +93,9 @@ user:
             schema:
               $ref: '../components/schemas.yaml#/UserProfile'
       '401':
-        description: Unauthorized
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/errors.yaml#/AuthenticationError'
+        $ref: '../components/responses.yaml#/Unauthorized'
       '500':
-        description: Internal server error
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/errors.yaml#/Error'
+        $ref: '../components/responses.yaml#/InternalError'
 
   put:
     summary: Update authenticated user's profile
@@ -142,20 +114,8 @@ user:
       '200':
         description: Successful response
       '400':
-        description: Bad request
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/errors.yaml#/ValidationError'
+        $ref: '../components/responses.yaml#/BadRequest'
       '401':
-        description: Unauthorized
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/errors.yaml#/AuthenticationError'
+        $ref: '../components/responses.yaml#/Unauthorized'
       '500':
-        description: Internal server error
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/errors.yaml#/Error'
+        $ref: '../components/responses.yaml#/InternalError'

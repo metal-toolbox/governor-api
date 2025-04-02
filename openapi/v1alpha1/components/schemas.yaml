@@ -45,6 +45,12 @@ GroupOrganizationLink:
   $ref: './schemas/groups.yaml#/GroupOrganizationLink'
 AuthenticatedUserGroup:
   $ref: './schemas/groups.yaml#/AuthenticatedUserGroup'
+CreateGroupRequest:
+  $ref: './schemas/groups.yaml#/CreateGroupRequest'
+GroupRequestAction:
+  $ref: './schemas/groups.yaml#/GroupRequestAction'
+GroupListItem:
+  $ref: './schemas/groups.yaml#/GroupListItem'
 
 # Group-Application related schemas
 GroupApplication:
@@ -52,7 +58,7 @@ GroupApplication:
 GroupApplicationRequest:
   $ref: './schemas/groups.yaml#/GroupApplicationRequest'
 CreateGroupApplicationRequest:
-  $ref: './schemas/groups.yaml#/CreateGroupApplicationRequest'
+  $ref: './schemas/groups.yaml#/CreateGroupApp'
 GroupApplicationRequestAction:
   $ref: './schemas/groups.yaml#/GroupApplicationRequestAction'
 

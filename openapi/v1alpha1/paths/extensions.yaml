@@ -354,16 +354,19 @@ resources:
         required: true
         schema:
           type: string
+        description: Extension slug
       - name: erd-slug-plural
         in: path
         required: true
         schema:
           type: string
+        description: Extension resource definition slug (plural form)
       - name: erd-version
         in: path
         required: true
         schema:
           type: string
+        description: Extension resource definition version
     responses:
       '200':
         description: Successful response
@@ -388,11 +391,13 @@ resources:
         required: true
         schema:
           type: string
+        description: Extension slug
       - name: erd-slug-plural
         in: path
         required: true
         schema:
           type: string
+        description: Extension Resource Definition plural slug
       - name: erd-version
         in: path
         required: true
@@ -406,7 +411,17 @@ resources:
             $ref: '../components/schemas.yaml#/ExtensionResource'
     responses:
       '201':
-        description: Created
+        description: Extension resource created
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
     security:
       - bearerAuth: []
       - oauth2ClientCredentials: ['governor:extensionresources:create']
@@ -423,21 +438,25 @@ resources-id:
         required: true
         schema:
           type: string
+        description: Extension slug
       - name: erd-slug-plural
         in: path
         required: true
         schema:
           type: string
+        description: Extension resource definition slug (plural form)
       - name: erd-version
         in: path
         required: true
         schema:
           type: string
+        description: Extension resource definition version
       - name: resource-id
         in: path
         required: true
         schema:
           type: string
+        description: Resource ID
     responses:
       '200':
         description: Successful response
@@ -460,16 +479,19 @@ resources-id:
         required: true
         schema:
           type: string
+        description: Extension slug
       - name: erd-slug-plural
         in: path
         required: true
         schema:
           type: string
+        description: Extension resource definition slug (plural form)
       - name: erd-version
         in: path
         required: true
         schema:
           type: string
+        description: Extension resource definition version
       - name: resource-id
         in: path
         required: true
@@ -499,21 +521,25 @@ resources-id:
         required: true
         schema:
           type: string
+        description: Extension slug
       - name: erd-slug-plural
         in: path
         required: true
         schema:
           type: string
+        description: Extension resource definition slug (plural form)
       - name: erd-version
         in: path
         required: true
         schema:
           type: string
+        description: Extension resource definition version
       - name: resource-id
         in: path
         required: true
         schema:
           type: string
+        description: Resource ID
     responses:
       '204':
         description: No content

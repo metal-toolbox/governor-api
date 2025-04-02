@@ -13,7 +13,16 @@ Group:
       description: URL-friendly identifier for the group
     description:
       type: string
-      description: Group description
+      description: Description of the group
+    note:
+      type: string
+      description: Additional notes or comments about the group
+      default: ""
+    approver_group:
+      type: string
+      format: uuid
+      nullable: true
+      description: ID of the group that approves membership requests for this group
     created_at:
       type: string
       format: date-time
@@ -25,11 +34,42 @@ Group:
     deleted_at:
       type: string
       format: date-time
-      description: Timestamp when the group was deleted (if applicable)
+      description: Timestamp when the group was soft-deleted, null if active
+    members:
+      type: array
+      items:
+        type: string
+        format: uuid
+      description: List of user IDs that are members of this group
+    members_direct:
+      type: array
+      items:
+        type: string
+        format: uuid
+      description: List of user IDs that are direct members of this group
+    membership_requests:
+      type: array
+      items:
+        type: string
+        format: uuid
+      description: List of user IDs with pending membership requests
+    organizations:
+      type: array
+      items:
+        type: string
+        format: uuid
+      description: List of organization IDs this group belongs to
+    applications:
+      type: array
+      items:
+        type: string
+        format: uuid
+      description: List of application IDs associated with this group
   required:
     - id
     - name
     - slug
+    - description
     - created_at
     - updated_at
 
@@ -176,10 +216,6 @@ GroupMembership:
       type: string
       format: date-time
       description: Timestamp when admin privileges expire, if applicable
-    user:
-      $ref: '../schemas/users.yaml#/User'
-    group:
-      $ref: '#/Group'
   required:
     - id
     - user_id
@@ -197,18 +233,27 @@ GroupHierarchy:
       type: string
       format: uuid
       description: ID of the parent group
+    parent_group_slug:
+      type: string
+      description: Slug of the parent group
     member_group_id:
       type: string
       format: uuid
       description: ID of the member group
-    created_at:
+    member_group_slug:
+      type: string
+      description: Slug of the member group
+    expires_at:
       type: string
       format: date-time
-      description: Timestamp when the hierarchy relationship was created
+      nullable: true
+      description: When the hierarchy relationship expires, if applicable
   required:
     - id
     - parent_group_id
+    - parent_group_slug
     - member_group_id
+    - member_group_slug
 
 AuthenticatedUserGroup:
   type: object
@@ -585,19 +630,6 @@ GroupApplicationRequest:
     - created_at
     - updated_at
 
-CreateGroupApplicationRequest:
-  type: object
-  properties:
-    application_id:
-      type: string
-      format: uuid
-      description: ID of the application to link to the group
-    note:
-      type: string
-      description: Additional notes about the request
-  required:
-    - application_id
-
 GroupApplicationRequestAction:
   type: object
   properties:
@@ -726,3 +758,120 @@ GroupMembershipResponse:
     - id
     - status
     - created_at
+
+CreateGroupRequest:
+  type: object
+  properties:
+    is_admin:
+      type: boolean
+      description: Whether the request is for admin privileges
+    note:
+      type: string
+      description: Optional note explaining the request
+    expires_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: When the membership should expire (if granted)
+    admin_expires_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: When the admin privileges should expire (if granted)
+    kind:
+      type: string
+      enum: [new_member, admin_promotion]
+      description: Type of request - either for new membership or admin promotion
+      default: new_member
+
+GroupRequestAction:
+  type: object
+  required:
+    - action
+  properties:
+    action:
+      type: string
+      enum: [approve, deny]
+      description: Action to take on the group request
+
+CreateGroupApp:
+  type: object
+  required:
+    - name
+    - slug
+    - description
+  properties:
+    name:
+      type: string
+      description: Name of the application
+      example: "My Application"
+    slug:
+      type: string
+      description: URL-friendly identifier for the application
+      example: "my-application"
+    description:
+      type: string
+      description: Description of the application
+      example: "A test application for development"
+    type_id:
+      type: string
+      format: uuid
+      description: ID of the application type
+      example: "123e4567-e89b-12d3-a456-426614174000"
+    approver_group_id:
+      type: string
+      format: uuid
+      description: ID of the group that approves access requests for this application
+      example: "123e4567-e89b-12d3-a456-426614174001"
+
+GroupListItem:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+      description: Unique identifier for the group
+    name:
+      type: string
+      description: Name of the group
+    slug:
+      type: string
+      description: URL-friendly identifier for the group
+    description:
+      type: string
+      description: Description of the group
+    note:
+      type: string
+      description: Additional notes or comments about the group
+      default: ""
+    approver_group:
+      type: string
+      format: uuid
+      nullable: true
+      description: ID of the group that approves membership requests for this group
+    created_at:
+      type: string
+      format: date-time
+      description: Timestamp when the group was created
+    updated_at:
+      type: string
+      format: date-time
+      description: Timestamp when the group was last updated
+    deleted_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: Timestamp when the group was soft-deleted, null if active
+
+CreateGroupApplicationRequest:
+  type: object
+  properties:
+    application_id:
+      type: string
+      format: uuid
+      description: ID of the application to link to the group
+    note:
+      type: string
+      description: Additional notes about the request
+  required:
+    - application_id

@@ -118,8 +118,6 @@ paths:
     $ref: './paths/groups.yaml#/groups-id-users'
   /groups/{id}/users/{uid}:
     $ref: './paths/groups.yaml#/groups-id-users-uid'
-  /groups/{id}/applications:
-    $ref: './paths/groups.yaml#/groups-id-applications'
   /groups/{id}/applications/{oid}:
     $ref: './paths/groups.yaml#/groups-id-applications-oid'
   /groups/{id}/apprequests:
@@ -203,35 +201,15 @@ components:
       description: OAuth2 client credentials flow for service-to-service API access
   responses:
     Unauthorized:
-      description: Authentication error - invalid or missing credentials
-      content:
-        application/json:
-          schema:
-            $ref: './components/schemas/errors.yaml#/AuthenticationError'
+      $ref: './components/responses.yaml#/Unauthorized'
     Forbidden:
-      description: Authorization error - insufficient permissions
-      content:
-        application/json:
-          schema:
-            $ref: './components/schemas/errors.yaml#/AuthorizationError'
+      $ref: './components/responses.yaml#/Forbidden'
     BadRequest:
-      description: Invalid request parameters
-      content:
-        application/json:
-          schema:
-            $ref: './components/schemas/errors.yaml#/ValidationError'
+      $ref: './components/responses.yaml#/BadRequest'
     NotFound:
-      description: Resource not found
-      content:
-        application/json:
-          schema:
-            $ref: './components/schemas/errors.yaml#/NotFoundError'
+      $ref: './components/responses.yaml#/NotFound'
     InternalError:
-      description: Internal server error
-      content:
-        application/json:
-          schema:
-            $ref: './components/schemas/errors.yaml#/Error'
+      $ref: './components/responses.yaml#/InternalError'
 
 # Global security requirement - endpoints will require either:
 # 1. User authentication via bearer token (OIDC user login)

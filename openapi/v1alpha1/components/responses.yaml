@@ -3,28 +3,28 @@ BadRequest:
   content:
     application/json:
       schema:
-        $ref: './schemas/errors.yaml#/ValidationError'
+        $ref: './schemas/errors.yaml#/Error'
 
 Unauthorized:
   description: Authentication error - invalid or missing credentials
   content:
     application/json:
       schema:
-        $ref: './schemas/errors.yaml#/AuthenticationError'
+        $ref: './schemas/errors.yaml#/Error'
 
 Forbidden:
   description: Authorization error - insufficient permissions
   content:
     application/json:
       schema:
-        $ref: './schemas/errors.yaml#/AuthorizationError'
+        $ref: './schemas/errors.yaml#/Error'
 
 NotFound:
   description: Resource not found
   content:
     application/json:
       schema:
-        $ref: './schemas/errors.yaml#/NotFoundError'
+        $ref: './schemas/errors.yaml#/Error'
 
 InternalError:
   description: Internal server error

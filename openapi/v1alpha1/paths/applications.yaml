@@ -58,6 +58,8 @@ applications:
         $ref: '../components/responses.yaml#/Unauthorized'
       '403':
         $ref: '../components/responses.yaml#/Forbidden'
+      '409':
+        $ref: '../components/responses.yaml#/BadRequest'
       '500':
         $ref: '../components/responses.yaml#/InternalError'
 

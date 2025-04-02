@@ -59,11 +59,7 @@ organizations:
       '403':
         $ref: '../components/responses.yaml#/Forbidden'
       '409':
-        description: Organization already exists
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/errors.yaml#/ConflictError'
+        $ref: '../components/responses.yaml#/BadRequest'
       '500':
         $ref: '../components/responses.yaml#/InternalError'
 
