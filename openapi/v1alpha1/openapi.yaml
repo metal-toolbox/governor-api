@@ -4,12 +4,11 @@ info:
   description: API for Governor service to manage users, groups, organizations, applications, and extensions
   version: v1alpha1
 servers:
-  - url: 'http://localhost:3001/api/v1alpha1'
-    description: Local Dev Server
+  - url: '{SERVER_URL}/api/v1alpha1'
+    description: Server
     variables:
-      OAUTH2_TOKEN_URL:
-        default: 'http://localhost:4444/oauth2/token'
-        description: URL for OAuth2 token endpoint
+      SERVER_URL:
+        default: 'http://localhost:3001'
 tags:
   - name: AuthenticatedUser
     description: Operations for managing the authenticated user
@@ -156,8 +155,8 @@ components:
       type: oauth2
       flows:
         authorizationCode:
-          authorizationUrl: https://equinixmetal.oktapreview.com/oauth2/default/v1/authorize
-          tokenUrl: https://equinixmetal.oktapreview.com/oauth2/default/v1/token
+          authorizationUrl: http://localhost:4444/oauth2/authorize
+          tokenUrl: http://localhost:4444/oauth2/token
           scopes:
             'openid': OpenID Connect scope
             'profile': User profile scope
@@ -211,9 +210,6 @@ components:
     InternalError:
       $ref: './components/responses.yaml#/InternalError'
 
-# Global security requirement - endpoints will require either:
-# 1. User authentication via bearer token (OIDC user login)
-# 2. Service authentication via OAuth2 client credentials with appropriate scopes
 security:
   - bearerAuth: []
   - oauth2ClientCredentials: []

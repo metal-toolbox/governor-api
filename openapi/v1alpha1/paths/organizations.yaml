@@ -166,7 +166,7 @@ organizations-id-groups:
             schema:
               type: array
               items:
-                $ref: '../components/schemas.yaml#/Group'
+                $ref: '../components/schemas.yaml#/GroupListItem'
       '400':
         $ref: '../components/responses.yaml#/BadRequest'
       '401':

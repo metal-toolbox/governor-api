@@ -37,9 +37,6 @@ OrganizationCreateRequest:
       type: string
       description: Name of the organization
       examples: ["My Organization"]
-    slug:
-      type: string
-      description: URL-friendly identifier for the organization
   required:
     - name
 

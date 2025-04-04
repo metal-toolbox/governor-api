@@ -544,8 +544,7 @@ groups-id-hierarchies:
       '500':
         $ref: '../components/responses.yaml#/InternalError'
 
-groups-id-hierarchies-member-id:
-  put:
+  post:
     summary: Add a member group to a parent group
     operationId: addMemberGroup
     tags:
@@ -557,12 +556,6 @@ groups-id-hierarchies-member-id:
         schema:
           type: string
         description: Group ID (UUID) of the parent group
-      - name: member_id
-        in: path
-        required: true
-        schema:
-          type: string
-        description: Group ID (UUID) of the member group
     security:
       - bearerAuth: []
       - oauth2ClientCredentials: ['governor:groups:write']
@@ -588,6 +581,7 @@ groups-id-hierarchies-member-id:
       '500':
         $ref: '../components/responses.yaml#/InternalError'
 
+groups-id-hierarchies-member-id:
   patch:
     summary: Update a group hierarchy relationship
     operationId: updateMemberGroup

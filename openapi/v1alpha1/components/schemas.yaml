@@ -96,13 +96,13 @@ ApplicationType:
 ApplicationWithType:
   $ref: './schemas/applications.yaml#/ApplicationWithType'
 ApplicationCreateRequest:
-  $ref: './schemas/applications.yaml#/ApplicationCreateRequest'
+  $ref: './schemas/applications.yaml#/ApplicationRequest'
 ApplicationUpdateRequest:
-  $ref: './schemas/applications.yaml#/ApplicationUpdateRequest'
+  $ref: './schemas/applications.yaml#/ApplicationRequest'
 ApplicationTypeCreateRequest:
-  $ref: './schemas/applications.yaml#/ApplicationTypeCreateRequest'
+  $ref: './schemas/applications.yaml#/ApplicationTypeRequest'
 ApplicationTypeUpdateRequest:
-  $ref: './schemas/applications.yaml#/ApplicationTypeUpdateRequest'
+  $ref: './schemas/applications.yaml#/ApplicationTypeRequest'
 
 # Organization schemas
 Organization:

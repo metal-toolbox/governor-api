@@ -90,7 +90,7 @@ ApplicationWithType:
         type:
           $ref: '#/ApplicationType'
 
-ApplicationCreateRequest:
+ApplicationRequest:
   type: object
   properties:
     name:
@@ -111,39 +111,13 @@ ApplicationCreateRequest:
     - name
     - type_id
 
-ApplicationUpdateRequest:
-  type: object
-  properties:
-    name:
-      type: string
-      description: Updated name of the application
-    description:
-      type: string
-      description: Updated description of the application
-    type_id:
-      type: string
-      format: uuid
-      description: Updated ID of the application type
-    approver_group_id:
-      type: string
-      format: uuid
-      description: Updated ID of the group that approves application access requests
-    metadata:
-      type: object
-      additionalProperties: true
-      description: Updated metadata for the application
-
-ApplicationTypeCreateRequest:
+ApplicationTypeRequest:
   type: object
   properties:
     name:
       type: string
       description: Name of the application type
       examples: ["Database Service"]
-    slug:
-      type: string
-      description: URL-friendly identifier for the application type
-      examples: ["database-service"]
     description:
       type: string
       description: Description of the application type
@@ -155,19 +129,4 @@ ApplicationTypeCreateRequest:
       examples: ["https://example.com/logos/database.png"]
   required:
     - name
-    - slug
     - description
-
-ApplicationTypeUpdateRequest:
-  type: object
-  properties:
-    name:
-      type: string
-      description: Updated name of the application type
-    description:
-      type: string
-      description: Updated description of the application type
-    logo_url:
-      type: string
-      format: uri
-      description: Updated URL to the logo image for this application type
