@@ -24,3 +24,18 @@ jobs:
           path: openapi-bundle.yaml
           rentention-days: 1
 
+  publish-pages:
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    needs: openapi-bundle
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+        with:
+          artifact_name: openapi-bundle
