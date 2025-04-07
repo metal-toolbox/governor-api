@@ -21,7 +21,6 @@ Group:
     approver_group:
       type: string
       format: uuid
-      nullable: true
       description: ID of the group that approves membership requests for this group
     created_at:
       type: string
@@ -246,7 +245,6 @@ GroupHierarchy:
     expires_at:
       type: string
       format: date-time
-      nullable: true
       description: When the hierarchy relationship expires, if applicable
   required:
     - id
@@ -771,12 +769,10 @@ CreateGroupRequest:
     expires_at:
       type: string
       format: date-time
-      nullable: true
       description: When the membership should expire (if granted)
     admin_expires_at:
       type: string
       format: date-time
-      nullable: true
       description: When the admin privileges should expire (if granted)
     kind:
       type: string
@@ -804,25 +800,25 @@ CreateGroupApp:
     name:
       type: string
       description: Name of the application
-      example: "My Application"
+      examples: ["My Application"]
     slug:
       type: string
       description: URL-friendly identifier for the application
-      example: "my-application"
+      examples: ["my-application"]
     description:
       type: string
       description: Description of the application
-      example: "A test application for development"
+      examples: ["A test application for development"]
     type_id:
       type: string
       format: uuid
       description: ID of the application type
-      example: "123e4567-e89b-12d3-a456-426614174000"
+      examples: ["123e4567-e89b-12d3-a456-426614174000"]
     approver_group_id:
       type: string
       format: uuid
       description: ID of the group that approves access requests for this application
-      example: "123e4567-e89b-12d3-a456-426614174001"
+      examples: ["123e4567-e89b-12d3-a456-426614174001"]
 
 GroupListItem:
   type: object
@@ -847,7 +843,6 @@ GroupListItem:
     approver_group:
       type: string
       format: uuid
-      nullable: true
       description: ID of the group that approves membership requests for this group
     created_at:
       type: string
@@ -860,7 +855,6 @@ GroupListItem:
     deleted_at:
       type: string
       format: date-time
-      nullable: true
       description: Timestamp when the group was soft-deleted, null if active
 
 CreateGroupApplicationRequest:
