@@ -1,0 +1,26 @@
+name: openapi-schema
+
+on: [push]
+
+jobs:
+  openapi-bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install dependencies
+        run: |
+          npm install -g @redocly/cli
+      - name: Bundle OpenAPI Spec
+        run: |
+          redocly bundle openapi/v1alpha1/openapi.yaml -o openapi-bundle.yaml
+      - name: Upload OpenAPI Bundle
+        uses: actions/upload-artifact@v4 
+        with:
+          name: openapi-bundle
+          path: openapi-bundle.yaml
+          rentention-days: 1
+
