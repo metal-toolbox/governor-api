@@ -8,7 +8,7 @@ require (
 	github.com/coreos/go-oidc/v3 v3.14.1
 	github.com/friendsofgo/errors v0.9.2
 	github.com/gin-contrib/cors v1.7.5
-	github.com/gin-contrib/zap v1.1.4
+	github.com/gin-contrib/zap v1.1.5
 	github.com/gin-gonic/gin v1.10.0
 	github.com/goccy/go-json v0.10.5
 	github.com/google/uuid v1.6.0
