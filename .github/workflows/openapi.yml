@@ -24,7 +24,7 @@ jobs:
       - name: Upload OpenAPI Bundle
         uses: actions/upload-pages-artifact@v3
         with:
-          rentention-days: 1
+          retention-days: 1
 
   publish-pages:
     runs-on: ubuntu-latest
