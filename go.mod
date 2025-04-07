@@ -3,7 +3,7 @@ module github.com/metal-toolbox/governor-api
 go 1.24.1
 
 require (
-	github.com/XSAM/otelsql v0.37.0
+	github.com/XSAM/otelsql v0.38.0
 	github.com/cockroachdb/cockroach-go/v2 v2.4.0
 	github.com/coreos/go-oidc/v3 v3.14.1
 	github.com/friendsofgo/errors v0.9.2
