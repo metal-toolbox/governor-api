@@ -1,6 +1,9 @@
 name: openapi-schema
 
-on: [push]
+on:
+  push:
+    tags:
+      - 'v*.*.*'
 
 jobs:
   openapi-bundle:

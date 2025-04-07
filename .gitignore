@@ -10,3 +10,4 @@ audit.log
 
 tmp/**
 dist/**
+_site/**
