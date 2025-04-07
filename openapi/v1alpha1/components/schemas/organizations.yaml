@@ -1,0 +1,71 @@
+Organization:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+      description: Unique identifier for the organization
+    name:
+      type: string
+      description: Name of the organization
+    slug:
+      type: string
+      description: URL-friendly identifier for the organization
+    created_at:
+      type: string
+      format: date-time
+      description: Timestamp when the organization was created
+    updated_at:
+      type: string
+      format: date-time
+      description: Timestamp when the organization was last updated
+    deleted_at:
+      type: string
+      format: date-time
+      description: Timestamp when the organization was deleted (if applicable)
+  required:
+    - id
+    - name
+    - slug
+    - created_at
+    - updated_at
+
+OrganizationCreateRequest:
+  type: object
+  properties:
+    name:
+      type: string
+      description: Name of the organization
+      examples: ["My Organization"]
+  required:
+    - name
+
+GroupOrganization:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+      description: Unique identifier for the group-organization link
+    group_id:
+      type: string
+      format: uuid
+      description: ID of the group
+    organization_id:
+      type: string
+      format: uuid
+      description: ID of the organization
+    created_at:
+      type: string
+      format: date-time
+      description: Timestamp when the link was created
+    updated_at:
+      type: string
+      format: date-time
+      description: Timestamp when the link was last updated
+  required:
+    - id
+    - group_id
+    - organization_id
+    - created_at
+    - updated_at

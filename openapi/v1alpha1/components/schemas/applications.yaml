@@ -1,0 +1,132 @@
+Application:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+      description: Unique identifier for the application
+    name:
+      type: string
+      description: Name of the application
+    slug:
+      type: string
+      description: URL-friendly identifier for the application
+    created_at:
+      type: string
+      format: date-time
+      description: Timestamp when the application was created
+    updated_at:
+      type: string
+      format: date-time
+      description: Timestamp when the application was last updated
+    deleted_at:
+      type: string
+      format: date-time
+      description: Timestamp when the application was deleted, if applicable
+      nullable: true
+    approver_group_id:
+      type: string
+      format: uuid
+      description: ID of the group that approves application access requests
+      nullable: true
+    type_id:
+      type: string
+      format: uuid
+      description: ID of the application type
+      nullable: true
+  required:
+    - id
+    - name
+    - slug
+    - created_at
+    - updated_at
+
+ApplicationType:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+      description: Unique identifier for the application type
+    name:
+      type: string
+      description: Name of the application type
+    slug:
+      type: string
+      description: URL-friendly identifier for the application type
+    description:
+      type: string
+      description: Description of the application type
+    logo_url:
+      type: string
+      format: uri
+      description: URL to the logo image for this application type
+    created_at:
+      type: string
+      format: date-time
+      description: Timestamp when the application type was created
+    updated_at:
+      type: string
+      format: date-time
+      description: Timestamp when the application type was last updated
+    deleted_at:
+      type: string
+      format: date-time
+      description: Timestamp when the application type was deleted, if applicable
+  required:
+    - id
+    - name
+    - slug
+    - description
+    - created_at
+    - updated_at
+
+ApplicationWithType:
+  type: object
+  allOf:
+    - $ref: '#/Application'
+    - type: object
+      properties:
+        type:
+          $ref: '#/ApplicationType'
+
+ApplicationRequest:
+  type: object
+  properties:
+    name:
+      type: string
+      description: Name of the application
+      examples: ["My Service"]
+    type_id:
+      type: string
+      format: uuid
+      description: ID of the application type
+      examples: ["3fa85f64-5717-4562-b3fc-2c963f66afa6"]
+    approver_group_id:
+      type: string
+      format: uuid
+      description: ID of the group that approves application access requests (if needed)
+      nullable: true
+  required:
+    - name
+    - type_id
+
+ApplicationTypeRequest:
+  type: object
+  properties:
+    name:
+      type: string
+      description: Name of the application type
+      examples: ["Database Service"]
+    description:
+      type: string
+      description: Description of the application type
+      examples: ["Database services that require access management"]
+    logo_url:
+      type: string
+      format: uri
+      description: URL to the logo image for this application type
+      examples: ["https://example.com/logos/database.png"]
+  required:
+    - name
+    - description

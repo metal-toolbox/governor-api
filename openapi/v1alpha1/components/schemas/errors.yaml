@@ -1,0 +1,10 @@
+Error:
+  type: object
+  description: Generic error response
+  properties:
+    message:
+      type: string
+      description: Human-readable error message
+    error:
+      type: string
+      description: Technical error code or details

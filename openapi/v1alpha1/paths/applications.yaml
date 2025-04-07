@@ -1,0 +1,449 @@
+applications:
+  get:
+    summary: List all applications
+    operationId: listApplications
+    tags:
+      - Applications
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:applications:read']
+    parameters:
+      - name: deleted
+        in: query
+        description: Whether to include deleted applications in the results
+        required: false
+        schema:
+          type: boolean
+          default: false
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../components/schemas.yaml#/Application'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+  post:
+    summary: Create a new application
+    operationId: createApplication
+    tags:
+      - Applications
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:applications:create']
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/ApplicationCreateRequest'
+    responses:
+      '202':
+        description: Application created and accepted
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/Application'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '409':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+applications-id:
+  get:
+    summary: Get an application by ID
+    operationId: getApplication
+    tags:
+      - Applications
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Application ID (UUID) or slug
+      - name: type_id
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Type ID (required when fetching by slug)
+      - name: deleted
+        in: query
+        description: Whether to include deleted applications
+        required: false
+        schema:
+          type: boolean
+          default: false
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:applications:read']
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ApplicationWithType'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+  put:
+    summary: Update an application by ID
+    operationId: updateApplication
+    tags:
+      - Applications
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Application ID (UUID) or slug
+      - name: type_id
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Type ID (required when fetching by slug)
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:applications:write']
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/ApplicationUpdateRequest'
+    responses:
+      '202':
+        description: Application successfully updated
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/Application'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+  delete:
+    summary: Delete an application by ID
+    operationId: deleteApplication
+    tags:
+      - Applications
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Application ID (UUID) or slug
+      - name: type_id
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Type ID (required when fetching by slug)
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:applications:delete']
+    responses:
+      '202':
+        description: Application successfully deleted
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/Application'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+applications-id-groups:
+  get:
+    summary: List groups associated with an application
+    operationId: listApplicationGroups
+    tags:
+      - Applications
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Application ID (UUID) or slug
+      - name: deleted
+        in: query
+        description: Whether to include deleted relationships
+        required: false
+        schema:
+          type: boolean
+          default: false
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:applications:read']
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../components/schemas.yaml#/Group'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+types:
+  get:
+    summary: List all application types
+    operationId: listApplicationTypes
+    tags:
+      - Applications
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:applications:read']
+    parameters:
+      - name: deleted
+        in: query
+        description: Whether to include deleted application types
+        required: false
+        schema:
+          type: boolean
+          default: false
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../components/schemas.yaml#/ApplicationType'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+  post:
+    summary: Create a new application type
+    operationId: createApplicationType
+    tags:
+      - Applications
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:applications:create']
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/ApplicationTypeCreateRequest'
+    responses:
+      '202':
+        description: Application type created and accepted
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ApplicationType'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+types-id:
+  get:
+    summary: Get an application type by ID
+    operationId: getApplicationType
+    tags:
+      - Applications
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Application type ID (UUID) or slug
+      - name: deleted
+        in: query
+        description: Whether to include deleted application types
+        required: false
+        schema:
+          type: boolean
+          default: false
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:applications:read']
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ApplicationType'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+  put:
+    summary: Update an application type by ID
+    operationId: updateApplicationType
+    tags:
+      - Applications
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Application type ID (UUID) or slug
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:applications:write']
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/ApplicationTypeUpdateRequest'
+    responses:
+      '202':
+        description: Application type successfully updated
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ApplicationType'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+  delete:
+    summary: Delete an application type by ID
+    operationId: deleteApplicationType
+    tags:
+      - Applications
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Application type ID (UUID) or slug
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:applications:delete']
+    responses:
+      '202':
+        description: Application type successfully deleted
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ApplicationType'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+types-id-applications:
+  get:
+    summary: List applications of a specific type
+    operationId: listApplicationTypeApps
+    tags:
+      - Applications
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Application type ID (UUID) or slug
+      - name: deleted
+        in: query
+        description: Whether to include deleted applications
+        required: false
+        schema:
+          type: boolean
+          default: false
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:applications:read']
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../components/schemas.yaml#/Application'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'

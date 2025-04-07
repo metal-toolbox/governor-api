@@ -1,0 +1,83 @@
+Event:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+      description: Unique identifier for the event
+    action:
+      type: string
+      description: Action performed in the event
+    message:
+      type: string
+      description: Message describing the event
+    changeset:
+      type: array
+      items:
+        type: string
+      description: Array of changes made in this event
+    actor_id:
+      type: string
+      format: uuid
+      description: ID of the actor who performed the action
+    subject_group_id:
+      type: string
+      format: uuid
+      description: ID of the group that was the subject of the event (if applicable)
+    subject_user_id:
+      type: string
+      format: uuid
+      description: ID of the user that was the subject of the event (if applicable)
+    subject_organization_id:
+      type: string
+      format: uuid
+      description: ID of the organization that was the subject of the event (if applicable)
+    subject_application_id:
+      type: string
+      format: uuid
+      description: ID of the application that was the subject of the event (if applicable)
+    parent_id:
+      type: string
+      format: uuid
+      description: ID of the parent event (if applicable)
+    created_at:
+      type: string
+      format: date-time
+      description: Timestamp when the event was created
+  required:
+    - id
+    - action
+    - message
+    - created_at
+
+EventsResponse:
+  type: object
+  properties:
+    page_size:
+      type: integer
+      description: Number of records returned per page
+    page:
+      type: integer
+      description: Current page number
+    page_count:
+      type: integer
+      description: Number of records returned in this page
+    total_pages:
+      type: integer
+      description: Total number of pages available
+    total_record_count:
+      type: integer
+      format: int64
+      description: Total number of records available
+    records:
+      type: array
+      items:
+        $ref: '#/Event'
+      description: Array of event records
+  required:
+    - page_size
+    - page
+    - page_count
+    - total_pages
+    - total_record_count
+    - records

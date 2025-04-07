@@ -1,0 +1,94 @@
+events:
+  get:
+    summary: List all events
+    operationId: listEvents
+    tags:
+      - Events
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:events:read']
+    parameters:
+      - name: limit
+        in: query
+        description: Maximum number of records to return per page (max 1000)
+        required: false
+        schema:
+          type: integer
+          default: 100
+          minimum: 1
+          maximum: 1000
+      - name: page
+        in: query
+        description: Page number to retrieve
+        required: false
+        schema:
+          type: integer
+          default: 1
+          minimum: 1
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/EventsResponse'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+groups-id-events:
+  get:
+    summary: Get events for a specific group
+    operationId: listGroupEvents
+    tags:
+      - Events
+      - Groups
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Group ID (UUID) or slug
+      - name: limit
+        in: query
+        description: Maximum number of records to return per page (max 1000)
+        required: false
+        schema:
+          type: integer
+          default: 100
+          minimum: 1
+          maximum: 1000
+      - name: page
+        in: query
+        description: Page number to retrieve
+        required: false
+        schema:
+          type: integer
+          default: 1
+          minimum: 1
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:groups:read']
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/EventsResponse'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'

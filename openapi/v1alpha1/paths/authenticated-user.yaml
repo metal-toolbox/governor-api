@@ -1,0 +1,121 @@
+user-groups:
+  get:
+    summary: Get authenticated user's groups
+    operationId: getAuthenticatedUserGroups
+    tags:
+      - AuthenticatedUser
+    security:
+      - bearerAuth: []  # User authentication only, no scope checking
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../components/schemas.yaml#/Group'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+user-groups-id:
+  delete:
+    summary: Remove authenticated user from a group
+    operationId: removeAuthenticatedUserGroup
+    tags:
+      - AuthenticatedUser
+    security:
+      - bearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: ID or slug of the group to leave
+    responses:
+      '204':
+        description: No content - Successfully removed from group
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+user-groups-requests:
+  get:
+    summary: Get authenticated user's group requests
+    operationId: getAuthenticatedUserGroupRequests
+    tags:
+      - AuthenticatedUser
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../components/schemas.yaml#/GroupRequest'
+
+user-groups-approvals:
+  get:
+    summary: Get authenticated user's group approvals
+    operationId: getAuthenticatedUserGroupApprovals
+    tags:
+      - AuthenticatedUser
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../components/schemas.yaml#/GroupApproval'
+
+user:
+  get:
+    summary: Get authenticated user's profile
+    operationId: getAuthenticatedUserProfile
+    tags:
+      - AuthenticatedUser
+    security:
+      - bearerAuth: []  # User authentication only, no scope checking
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/UserProfile'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+  put:
+    summary: Update authenticated user's profile
+    operationId: updateAuthenticatedUserProfile
+    tags:
+      - AuthenticatedUser
+    security:
+      - bearerAuth: []  # User authentication only, no scope checking
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/UserProfile'
+    responses:
+      '200':
+        description: Successful response
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'

@@ -1,0 +1,943 @@
+groups:
+  get:
+    summary: List all groups
+    operationId: listGroups
+    tags:
+      - Groups
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:groups:read']
+    parameters:
+      - name: deleted
+        in: query
+        description: Whether to include deleted groups in the results
+        required: false
+        schema:
+          type: boolean
+          default: false
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../components/schemas.yaml#/GroupListItem'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+  post:
+    summary: Create a new group
+    operationId: createGroup
+    tags:
+      - Groups
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:groups:create']
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/GroupCreateRequest'
+    responses:
+      '202':
+        description: Group created and accepted
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/GroupListItem'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '409':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+groups-id:
+  get:
+    summary: Get a group by ID
+    operationId: getGroup
+    tags:
+      - Groups
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/Group'
+
+  put:
+    summary: Update a group by ID
+    operationId: updateGroup
+    tags:
+      - Groups
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Group ID (UUID) or slug
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/GroupUpdateRequest'
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/GroupListItem'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+  delete:
+    summary: Delete a group by ID
+    operationId: deleteGroup
+    tags:
+      - Groups
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    responses:
+      '204':
+        description: No content
+
+requests:
+  get:
+    summary: Get all group requests
+    operationId: getGroupRequestsAll
+    tags:
+      - Groups
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:groups:read']
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../components/schemas.yaml#/GroupRequest'
+
+memberships:
+  get:
+    summary: Get all group memberships
+    operationId: getGroupMembershipsAll
+    tags:
+      - Groups
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:groups:read']
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../components/schemas.yaml#/GroupMembership'
+
+hierarchies:
+  get:
+    summary: Get all group hierarchies
+    operationId: getGroupHierarchiesAll
+    tags:
+      - Groups
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:groups:read']
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../components/schemas.yaml#/GroupHierarchy'
+
+groups-id-events:
+  get:
+    summary: Get events for a specific group
+    operationId: listGroupEvents
+    tags:
+      - Groups
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: Maximum number of records to return per page (max 1000)
+        required: false
+        schema:
+          type: integer
+          default: 100
+          minimum: 1
+          maximum: 1000
+      - name: page
+        in: query
+        description: Page number to retrieve
+        required: false
+        schema:
+          type: integer
+          default: 1
+          minimum: 1
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:groups:read']
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/EventsResponse'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+groups-id-requests:
+  get:
+    summary: Get requests for a specific group
+    operationId: getGroupRequests
+    tags:
+      - Groups
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:groups:read']
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../components/schemas.yaml#/GroupRequest'
+
+  post:
+    summary: Create a request to join a group or request admin promotion
+    description: Create a new request to either join a group or be promoted to group admin
+    operationId: createGroupRequest
+    tags:
+      - Groups
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Group ID or slug
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/CreateGroupRequest'
+    responses:
+      '204':
+        description: Request created successfully
+      '400':
+        $ref: '../openapi.yaml#/components/responses/BadRequest'
+      '401':
+        $ref: '../openapi.yaml#/components/responses/Unauthorized'
+      '403':
+        $ref: '../openapi.yaml#/components/responses/Forbidden'
+      '404':
+        $ref: '../openapi.yaml#/components/responses/NotFound'
+      '409':
+        $ref: '../components/responses.yaml#/BadRequest'
+
+groups-id-requests-rid:
+  put:
+    summary: Process (approve or deny) a group request
+    operationId: processGroupRequest
+    tags:
+      - Groups
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Group ID or slug
+      - name: rid
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Request ID to process
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:groups:write']
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/GroupRequestAction'
+    responses:
+      '204':
+        description: Request successfully processed
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '409':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+  delete:
+    summary: Delete a group request
+    operationId: deleteGroupRequest
+    tags:
+      - Groups
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: rid
+        in: path
+        required: true
+        schema:
+          type: string
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:groups:write']
+    responses:
+      '204':
+        description: No content
+
+groups-id-users:
+  get:
+    summary: List members of a group
+    operationId: listGroupMembers
+    tags:
+      - Groups
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Group ID (UUID) or slug
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:groups:read']
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../components/schemas.yaml#/GroupMember'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+groups-id-users-uid:
+  put:
+    summary: Add a user to a group
+    operationId: addGroupMember
+    tags:
+      - Groups
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Group ID (UUID) or slug
+      - name: uid
+        in: path
+        required: true
+        schema:
+          type: string
+        description: User ID (UUID) or email
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:groups:write']
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/GroupMembershipRequest'
+    responses:
+      '204':
+        description: User successfully added to group
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '409':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+  patch:
+    summary: Update a group member
+    operationId: updateGroupMember
+    tags:
+      - Groups
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Group ID (UUID) or slug
+      - name: uid
+        in: path
+        required: true
+        schema:
+          type: string
+        description: User ID (UUID) or email
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:groups:write']
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/GroupMemberUpdate'
+    responses:
+      '204':
+        description: Group member successfully updated
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+  delete:
+    summary: Remove a user from a group
+    operationId: removeGroupMember
+    tags:
+      - Groups
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Group ID (UUID) or slug
+      - name: uid
+        in: path
+        required: true
+        schema:
+          type: string
+        description: User ID (UUID) or email
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:groups:write']
+    responses:
+      '204':
+        description: User successfully removed from group
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+groups-id-hierarchies:
+  get:
+    summary: Get member groups of a parent group
+    operationId: listMemberGroups
+    tags:
+      - Groups
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Group ID (UUID) of the parent group
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:groups:read']
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../components/schemas.yaml#/GroupHierarchy'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+  post:
+    summary: Add a member group to a parent group
+    operationId: addMemberGroup
+    tags:
+      - Groups
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Group ID (UUID) of the parent group
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:groups:write']
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/GroupHierarchyRequest'
+    responses:
+      '204':
+        description: Group hierarchy successfully created
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '409':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+groups-id-hierarchies-member-id:
+  patch:
+    summary: Update a group hierarchy relationship
+    operationId: updateMemberGroup
+    tags:
+      - Groups
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Group ID (UUID) of the parent group
+      - name: member_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Group ID (UUID) of the member group
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:groups:write']
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/GroupHierarchyUpdate'
+    responses:
+      '204':
+        description: Group hierarchy successfully updated
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+  delete:
+    summary: Remove a member group from a parent group
+    operationId: removeMemberGroup
+    tags:
+      - Groups
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Group ID (UUID) of the parent group
+      - name: member_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Group ID (UUID) of the member group
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:groups:write']
+    responses:
+      '204':
+        description: Group hierarchy successfully removed
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+groups-id-applications-oid:
+  put:
+    summary: Link an application to a group
+    operationId: addGroupApplication
+    tags:
+      - Groups
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Group ID (UUID) or slug
+      - name: oid
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Application ID (UUID) or slug
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:groups:write']
+    responses:
+      '204':
+        description: Application successfully linked to group
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '409':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+  delete:
+    summary: Unlink an application from a group
+    operationId: removeGroupApplication
+    tags:
+      - Groups
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Group ID (UUID) or slug
+      - name: oid
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Application ID (UUID) or slug
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:groups:write']
+    responses:
+      '204':
+        description: Application successfully unlinked from group
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+groups-id-apprequests:
+  get:
+    summary: Get application requests for a group
+    operationId: getGroupAppRequests
+    tags:
+      - Groups
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Group ID (UUID) or slug
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:groups:read']
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../components/schemas.yaml#/GroupApplicationRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+  post:
+    summary: Create an application link request
+    operationId: createGroupAppRequest
+    tags:
+      - Groups
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Group ID (UUID) or slug
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:groups:write']
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/CreateGroupApplicationRequest'
+    responses:
+      '204':
+        description: Application link request successfully created
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '409':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+groups-id-apprequests-rid:
+  put:
+    summary: Process an application link request
+    operationId: processGroupAppRequest
+    tags:
+      - Groups
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Group ID (UUID) or slug
+      - name: rid
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Request ID (UUID)
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:groups:write']
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/GroupApplicationRequestAction'
+    responses:
+      '204':
+        description: Application link request successfully processed
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+  delete:
+    summary: Delete/revoke an application link request
+    operationId: deleteGroupAppRequest
+    tags:
+      - Groups
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Group ID (UUID) or slug
+      - name: rid
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Request ID (UUID)
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:groups:write']
+    responses:
+      '204':
+        description: Application link request successfully deleted/revoked
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+groups-id-organizations-oid:
+  put:
+    summary: Link an organization to a group
+    operationId: addGroupOrganization
+    tags:
+      - Groups
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Group ID (UUID) or slug
+      - name: oid
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Organization ID (UUID) or slug
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:groups:write']
+    responses:
+      '204':
+        description: Organization successfully linked to group
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '409':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+  delete:
+    summary: Unlink an organization from a group
+    operationId: removeGroupOrganization
+    tags:
+      - Groups
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Group ID (UUID) or slug
+      - name: oid
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Organization ID (UUID) or slug
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:groups:write']
+    responses:
+      '204':
+        description: Organization successfully unlinked from group
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'

@@ -1,0 +1,184 @@
+users:
+  get:
+    summary: List all users
+    operationId: listUsers
+    tags:
+      - Users
+    security:
+      - bearerAuth: []  # User authentication
+      - oauth2ClientCredentials: ['governor:users:read']  # Service authentication with scope
+    parameters:
+      - name: deleted
+        in: query
+        description: Filter to show deleted users (true) or active users (false)
+        required: false
+        schema:
+          type: boolean
+          default: false
+      - name: external_id
+        in: query
+        description: Filter users by their external ID from the identity provider
+        required: false
+        schema:
+          type: string
+      - name: email
+        in: query
+        description: Filter users by their email address
+        required: false
+        schema:
+          type: string
+          format: email
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../components/schemas/users.yaml#/User'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+  post:
+    summary: Create a new user
+    operationId: createUser
+    tags:
+      - Users
+    security:
+      - bearerAuth: []  # User authentication (admin role required, checked internally)
+      - oauth2ClientCredentials: ['governor:users:create']  # Service authentication with scope
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/users.yaml#/UserCreateRequest'
+    responses:
+      '202':  # Changed from 201 to 202 to match implementation that returns StatusAccepted
+        description: User created and accepted
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/users.yaml#/User'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '409':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+users-id:
+  get:
+    summary: Get a user by ID
+    operationId: getUser
+    tags:
+      - Users
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:users:read']
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: User ID (UUID) or email
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/users.yaml#/User'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+  put:
+    summary: Update a user by ID
+    operationId: updateUser
+    tags:
+      - Users
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:users:write']
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: User ID (UUID) or email
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/users.yaml#/UserUpdateRequest'
+    responses:
+      '202':  # Verified that 202 is correct (StatusAccepted)
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/users.yaml#/User'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+  delete:
+    summary: Delete a user by ID
+    operationId: deleteUser
+    tags:
+      - Users
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:users:delete']
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: User ID (UUID) or email
+      - name: hard
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+        description: Whether to perform a hard delete (permanent) or soft delete (recoverable)
+    responses:
+      '202':  # Verified that 202 is correct (StatusAccepted)
+        description: User successfully deleted
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/users.yaml#/User'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'

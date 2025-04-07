@@ -1,0 +1,109 @@
+# Main schema reference file
+
+# User schemas
+User:
+  $ref: './schemas/users.yaml#/User'
+UserProfile:
+  $ref: './schemas/users.yaml#/UserProfile'
+
+# Group schemas
+Group:
+  $ref: './schemas/groups.yaml#/Group'
+GroupRequest:
+  $ref: './schemas/groups.yaml#/GroupRequest'
+GroupApproval:
+  $ref: './schemas/groups.yaml#/GroupApproval'
+GroupMembership:
+  $ref: './schemas/groups.yaml#/GroupMembership'
+GroupHierarchy:
+  $ref: './schemas/groups.yaml#/GroupHierarchy'
+GroupCreateRequest:
+  $ref: './schemas/groups.yaml#/GroupCreateRequest'
+GroupUpdateRequest:
+  $ref: './schemas/groups.yaml#/GroupUpdateRequest'
+GroupMember:
+  $ref: './schemas/groups.yaml#/GroupMember'
+GroupMembershipRequest:
+  $ref: './schemas/groups.yaml#/GroupMembershipRequest'
+GroupMemberUpdate:
+  $ref: './schemas/groups.yaml#/GroupMemberUpdate'
+GroupHierarchyRequest:
+  $ref: './schemas/groups.yaml#/GroupHierarchyRequest'
+GroupHierarchyUpdate:
+  $ref: './schemas/groups.yaml#/GroupHierarchyUpdate'
+GroupRequestUser:
+  $ref: './schemas/groups.yaml#/GroupRequestUser'
+GroupRequestGroup:
+  $ref: './schemas/groups.yaml#/GroupRequestGroup'
+GroupRequestProcessingAction:
+  $ref: './schemas/groups.yaml#/GroupRequestProcessingAction'
+CreateGroupMemberRequestPayload:
+  $ref: './schemas/groups.yaml#/CreateGroupMemberRequestPayload'
+GroupMemberRequest:
+  $ref: './schemas/groups.yaml#/GroupMemberRequest'
+GroupOrganizationLink:
+  $ref: './schemas/groups.yaml#/GroupOrganizationLink'
+AuthenticatedUserGroup:
+  $ref: './schemas/groups.yaml#/AuthenticatedUserGroup'
+CreateGroupRequest:
+  $ref: './schemas/groups.yaml#/CreateGroupRequest'
+GroupRequestAction:
+  $ref: './schemas/groups.yaml#/GroupRequestAction'
+GroupListItem:
+  $ref: './schemas/groups.yaml#/GroupListItem'
+
+# Group-Application related schemas
+GroupApplication:
+  $ref: './schemas/groups.yaml#/GroupApplication'
+GroupApplicationRequest:
+  $ref: './schemas/groups.yaml#/GroupApplicationRequest'
+CreateGroupApplicationRequest:
+  $ref: './schemas/groups.yaml#/CreateGroupApp'
+GroupApplicationRequestAction:
+  $ref: './schemas/groups.yaml#/GroupApplicationRequestAction'
+
+# Notification schemas
+NotificationPreferences:
+  $ref: './schemas/notifications.yaml#/NotificationPreferences'
+NotificationPreferencesUpdateRequest:
+  $ref: './schemas/notifications.yaml#/NotificationPreferencesUpdateRequest'
+UserNotificationPreferencesUpdate:
+  $ref: './schemas/notifications.yaml#/UserNotificationPreferencesUpdate'
+NotificationType:
+  $ref: './schemas/notifications.yaml#/NotificationType'
+NotificationTarget:
+  $ref: './schemas/notifications.yaml#/NotificationTarget'
+
+# Extension schemas
+Extension:
+  $ref: './schemas/extensions.yaml#/Extension'
+ExtensionResourceDefinition:
+  $ref: './schemas/extensions.yaml#/ExtensionResourceDefinition'
+ExtensionResource:
+  $ref: './schemas/extensions.yaml#/ExtensionResource'
+
+# Event schemas
+Event:
+  $ref: './schemas/events.yaml#/Event'
+EventsResponse:
+  $ref: './schemas/events.yaml#/EventsResponse'
+
+# Application schemas
+Application:
+  $ref: './schemas/applications.yaml#/Application'
+ApplicationType:
+  $ref: './schemas/applications.yaml#/ApplicationType'
+ApplicationWithType:
+  $ref: './schemas/applications.yaml#/ApplicationWithType'
+ApplicationCreateRequest:
+  $ref: './schemas/applications.yaml#/ApplicationRequest'
+ApplicationUpdateRequest:
+  $ref: './schemas/applications.yaml#/ApplicationRequest'
+ApplicationTypeCreateRequest:
+  $ref: './schemas/applications.yaml#/ApplicationTypeRequest'
+ApplicationTypeUpdateRequest:
+  $ref: './schemas/applications.yaml#/ApplicationTypeRequest'
+
+# Organization schemas
+Organization:
+  $ref: './schemas/organizations.yaml#/Organization'

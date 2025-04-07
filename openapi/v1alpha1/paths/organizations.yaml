@@ -1,0 +1,177 @@
+organizations:
+  get:
+    summary: List all organizations
+    operationId: listOrganizations
+    tags:
+      - Organizations
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:organizations:read']
+    parameters:
+      - name: deleted
+        in: query
+        description: Whether to include deleted organizations in the results
+        required: false
+        schema:
+          type: boolean
+          default: false
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../components/schemas/organizations.yaml#/Organization'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+  post:
+    summary: Create a new organization
+    operationId: createOrganization
+    tags:
+      - Organizations
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:organizations:create']
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/organizations.yaml#/OrganizationCreateRequest'
+    responses:
+      '202':
+        description: Organization created and accepted
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/organizations.yaml#/Organization'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '409':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+organizations-id:
+  get:
+    summary: Get an organization by ID
+    operationId: getOrganization
+    tags:
+      - Organizations
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Organization ID (UUID) or slug
+      - name: deleted
+        in: query
+        description: Whether to include deleted organizations
+        required: false
+        schema:
+          type: boolean
+          default: false
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:organizations:read']
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/organizations.yaml#/Organization'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+  delete:
+    summary: Delete an organization by ID
+    operationId: deleteOrganization
+    tags:
+      - Organizations
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Organization ID (UUID) or slug
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:organizations:delete']
+    responses:
+      '202':
+        description: Organization deletion accepted
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/organizations.yaml#/Organization'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+organizations-id-groups:
+  get:
+    summary: List groups associated with an organization
+    operationId: listOrganizationGroups
+    tags:
+      - Organizations
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Organization ID (UUID) or slug
+      - name: deleted
+        in: query
+        description: Whether to include deleted relationships
+        required: false
+        schema:
+          type: boolean
+          default: false
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:organizations:read']
+    responses:
+      '200':
+        description: Successful response
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../components/schemas.yaml#/GroupListItem'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'

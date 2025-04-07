@@ -1,0 +1,216 @@
+openapi: 3.1.0
+info:
+  title: Governor API
+  description: API for Governor service to manage users, groups, organizations, applications, and extensions
+  version: v1alpha1
+servers:
+  - url: '{SERVER_URL}/api/v1alpha1'
+    description: Server
+    variables:
+      SERVER_URL:
+        default: 'http://localhost:3001'
+tags:
+  - name: AuthenticatedUser
+    description: Operations for managing the authenticated user
+  - name: Users
+    description: Operations for managing users
+  - name: Groups
+    description: Operations for managing groups
+  - name: Organizations
+    description: Operations for managing organizations
+  - name: Applications
+    description: Operations for managing applications and application types
+  - name: Events
+    description: Operations for managing events
+  - name: Notifications
+    description: Operations for managing notifications, notification types, and notification targets
+  - name: Extensions
+    description: Operations for managing extensions, extension resource definitions, and extension resources
+
+paths:
+  # Authenticated User endpoints
+  /user:
+    $ref: './paths/authenticated-user.yaml#/user'
+  /user/groups:
+    $ref: './paths/authenticated-user.yaml#/user-groups'
+  /user/groups/{id}:
+    $ref: './paths/authenticated-user.yaml#/user-groups-id'
+  /user/groups/requests:
+    $ref: './paths/authenticated-user.yaml#/user-groups-requests'
+  /user/groups/approvals:
+    $ref: './paths/authenticated-user.yaml#/user-groups-approvals'
+  /user/notification-preferences:
+    $ref: './paths/notifications.yaml#/user-notification-preferences'
+
+  # Notifications endpoints
+  /notification-types:
+    $ref: './paths/notifications.yaml#/types'
+  /notification-types/{id}:
+    $ref: './paths/notifications.yaml#/types-id'
+  /notification-targets:
+    $ref: './paths/notifications.yaml#/targets'
+  /notification-targets/{id}:
+    $ref: './paths/notifications.yaml#/targets-id'
+
+  # Extensions endpoints
+  /user/extension-resources/{ex-slug}/{erd-slug-plural}/{erd-version}:
+    $ref: './paths/extensions.yaml#/user-resources'
+  /user/extension-resources/{ex-slug}/{erd-slug-plural}/{erd-version}/{resource-id}:
+    $ref: './paths/extensions.yaml#/user-resources-id'
+  /users/{id}/extension-resources/{ex-slug}/{erd-slug-plural}/{erd-version}:
+    $ref: './paths/extensions.yaml#/users-resources'
+  /users/{id}/extension-resources/{ex-slug}/{erd-slug-plural}/{erd-version}/{resource-id}:
+    $ref: './paths/extensions.yaml#/users-resources-id'
+  /extensions:
+    $ref: './paths/extensions.yaml#/extensions'
+  /extensions/{eid}:
+    $ref: './paths/extensions.yaml#/extensions-id'
+  /extensions/{eid}/erds:
+    $ref: './paths/extensions.yaml#/erds'
+  /extensions/{eid}/erds/{erd-id-slug}:
+    $ref: './paths/extensions.yaml#/erds-slug'
+  /extensions/{eid}/erds/{erd-id-slug}/{erd-version}:
+    $ref: './paths/extensions.yaml#/erds-slug-version'
+  /extension-resources/{ex-slug}/{erd-slug-plural}/{erd-version}:
+    $ref: './paths/extensions.yaml#/resources'
+  /extension-resources/{ex-slug}/{erd-slug-plural}/{erd-version}/{resource-id}:
+    $ref: './paths/extensions.yaml#/resources-id'
+
+  # Applications endpoints
+  /applications:
+    $ref: './paths/applications.yaml#/applications'
+  /applications/{id}:
+    $ref: './paths/applications.yaml#/applications-id'
+  /applications/{id}/groups:
+    $ref: './paths/applications.yaml#/applications-id-groups'
+  /application-types:
+    $ref: './paths/applications.yaml#/types'
+  /application-types/{id}:
+    $ref: './paths/applications.yaml#/types-id'
+  /application-types/{id}/applications:
+    $ref: './paths/applications.yaml#/types-id-applications'
+
+  # Users endpoints
+  /users:
+    $ref: './paths/users.yaml#/users'
+  /users/{id}:
+    $ref: './paths/users.yaml#/users-id'
+
+  # Group endpoints
+  /groups:
+    $ref: './paths/groups.yaml#/groups'
+  /groups/requests:
+    $ref: './paths/groups.yaml#/requests'
+  /groups/memberships:
+    $ref: './paths/groups.yaml#/memberships'
+  /groups/hierarchies:
+    $ref: './paths/groups.yaml#/hierarchies'
+  /groups/{id}:
+    $ref: './paths/groups.yaml#/groups-id'
+  /groups/{id}/events:
+    $ref: './paths/groups.yaml#/groups-id-events'
+  /groups/{id}/requests:
+    $ref: './paths/groups.yaml#/groups-id-requests'
+  /groups/{id}/requests/{rid}:
+    $ref: './paths/groups.yaml#/groups-id-requests-rid'
+  /groups/{id}/users:
+    $ref: './paths/groups.yaml#/groups-id-users'
+  /groups/{id}/users/{uid}:
+    $ref: './paths/groups.yaml#/groups-id-users-uid'
+  /groups/{id}/applications/{oid}:
+    $ref: './paths/groups.yaml#/groups-id-applications-oid'
+  /groups/{id}/apprequests:
+    $ref: './paths/groups.yaml#/groups-id-apprequests'
+  /groups/{id}/apprequests/{rid}:
+    $ref: './paths/groups.yaml#/groups-id-apprequests-rid'
+  /groups/{id}/organizations/{oid}:
+    $ref: './paths/groups.yaml#/groups-id-organizations-oid'
+  /groups/{id}/hierarchies:
+    $ref: './paths/groups.yaml#/groups-id-hierarchies'
+  /groups/{id}/hierarchies/{member_id}:
+    $ref: './paths/groups.yaml#/groups-id-hierarchies-member-id'
+
+  # Organization endpoints
+  /organizations:
+    $ref: './paths/organizations.yaml#/organizations'
+  /organizations/{id}:
+    $ref: './paths/organizations.yaml#/organizations-id'
+  /organizations/{id}/groups:
+    $ref: './paths/organizations.yaml#/organizations-id-groups'
+
+  # Event endpoints
+  /events:
+    $ref: './paths/events.yaml#/events'
+
+components:
+  schemas:
+    $ref: './components/schemas.yaml'
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT bearer token for user authentication (OIDC user login)
+    authorizationCode:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: http://localhost:4444/oauth2/authorize
+          tokenUrl: http://localhost:4444/oauth2/token
+          scopes:
+            'openid': OpenID Connect scope
+            'profile': User profile scope
+            'email': User email scope
+            'groups': User groups scope
+    oauth2ClientCredentials:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: http://localhost:4444/oauth2/token
+          scopes:
+            'governor:users:read': Read access to user resources
+            'governor:users:write': Write access to user resources
+            'governor:users:create': Create access to user resources
+            'governor:users:delete': Delete access to user resources
+            'governor:groups:read': Read access to group resources
+            'governor:groups:write': Write access to group resources
+            'governor:groups:create': Create access to group resources
+            'governor:groups:delete': Delete access to group resources
+            'governor:organizations:read': Read access to organization resources
+            'governor:organizations:write': Write access to organization resources
+            'governor:organizations:create': Create access to organization resources
+            'governor:organizations:delete': Delete access to organization resources
+            'governor:applications:read': Read access to application resources
+            'governor:applications:write': Write access to application resources
+            'governor:applications:create': Create access to application resources
+            'governor:applications:delete': Delete access to application resources
+            'governor:notifications:read': Read access to notification resources
+            'governor:notifications:write': Write access to notification resources
+            'governor:notifications:create': Create access to notification resources
+            'governor:notifications:delete': Delete access to notification resources
+            'governor:extensions:read': Read access to extension resources
+            'governor:extensions:write': Write access to extension resources
+            'governor:extensions:create': Create access to extension resources
+            'governor:extensions:delete': Delete access to extension resources
+            'governor:events:read': Read access to event resources
+            'governor:extensionresources:read': Read access to extension resources
+            'governor:extensionresources:write': Write access to extension resources
+            'governor:extensionresources:create': Create access to extension resources
+            'governor:extensionresources:delete': Delete access to extension resources
+      description: OAuth2 client credentials flow for service-to-service API access
+  responses:
+    Unauthorized:
+      $ref: './components/responses.yaml#/Unauthorized'
+    Forbidden:
+      $ref: './components/responses.yaml#/Forbidden'
+    BadRequest:
+      $ref: './components/responses.yaml#/BadRequest'
+    NotFound:
+      $ref: './components/responses.yaml#/NotFound'
+    InternalError:
+      $ref: './components/responses.yaml#/InternalError'
+
+security:
+  - bearerAuth: []
+  - oauth2ClientCredentials: []
+  - authorizationCode: []
