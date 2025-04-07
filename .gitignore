@@ -9,3 +9,5 @@ audit.log
 .devcontainer/nsc
 
 tmp/**
+dist/**
+_site/**

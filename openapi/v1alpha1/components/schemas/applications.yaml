@@ -23,17 +23,14 @@ Application:
       type: string
       format: date-time
       description: Timestamp when the application was deleted, if applicable
-      nullable: true
     approver_group_id:
       type: string
       format: uuid
       description: ID of the group that approves application access requests
-      nullable: true
     type_id:
       type: string
       format: uuid
       description: ID of the application type
-      nullable: true
   required:
     - id
     - name
@@ -106,7 +103,6 @@ ApplicationRequest:
       type: string
       format: uuid
       description: ID of the group that approves application access requests (if needed)
-      nullable: true
   required:
     - name
     - type_id
