@@ -5,7 +5,7 @@ go 1.24.1
 require (
 	github.com/XSAM/otelsql v0.37.0
 	github.com/cockroachdb/cockroach-go/v2 v2.4.0
-	github.com/coreos/go-oidc/v3 v3.12.0
+	github.com/coreos/go-oidc/v3 v3.14.1
 	github.com/friendsofgo/errors v0.9.2
 	github.com/gin-contrib/cors v1.7.4
 	github.com/gin-contrib/zap v1.1.4
