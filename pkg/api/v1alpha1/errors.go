@@ -26,6 +26,8 @@ var (
 	ErrExtensionResourceNotFound = errors.New("extension resource does not exist")
 	// ErrUserNotFound is returned when a user is not found
 	ErrUserNotFound = errors.New("user does not exist")
+	// ErrBadRequest is returned when an invalid request is made
+	ErrBadRequest = errors.New("bad request")
 )
 
 func sendError(c *gin.Context, code int, msg string) {
