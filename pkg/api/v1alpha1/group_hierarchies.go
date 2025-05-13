@@ -129,7 +129,7 @@ func (r *Router) addMemberGroup(c *gin.Context) {
 	}
 
 	if exists {
-		rollbackWithError(c, tx, err, http.StatusConflict, "group is already a member")
+		rollbackWithError(c, tx, ErrBadRequest, http.StatusConflict, "group is already a member")
 
 		return
 	}
