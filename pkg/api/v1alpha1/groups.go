@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"regexp"
+	"strings"
 
 	"github.com/volatiletech/null/v8"
 
@@ -182,7 +183,7 @@ func (r *Router) createGroup(c *gin.Context) {
 
 	group := &models.Group{
 		Description:   req.Description,
-		Name:          req.Name,
+		Name:          strings.TrimSpace(req.Name),
 		Note:          req.Note,
 		ApproverGroup: approverGroupID,
 	}
@@ -301,6 +302,10 @@ func (r *Router) updateGroup(c *gin.Context) {
 			String: req.ApproverGroupID,
 			Valid:  true,
 		}
+	}
+
+	if req.Name != "" {
+		req.Name = strings.TrimSpace(req.Name)
 	}
 
 	group.ApproverGroup = approverGroupID
