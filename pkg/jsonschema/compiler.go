@@ -31,9 +31,9 @@ func NewCompiler(
 ) *Compiler {
 	c := &Compiler{*jsonschemav6.NewCompiler(), extensionID, slugPlural, version, []SchemaExtension{}}
 
-	c.Compiler.AssertFormat()
-	c.Compiler.AssertContent()
-	c.Compiler.AssertVocabs()
+	c.AssertFormat()
+	c.AssertContent()
+	c.AssertVocabs()
 
 	for _, opt := range opts {
 		opt(c)
