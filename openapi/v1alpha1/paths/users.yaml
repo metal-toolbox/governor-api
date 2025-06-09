@@ -30,11 +30,19 @@ users:
           format: email
       - name: metadata
         in: query
-        description: Filter users by metadata as JSON string. Format {"field":"value"} or {"path.to.field":"value"}
+        description: |
+          Filter users by metadata as JSON string.
+          If multiple metadata URL Queries are provided, only the last one will be used.
+          
+          this object should be in the format of:
+          {
+            "key1": "value1",
+            "path.to.nested.field": "value2"
+          }
         required: false
         schema:
           type: string
-          example: '{"department":"engineering"}'
+          example: '{"annotations.location":"remote"}'
     responses:
       '200':
         description: Successful response
