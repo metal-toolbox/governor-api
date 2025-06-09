@@ -2,15 +2,20 @@ package v1alpha1
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
+	"dario.cat/mergo"
 	"github.com/gin-gonic/gin"
 	"github.com/metal-toolbox/auditevent/ginaudit"
 	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
+	"github.com/volatiletech/sqlboiler/v4/types"
 	"go.uber.org/zap"
 
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
@@ -29,7 +34,7 @@ const (
 	UserStatusSuspended = "suspended"
 )
 
-var permittedListUsersParams = []string{"external_id", "email"}
+var permittedListUsersParams = []string{"external_id", "email", "metadata"}
 
 // User is a user response
 type User struct {
@@ -42,13 +47,14 @@ type User struct {
 
 // UserReq is a user request payload
 type UserReq struct {
-	AvatarURL      string `json:"avatar_url,omitempty"`
-	Email          string `json:"email"`
-	ExternalID     string `json:"external_id"`
-	GithubID       string `json:"github_id,omitempty"`
-	GithubUsername string `json:"github_username,omitempty"`
-	Name           string `json:"name"`
-	Status         string `json:"status,omitempty"`
+	AvatarURL      string                  `json:"avatar_url,omitempty"`
+	Email          string                  `json:"email"`
+	ExternalID     string                  `json:"external_id"`
+	GithubID       string                  `json:"github_id,omitempty"`
+	GithubUsername string                  `json:"github_username,omitempty"`
+	Name           string                  `json:"name"`
+	Status         string                  `json:"status,omitempty"`
+	Metadata       *map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // listUsers responds with the list of all users
@@ -89,6 +95,47 @@ func (r *Router) listUsers(c *gin.Context) {
 			for _, v := range convertedVals {
 				queryMods = append(queryMods, qm.Or("LOWER(email) = LOWER(?)", v))
 			}
+		case "metadata":
+			// metadata should be a JSON formatted object used to filter users with
+			// specific metadata values
+			// if multiple metadata URL Queries are provided, we will use the last one
+			//
+			// this object should be in the format of:
+			// {
+			//   "key1": "value1",
+			//   "path.to.nested.field": "value2"
+			// }
+			if len(val) == 0 {
+				continue
+			}
+
+			v := val[len(val)-1]
+			search := map[string]string{}
+
+			if err := json.Unmarshal([]byte(v), &search); err != nil {
+				r.Logger.Error("error unmarshalling metadata query", zap.Error(err), zap.String("metadata", v))
+				sendError(c, http.StatusBadRequest, "error unmarshalling metadata query: "+err.Error())
+
+				return
+			}
+
+			for searchKey, searchValue := range search {
+				pathComponents := strings.Split(searchKey, ".")
+				sqlPath := fmt.Sprintf("{%s}", strings.Join(pathComponents, ","))
+
+				r.Logger.Debug(
+					"adding metadata query",
+					zap.String("search_key", searchKey),
+					zap.String("search_value", searchValue),
+					zap.String("sql_path", sqlPath),
+				)
+
+				queryMods = append(
+					queryMods,
+					qm.Where("metadata#>>? = ?", sqlPath, searchValue),
+				)
+			}
+
 		default:
 			queryMods = append(queryMods, qm.Or2(qm.WhereIn(k+" IN ?", convertedVals...)))
 		}
@@ -236,6 +283,17 @@ func (r *Router) createUser(c *gin.Context) {
 	// if the user has no external_id and the status is not explicitly set, we assume it's pending
 	if req.ExternalID == "" && req.Status == "" {
 		user.Status = null.StringFrom(UserStatusPending)
+	}
+
+	user.Metadata = types.JSON{}
+
+	if req.Metadata == nil {
+		req.Metadata = &map[string]interface{}{}
+	}
+
+	if err := user.Metadata.Marshal(req.Metadata); err != nil {
+		sendError(c, http.StatusBadRequest, "error marshalling metadata: "+err.Error())
+		return
 	}
 
 	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
@@ -394,6 +452,31 @@ func (r *Router) updateUser(c *gin.Context) {
 
 	if req.GithubUsername != "" {
 		user.GithubUsername = null.StringFrom(req.GithubUsername)
+	}
+
+	if req.Metadata != nil {
+		current := map[string]interface{}{}
+		incoming := *req.Metadata
+
+		if err := user.Metadata.Unmarshal(&current); err != nil {
+			sendError(c, http.StatusBadRequest, "error unmarshalling user metadata: "+err.Error())
+			return
+		}
+
+		// merge the new metadata with the existing one
+		if err := mergo.Merge(
+			&current, incoming,
+			mergo.WithOverride,
+			mergo.WithOverrideEmptySlice,
+		); err != nil {
+			sendError(c, http.StatusBadRequest, "error merging user metadata: "+err.Error())
+			return
+		}
+
+		if err := user.Metadata.Marshal(&current); err != nil {
+			sendError(c, http.StatusBadRequest, "error marshalling user metadata: "+err.Error())
+			return
+		}
 	}
 
 	tx, err := r.DB.BeginTx(c.Request.Context(), nil)

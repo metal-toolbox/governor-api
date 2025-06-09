@@ -31,6 +31,10 @@ User:
       type: string
       format: date-time
       description: Timestamp when the user was deleted (if applicable)
+    metadata:
+      type: object
+      additionalProperties: true
+      description: Additional metadata for the user
   required:
     - id
     - email
@@ -173,6 +177,16 @@ UserCreateRequest:
       enum: [active, inactive, pending]
       default: active
       description: Initial status for the user account
+    metadata:
+      type: object
+      additionalProperties: true
+      description: Additional metadata for the user
+      example:
+        department: "engineering"
+        location: "remote"
+        details: 
+          team: "platform"
+          level: 3
   required:
     - name
     - email
@@ -198,6 +212,13 @@ UserUpdateRequest:
       type: string
       enum: [active, inactive, pending, suspended]
       description: Updated status for the user account
+    metadata:
+      type: object
+      additionalProperties: true
+      description: Metadata to merge with existing user metadata
+      example:
+        department: "engineering"
+        projects: ["alpha", "beta"]
 
 UserWithMemberships:
   type: object

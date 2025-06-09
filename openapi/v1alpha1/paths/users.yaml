@@ -28,6 +28,13 @@ users:
         schema:
           type: string
           format: email
+      - name: metadata
+        in: query
+        description: Filter users by metadata as JSON string. Format {"field":"value"} or {"path.to.field":"value"}
+        required: false
+        schema:
+          type: string
+          example: '{"department":"engineering"}'
     responses:
       '200':
         description: Successful response
