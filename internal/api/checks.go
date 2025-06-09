@@ -66,7 +66,7 @@ func urlPingContext(ctx context.Context, url string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return errors.New("bad response: " + resp.Status) //nolint:goerr113
+		return errors.New("bad response: " + resp.Status) //nolint:err113
 	}
 
 	return nil

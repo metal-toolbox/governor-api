@@ -91,7 +91,7 @@ func startAPI() error {
 	auditpath := viper.GetString("audit.log-path")
 
 	if auditpath == "" {
-		return errors.New("failed starting server. Audit log file path can't be empty") //nolint:goerr113
+		return errors.New("failed starting server. Audit log file path can't be empty") //nolint:err113
 	}
 
 	if conf.Debug {
@@ -114,7 +114,7 @@ func startAPI() error {
 	// make sure an initContainer creates the file
 	auf, auerr := audithelpers.OpenAuditLogFileUntilSuccess(auditpath)
 	if auerr != nil {
-		return fmt.Errorf("couldn't open audit file. error: %s", auerr) //nolint:goerr113
+		return fmt.Errorf("couldn't open audit file. error: %s", auerr) //nolint:err113
 	}
 	defer auf.Close()
 

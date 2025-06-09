@@ -30,7 +30,7 @@ func (m *mockConn) Publish(_ string, data []byte) error {
 	m.t.Logf("got data payload %s", string(data))
 
 	if !bytes.Equal(m.data, data) {
-		return errors.New("unexpected data payload") //nolint:goerr113
+		return errors.New("unexpected data payload") //nolint:err113
 	}
 
 	return nil
@@ -54,7 +54,7 @@ func (m *mockConn) PublishMsg(msg *nats.Msg) error {
 	m.t.Logf("got data payload %s", string(msg.Data))
 
 	if !bytes.Equal(m.data, msg.Data) {
-		return errors.New("unexpected data payload") //nolint:goerr113
+		return errors.New("unexpected data payload") //nolint:err113
 	}
 
 	return nil
@@ -156,7 +156,7 @@ func TestClient_Publish(t *testing.T) {
 				GroupID: "phoenix",
 				UserID:  "meta",
 			},
-			err:     errors.New("boom"), //nolint:goerr113
+			err:     errors.New("boom"), //nolint:err113
 			wantErr: true,
 		},
 	}

@@ -192,7 +192,7 @@ func getPrevCursor[recordType any](records []*recordType, p *PaginationParams, h
 // getStructValueByString retrieves a value from a struct using a string for the key
 // s can be pointer to a struct or a struct
 func getStructValueByString(s any, key string) (retval string, err error) {
-	if !(reflect.TypeOf(s).Kind() == reflect.Pointer || reflect.TypeOf(s).Kind() == reflect.Struct) {
+	if reflect.TypeOf(s).Kind() != reflect.Pointer && reflect.TypeOf(s).Kind() != reflect.Struct {
 		return "", invalidFunctionParameter("cannot use interface that is not of type struct")
 	}
 
