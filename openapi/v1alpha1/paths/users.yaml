@@ -31,18 +31,13 @@ users:
       - name: metadata
         in: query
         description: |
-          Filter users by metadata as JSON string.
-          If multiple metadata URL Queries are provided, only the last one will be used.
-          
-          this object should be in the format of:
-          {
-            "key1": "value1",
-            "path.to.nested.field": "value2"
-          }
+          Filter users by metadata.
+          this filter should be in the format of:
+          ?metadata=key1=value&metadata=path.to.nested.field=value2
         required: false
         schema:
           type: string
-          example: '{"annotations.location":"remote"}'
+          example: '?metadata=key1=value&metadata=path.to.nested.field=value2'
     responses:
       '200':
         description: Successful response

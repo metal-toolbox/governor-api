@@ -2,7 +2,6 @@ package v1alpha1
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -98,28 +97,23 @@ func (r *Router) listUsers(c *gin.Context) {
 		case "metadata":
 			// metadata should be a JSON formatted object used to filter users with
 			// specific metadata values
-			// if multiple metadata URL Queries are provided, we will use the last one
 			//
 			// this object should be in the format of:
-			// {
-			//   "key1": "value1",
-			//   "path.to.nested.field": "value2"
-			// }
-			if len(val) == 0 {
-				continue
-			}
+			// ?metadata=key1=value&metadata=path.to.nested.field=value2
+			//
+			const KVPartsLen = 2
 
-			v := val[len(val)-1]
-			search := map[string]string{}
+			for _, searchString := range val {
+				searchKV := strings.SplitN(searchString, "=", KVPartsLen)
+				if len(searchKV) < KVPartsLen {
+					r.Logger.Error("invalid metadata query format", zap.String("metadata", searchString))
+					sendError(c, http.StatusBadRequest, "invalid metadata query format: "+searchString)
 
-			if err := json.Unmarshal([]byte(v), &search); err != nil {
-				r.Logger.Error("error unmarshalling metadata query", zap.Error(err), zap.String("metadata", v))
-				sendError(c, http.StatusBadRequest, "error unmarshalling metadata query: "+err.Error())
+					return
+				}
 
-				return
-			}
+				searchKey, searchValue := searchKV[0], searchKV[1]
 
-			for searchKey, searchValue := range search {
 				pathComponents := strings.Split(searchKey, ".")
 				sqlPath := fmt.Sprintf("{%s}", strings.Join(pathComponents, ","))
 
@@ -135,7 +129,6 @@ func (r *Router) listUsers(c *gin.Context) {
 					qm.Where("metadata#>>? = ?", sqlPath, searchValue),
 				)
 			}
-
 		default:
 			queryMods = append(queryMods, qm.Or2(qm.WhereIn(k+" IN ?", convertedVals...)))
 		}

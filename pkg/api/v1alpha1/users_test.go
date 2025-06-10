@@ -315,7 +315,7 @@ func (s *UserTestSuite) TestListUsersWithMetadataFilter() {
 	tests := []struct {
 		name           string
 		url            string
-		queryParams    map[string]string
+		queryParams    map[string][]string
 		expectedStatus int
 		expectedErrMsg string
 		expectedCount  int
@@ -335,35 +335,57 @@ func (s *UserTestSuite) TestListUsersWithMetadataFilter() {
 		{
 			name:           "filter by department=marketing",
 			url:            "/api/v1alpha1/users",
-			queryParams:    map[string]string{"metadata": `{"department":"marketing"}`},
+			queryParams:    map[string][]string{"metadata": {`department=marketing`}},
 			expectedStatus: http.StatusOK,
 			expectedCount:  1, // Only metadata@example.com
 		},
 		{
 			name:           "filter by nested metadata field",
 			url:            "/api/v1alpha1/users",
-			queryParams:    map[string]string{"metadata": `{"details.level":"3"}`},
+			queryParams:    map[string][]string{"metadata": {`details.level=3`}},
 			expectedStatus: http.StatusOK,
 			expectedCount:  1, // Only the user with details.level=3
 		},
 		{
 			name:           "filter with no matches",
 			url:            "/api/v1alpha1/users",
-			queryParams:    map[string]string{"metadata": `{"department":"finance"}`},
+			queryParams:    map[string][]string{"metadata": {`department=finance`}},
 			expectedStatus: http.StatusOK,
 			expectedCount:  0, // No users in finance department
 		},
 		{
-			name:           "invalid metadata query",
-			url:            "/api/v1alpha1/users",
-			queryParams:    map[string]string{"metadata": `{invalid_json}`},
-			expectedStatus: http.StatusBadRequest,
-			expectedErrMsg: "error unmarshalling metadata query",
+			name: "filter with multiple metadata fields",
+			url:  "/api/v1alpha1/users",
+			queryParams: map[string][]string{
+				"metadata": {
+					`department=marketing`,
+					`details.level=3`,
+				},
+			},
+			expectedStatus: http.StatusOK,
+			expectedCount:  1, // Only the user with both conditions
 		},
 		{
-			name:           "include deleted users",
+			name:           "filter with value contains an equal sign",
 			url:            "/api/v1alpha1/users",
-			queryParams:    map[string]string{"deleted": "", "metadata": `{"department":"engineering"}`},
+			queryParams:    map[string][]string{"metadata": {`key=base64endedWith=`}},
+			expectedStatus: http.StatusOK,
+			expectedCount:  0, // No results, no error
+		},
+		{
+			name:           "invalid metadata query",
+			url:            "/api/v1alpha1/users",
+			queryParams:    map[string][]string{"metadata": {`invalidquerybadbad`}},
+			expectedStatus: http.StatusBadRequest,
+			expectedErrMsg: "invalid metadata query format",
+		},
+		{
+			name: "include deleted users",
+			url:  "/api/v1alpha1/users",
+			queryParams: map[string][]string{
+				"deleted":  {""},
+				"metadata": {`department=engineering`},
+			},
 			expectedStatus: http.StatusOK,
 			expectedCount:  1, // Only the deleted user
 		},
@@ -380,8 +402,11 @@ func (s *UserTestSuite) TestListUsersWithMetadataFilter() {
 			// Add query parameters
 			if len(tt.queryParams) > 0 {
 				q := url.Values{}
+
 				for k, v := range tt.queryParams {
-					q.Add(k, v)
+					for _, vv := range v {
+						q.Add(k, vv)
+					}
 				}
 
 				req.URL.RawQuery = q.Encode()
