@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -33,7 +34,41 @@ const (
 	UserStatusSuspended = "suspended"
 )
 
-var permittedListUsersParams = []string{"external_id", "email", "metadata"}
+var (
+	permittedListUsersParams = []string{"external_id", "email", "metadata"}
+	metadataKeyPattern       = regexp.MustCompile(`^[a-zA-Z0-9_/]+$`)
+)
+
+// isValidMetadata recursively validates that all keys in the metadata map
+// follow the pattern [a-zA-Z0-9_/]+
+func isValidMetadata(metadata map[string]interface{}) bool {
+	for key, value := range metadata {
+		// Check if the key matches the pattern [a-zA-Z0-9_/]+
+		if !metadataKeyPattern.MatchString(key) {
+			return false
+		}
+
+		// If the value is a map, recursively validate its keys
+		if nestedMap, ok := value.(map[string]interface{}); ok {
+			if !isValidMetadata(nestedMap) {
+				return false
+			}
+		}
+
+		// If the value is a slice, check if any element is a map and validate it
+		if slice, ok := value.([]interface{}); ok {
+			for _, item := range slice {
+				if nestedMap, ok := item.(map[string]interface{}); ok {
+					if !isValidMetadata(nestedMap) {
+						return false
+					}
+				}
+			}
+		}
+	}
+
+	return true
+}
 
 // User is a user response
 type User struct {
@@ -113,8 +148,17 @@ func (r *Router) listUsers(c *gin.Context) {
 				}
 
 				searchKey, searchValue := searchKV[0], searchKV[1]
-
 				pathComponents := strings.Split(searchKey, ".")
+
+				for _, pc := range pathComponents {
+					if !metadataKeyPattern.MatchString(pc) {
+						r.Logger.Error("invalid metadata key", zap.String("key", pc))
+						sendError(c, http.StatusBadRequest, "invalid metadata key: "+pc)
+
+						return
+					}
+				}
+
 				sqlPath := fmt.Sprintf("{%s}", strings.Join(pathComponents, ","))
 
 				r.Logger.Debug(
@@ -282,6 +326,11 @@ func (r *Router) createUser(c *gin.Context) {
 
 	if req.Metadata == nil {
 		req.Metadata = &map[string]interface{}{}
+	}
+
+	if !isValidMetadata(*req.Metadata) {
+		sendError(c, http.StatusBadRequest, "invalid metadata keys, must match pattern [a-zA-Z0-9_/]+")
+		return
 	}
 
 	if err := user.Metadata.Marshal(req.Metadata); err != nil {
@@ -463,6 +512,11 @@ func (r *Router) updateUser(c *gin.Context) {
 			mergo.WithOverrideEmptySlice,
 		); err != nil {
 			sendError(c, http.StatusBadRequest, "error merging user metadata: "+err.Error())
+			return
+		}
+
+		if !isValidMetadata(current) {
+			sendError(c, http.StatusBadRequest, "invalid metadata keys, must match pattern [a-zA-Z0-9_/]+")
 			return
 		}
 

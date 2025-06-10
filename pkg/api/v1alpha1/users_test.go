@@ -41,7 +41,7 @@ func (s *UserTestSuite) seedTestDB() error {
 		`INSERT INTO users (id, name, email, status, metadata, created_at, updated_at, deleted_at) 
 		VALUES ('00000001-0000-0000-0000-000000000002', 'Deleted User', 'deleted@example.com', 'active', '{"department":"engineering"}', NOW(), NOW(), '2023-07-12 12:00:00.000000+00');`,
 		`INSERT INTO users (id, name, email, status, metadata, created_at, updated_at) 
-		VALUES ('00000001-0000-0000-0000-000000000003', 'Metadata User', 'metadata@example.com', 'active', '{"department":"marketing","location":"remote","details":{"level":3,"team":"growth"}}', NOW(), NOW());`,
+		VALUES ('00000001-0000-0000-0000-000000000003', 'Metadata User', 'metadata@example.com', 'active', '{"department":"marketing","location":"remote","details":{"level":3,"team":"growth"}, "annotations": {"test/hello": "world"}}', NOW(), NOW());`,
 	}
 
 	for _, q := range testData {
@@ -138,7 +138,18 @@ func (s *UserTestSuite) TestCreateUser() {
 			name:           "create with metadata",
 			url:            "/api/v1alpha1/users",
 			expectedStatus: http.StatusAccepted,
-			payload:        `{ "name": "Metadata User", "email": "with-metadata@example.com", "metadata": {"department": "sales", "location": "office", "details": {"level": 2, "team": "enterprise"}} }`,
+			payload: `{
+		    "name": "Metadata User",
+				"email": "with-metadata@example.com",
+				"metadata": {
+				  "department": "sales",
+					"location": "office",
+					"details": {"level": 2, "team": "enterprise"},
+					"annotations": {
+						"test/hello": "world"
+					}
+				}
+			}`,
 			expectedResp: &models.User{
 				Name:     "Metadata User",
 				Email:    "with-metadata@example.com",
@@ -151,6 +162,13 @@ func (s *UserTestSuite) TestCreateUser() {
 			payload:        `{ "name": "Test User", "email": "test@example.com" }`,
 			expectedStatus: http.StatusConflict,
 			expectedErrMsg: "user already exists",
+		},
+		{
+			name:           "invalid metadata key",
+			url:            "/api/v1alpha1/users",
+			expectedStatus: http.StatusBadRequest,
+			payload:        `{ "name": "Invalid Metadata User", "email": "invalid-metadata@example.com", "metadata": {".... . .-.. .-.. ---": ".-- --- .-. .-.. -.."} }`,
+			expectedErrMsg: "invalid metadata keys",
 		},
 	}
 
@@ -253,6 +271,9 @@ func (s *UserTestSuite) TestUpdateUserMetadata() {
 					"level": float64(4),
 					"team":  "growth",
 				},
+				"annotations": map[string]interface{}{
+					"test/hello": "world",
+				},
 			},
 		},
 		{
@@ -264,6 +285,16 @@ func (s *UserTestSuite) TestUpdateUserMetadata() {
 				gin.Param{Key: "id", Value: "00000001-0000-0000-0000-000000000099"},
 			},
 			expectedErrMsg: "user not found",
+		},
+		{
+			name:           "update with invalid metadata key",
+			url:            "/api/v1alpha1/users/00000001-0000-0000-0000-000000000001",
+			expectedStatus: http.StatusBadRequest,
+			payload:        `{ "metadata": {".... . .-.. .-.. ---": ".-- --- .-. .-.. -.."} }`,
+			params: gin.Params{
+				gin.Param{Key: "id", Value: "00000001-0000-0000-0000-000000000001"},
+			},
+			expectedErrMsg: "invalid metadata keys",
 		},
 	}
 
@@ -347,6 +378,13 @@ func (s *UserTestSuite) TestListUsersWithMetadataFilter() {
 			expectedCount:  1, // Only the user with details.level=3
 		},
 		{
+			name:           "filter with slash",
+			url:            "/api/v1alpha1/users",
+			queryParams:    map[string][]string{"metadata": {`annotations.test/hello=world`}},
+			expectedStatus: http.StatusOK,
+			expectedCount:  1, // Only the user with annotations.test/hello=world
+		},
+		{
 			name:           "filter with no matches",
 			url:            "/api/v1alpha1/users",
 			queryParams:    map[string][]string{"metadata": {`department=finance`}},
@@ -373,13 +411,6 @@ func (s *UserTestSuite) TestListUsersWithMetadataFilter() {
 			expectedCount:  0, // No results, no error
 		},
 		{
-			name:           "invalid metadata query",
-			url:            "/api/v1alpha1/users",
-			queryParams:    map[string][]string{"metadata": {`invalidquerybadbad`}},
-			expectedStatus: http.StatusBadRequest,
-			expectedErrMsg: "invalid metadata query format",
-		},
-		{
 			name: "include deleted users",
 			url:  "/api/v1alpha1/users",
 			queryParams: map[string][]string{
@@ -388,6 +419,54 @@ func (s *UserTestSuite) TestListUsersWithMetadataFilter() {
 			},
 			expectedStatus: http.StatusOK,
 			expectedCount:  1, // Only the deleted user
+		},
+		{
+			name:           "invalid metadata query",
+			url:            "/api/v1alpha1/users",
+			queryParams:    map[string][]string{"metadata": {`invalidquerybadbad`}},
+			expectedStatus: http.StatusBadRequest,
+			expectedErrMsg: "invalid metadata query format",
+		},
+		{
+			name: "invalid metadata key",
+			url:  "/api/v1alpha1/users",
+			queryParams: map[string][]string{
+				"metadata": {`.... . .-.. .-.. ---=.-. .-- --- .-. .-.. -..`},
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedErrMsg: "invalid metadata key",
+		},
+		{
+			name:           "empty metadata filter",
+			url:            "/api/v1alpha1/users",
+			queryParams:    map[string][]string{"metadata": {""}},
+			expectedStatus: http.StatusBadRequest,
+			expectedErrMsg: "invalid metadata query format",
+		},
+		{
+			name:           "empty metadata key",
+			url:            "/api/v1alpha1/users",
+			queryParams:    map[string][]string{"metadata": {"=value"}},
+			expectedStatus: http.StatusBadRequest,
+			expectedErrMsg: "invalid metadata key",
+		},
+		{
+			name: "value type mismatch 1",
+			url:  "/api/v1alpha1/users",
+			queryParams: map[string][]string{
+				"metadata": {`details.level=stringvalue`}, // level is a number, not a string
+			},
+			expectedStatus: http.StatusOK,
+			expectedCount:  0, // No results, no error
+		},
+		{
+			name: "value type mismatch 2",
+			url:  "/api/v1alpha1/users",
+			queryParams: map[string][]string{
+				"metadata": {`annotations=3`}, // annotations is an object, not a number
+			},
+			expectedStatus: http.StatusOK,
+			expectedCount:  0, // No results, no error
 		},
 	}
 
