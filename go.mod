@@ -19,7 +19,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/metal-toolbox/auditevent v0.9.0
 	github.com/metal-toolbox/iam-runtime v0.4.1
-	github.com/metal-toolbox/iam-runtime-contrib v1.0.0
+	github.com/metal-toolbox/iam-runtime-contrib v1.0.1
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/nats-io/nats.go v1.43.0
 	github.com/pressly/goose/v3 v3.24.2
