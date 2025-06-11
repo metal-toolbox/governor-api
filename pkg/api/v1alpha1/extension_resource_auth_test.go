@@ -297,7 +297,7 @@ func (s *ExtensionResourcesGroupAuthTestSuite) updateERD(ctx context.Context, pa
 	s.v1alpha1.updateExtensionResourceDefinition(c)
 
 	if w.Code != http.StatusAccepted {
-		return fmt.Errorf("expected %d, got %d: resp: %s", http.StatusAccepted, w.Code, w.Body.String()) // nolint:goerr113
+		return fmt.Errorf("expected %d, got %d: resp: %s", http.StatusAccepted, w.Code, w.Body.String()) // nolint:err113
 	}
 
 	return nil

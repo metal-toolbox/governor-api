@@ -63,7 +63,7 @@ func UserInfoFromJWT(ctx context.Context, rawToken string, oidcConfigs []ginjwt.
 	}
 
 	if userInfo == nil {
-		return nil, errors.New("didn't find matching oidc issuer") //nolint:goerr113
+		return nil, errors.New("didn't find matching oidc issuer") //nolint:err113
 	}
 
 	userClaims := OIDCUserInfo{}

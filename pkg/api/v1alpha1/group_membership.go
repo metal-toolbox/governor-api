@@ -364,7 +364,7 @@ func (r *Router) updateGroupMember(c *gin.Context) {
 	// if there is user in the context, check that they are not trying to promote themselves
 	// (but they are allowed to step down as admin)
 	ctxUser := getCtxUser(c)
-	if ctxUser != nil && ctxUser.ID == user.ID && !(membership.IsAdmin && !req.IsAdmin) {
+	if ctxUser != nil && ctxUser.ID == user.ID && (!membership.IsAdmin || req.IsAdmin) {
 		sendError(c, http.StatusBadRequest, "unable to change own membership")
 		return
 	}

@@ -3,14 +3,19 @@ package v1alpha1
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
+	"strings"
 
+	"dario.cat/mergo"
 	"github.com/gin-gonic/gin"
 	"github.com/metal-toolbox/auditevent/ginaudit"
 	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
+	"github.com/volatiletech/sqlboiler/v4/types"
 	"go.uber.org/zap"
 
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
@@ -29,7 +34,41 @@ const (
 	UserStatusSuspended = "suspended"
 )
 
-var permittedListUsersParams = []string{"external_id", "email"}
+var (
+	permittedListUsersParams = []string{"external_id", "email", "metadata"}
+	metadataKeyPattern       = regexp.MustCompile(`^[a-zA-Z]([a-zA-Z0-9_\-/]+[a-zA-Z0-9])?$`)
+)
+
+// isValidMetadata recursively validates that all keys in the metadata map
+// follow the pattern [a-zA-Z0-9_/]+
+func isValidMetadata(metadata map[string]interface{}) bool {
+	for key, value := range metadata {
+		// Check if the key matches the pattern [a-zA-Z0-9_/]+
+		if !metadataKeyPattern.MatchString(key) {
+			return false
+		}
+
+		// If the value is a map, recursively validate its keys
+		if nestedMap, ok := value.(map[string]interface{}); ok {
+			if !isValidMetadata(nestedMap) {
+				return false
+			}
+		}
+
+		// If the value is a slice, check if any element is a map and validate it
+		if slice, ok := value.([]interface{}); ok {
+			for _, item := range slice {
+				if nestedMap, ok := item.(map[string]interface{}); ok {
+					if !isValidMetadata(nestedMap) {
+						return false
+					}
+				}
+			}
+		}
+	}
+
+	return true
+}
 
 // User is a user response
 type User struct {
@@ -42,13 +81,14 @@ type User struct {
 
 // UserReq is a user request payload
 type UserReq struct {
-	AvatarURL      string `json:"avatar_url,omitempty"`
-	Email          string `json:"email"`
-	ExternalID     string `json:"external_id"`
-	GithubID       string `json:"github_id,omitempty"`
-	GithubUsername string `json:"github_username,omitempty"`
-	Name           string `json:"name"`
-	Status         string `json:"status,omitempty"`
+	AvatarURL      string                  `json:"avatar_url,omitempty"`
+	Email          string                  `json:"email"`
+	ExternalID     string                  `json:"external_id"`
+	GithubID       string                  `json:"github_id,omitempty"`
+	GithubUsername string                  `json:"github_username,omitempty"`
+	Name           string                  `json:"name"`
+	Status         string                  `json:"status,omitempty"`
+	Metadata       *map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // listUsers responds with the list of all users
@@ -88,6 +128,50 @@ func (r *Router) listUsers(c *gin.Context) {
 			// alternatives are to use ILIKE which is postgres specific, and require sanitizing '%' if we want exact matches
 			for _, v := range convertedVals {
 				queryMods = append(queryMods, qm.Or("LOWER(email) = LOWER(?)", v))
+			}
+		case "metadata":
+			// metadata should be a JSON formatted object used to filter users with
+			// specific metadata values
+			//
+			// this object should be in the format of:
+			// ?metadata=key1=value&metadata=path.to.nested.field=value2
+			//
+			const KVPartsLen = 2
+
+			for _, searchString := range val {
+				searchKV := strings.SplitN(searchString, "=", KVPartsLen)
+				if len(searchKV) < KVPartsLen {
+					r.Logger.Error("invalid metadata query format", zap.String("metadata", searchString))
+					sendError(c, http.StatusBadRequest, "invalid metadata query format: "+searchString)
+
+					return
+				}
+
+				searchKey, searchValue := searchKV[0], searchKV[1]
+				pathComponents := strings.Split(searchKey, ".")
+
+				for _, pc := range pathComponents {
+					if !metadataKeyPattern.MatchString(pc) {
+						r.Logger.Error("invalid metadata key", zap.String("key", pc))
+						sendError(c, http.StatusBadRequest, "invalid metadata key: "+pc)
+
+						return
+					}
+				}
+
+				sqlPath := fmt.Sprintf("{%s}", strings.Join(pathComponents, ","))
+
+				r.Logger.Debug(
+					"adding metadata query",
+					zap.String("search_key", searchKey),
+					zap.String("search_value", searchValue),
+					zap.String("sql_path", sqlPath),
+				)
+
+				queryMods = append(
+					queryMods,
+					qm.Where("metadata#>>? = ?", sqlPath, searchValue),
+				)
 			}
 		default:
 			queryMods = append(queryMods, qm.Or2(qm.WhereIn(k+" IN ?", convertedVals...)))
@@ -236,6 +320,22 @@ func (r *Router) createUser(c *gin.Context) {
 	// if the user has no external_id and the status is not explicitly set, we assume it's pending
 	if req.ExternalID == "" && req.Status == "" {
 		user.Status = null.StringFrom(UserStatusPending)
+	}
+
+	user.Metadata = types.JSON{}
+
+	if req.Metadata == nil {
+		req.Metadata = &map[string]interface{}{}
+	}
+
+	if !isValidMetadata(*req.Metadata) {
+		sendError(c, http.StatusBadRequest, "invalid metadata keys, must match pattern [a-zA-Z0-9_/]+")
+		return
+	}
+
+	if err := user.Metadata.Marshal(req.Metadata); err != nil {
+		sendError(c, http.StatusBadRequest, "error marshalling metadata: "+err.Error())
+		return
 	}
 
 	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
@@ -394,6 +494,36 @@ func (r *Router) updateUser(c *gin.Context) {
 
 	if req.GithubUsername != "" {
 		user.GithubUsername = null.StringFrom(req.GithubUsername)
+	}
+
+	if req.Metadata != nil {
+		current := map[string]interface{}{}
+		incoming := *req.Metadata
+
+		if err := user.Metadata.Unmarshal(&current); err != nil {
+			sendError(c, http.StatusBadRequest, "error unmarshalling user metadata: "+err.Error())
+			return
+		}
+
+		// merge the new metadata with the existing one
+		if err := mergo.Merge(
+			&current, incoming,
+			mergo.WithOverride,
+			mergo.WithOverrideEmptySlice,
+		); err != nil {
+			sendError(c, http.StatusBadRequest, "error merging user metadata: "+err.Error())
+			return
+		}
+
+		if !isValidMetadata(current) {
+			sendError(c, http.StatusBadRequest, "invalid metadata keys, must match pattern [a-zA-Z0-9_/]+")
+			return
+		}
+
+		if err := user.Metadata.Marshal(&current); err != nil {
+			sendError(c, http.StatusBadRequest, "error marshalling user metadata: "+err.Error())
+			return
+		}
 	}
 
 	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
