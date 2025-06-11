@@ -537,10 +537,10 @@ func TestMetadataKeyPattern(t *testing.T) {
 		{name: "with dashes", key: "key-name", expected: true},
 		{name: "with slashes", key: "path/to/key", expected: true},
 		{name: "starts with letter", key: "a123", expected: true},
-		{name: "starts with number", key: "1abc", expected: true},
 		{name: "mixed characters", key: "key123_name-with/path", expected: true},
 
 		// Invalid keys
+		{name: "starts with number", key: "1abc", expected: false},
 		{name: "single number", key: "7", expected: false},
 		{name: "empty string", key: "", expected: false},
 		{name: "with spaces", key: "key name", expected: false},
