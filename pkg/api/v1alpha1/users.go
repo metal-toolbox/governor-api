@@ -36,7 +36,7 @@ const (
 
 var (
 	permittedListUsersParams = []string{"external_id", "email", "metadata"}
-	metadataKeyPattern       = regexp.MustCompile(`^[a-zA-Z0-9_/]+$`)
+	metadataKeyPattern       = regexp.MustCompile(`^(?:[a-zA-Z]|[a-zA-Z0-9][a-zA-Z0-9_\-/]*[a-zA-Z0-9])$`)
 )
 
 // isValidMetadata recursively validates that all keys in the metadata map

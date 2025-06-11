@@ -523,3 +523,182 @@ func (s *UserTestSuite) TestListUsersWithMetadataFilter() {
 func TestUserSuite(t *testing.T) {
 	suite.Run(t, new(UserTestSuite))
 }
+
+func TestMetadataKeyPattern(t *testing.T) {
+	tests := []struct {
+		name     string
+		key      string
+		expected bool
+	}{
+		// Valid keys
+		{name: "simple alphanumeric", key: "key123", expected: true},
+		{name: "single character", key: "k", expected: true},
+		{name: "with underscores", key: "key_name", expected: true},
+		{name: "with dashes", key: "key-name", expected: true},
+		{name: "with slashes", key: "path/to/key", expected: true},
+		{name: "starts with letter", key: "a123", expected: true},
+		{name: "starts with number", key: "1abc", expected: true},
+		{name: "mixed characters", key: "key123_name-with/path", expected: true},
+
+		// Invalid keys
+		{name: "single number", key: "7", expected: false},
+		{name: "empty string", key: "", expected: false},
+		{name: "with spaces", key: "key name", expected: false},
+		{name: "with special chars", key: "key@name", expected: false},
+		{name: "starts with underscore", key: "_key", expected: false},
+		{name: "starts with dash", key: "-key", expected: false},
+		{name: "starts with slash", key: "/path", expected: false},
+		{name: "ends with underscore", key: "key_", expected: false},
+		{name: "ends with dash", key: "key-", expected: false},
+		{name: "ends with slash", key: "path/", expected: false},
+		{name: "with period", key: "key.name", expected: false},
+		{name: "with unicode", key: "keyλname", expected: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := metadataKeyPattern.MatchString(tt.key)
+			assert.Equal(t, tt.expected, result,
+				"Key '%s': expected match=%v, got=%v", tt.key, tt.expected, result)
+		})
+	}
+}
+
+func TestIsValidMetadata(t *testing.T) {
+	tests := []struct {
+		name     string
+		metadata map[string]interface{}
+		expected bool
+	}{
+		{
+			name:     "empty metadata",
+			metadata: map[string]interface{}{},
+			expected: true,
+		},
+		{
+			name: "simple valid metadata",
+			metadata: map[string]interface{}{
+				"department": "engineering",
+				"location":   "remote",
+				"level":      3,
+			},
+			expected: true,
+		},
+		{
+			name: "nested valid metadata",
+			metadata: map[string]interface{}{
+				"details": map[string]interface{}{
+					"team":     "platform",
+					"level":    4,
+					"location": "remote",
+				},
+				"projects": []string{"project1", "project2"},
+			},
+			expected: true,
+		},
+		{
+			name: "metadata with array of maps",
+			metadata: map[string]interface{}{
+				"teams": []interface{}{
+					map[string]interface{}{
+						"name":     "team1",
+						"projects": []string{"proj1", "proj2"},
+					},
+					map[string]interface{}{
+						"name":     "team2",
+						"projects": []string{"proj3", "proj4"},
+					},
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "complex nested valid metadata",
+			metadata: map[string]interface{}{
+				"organization": map[string]interface{}{
+					"department": "engineering",
+					"teams": map[string]interface{}{
+						"platform": map[string]interface{}{
+							"members": []interface{}{
+								map[string]interface{}{
+									"role":  "engineer",
+									"level": 3,
+								},
+							},
+						},
+					},
+				},
+				"annotations": map[string]interface{}{
+					"test/key":  "value",
+					"test/key2": "value2",
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "invalid key at root level",
+			metadata: map[string]interface{}{
+				"valid":       "data",
+				"invalid.key": "data",
+			},
+			expected: false,
+		},
+		{
+			name: "invalid key in nested map",
+			metadata: map[string]interface{}{
+				"valid": map[string]interface{}{
+					"also-valid": "data",
+					"not@valid":  "data",
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "invalid key in array of maps",
+			metadata: map[string]interface{}{
+				"items": []interface{}{
+					map[string]interface{}{
+						"valid":      "data",
+						"not_valid_": "data",
+					},
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "valid path characters",
+			metadata: map[string]interface{}{
+				"path/to/value":        "test",
+				"path/with_underscore": "test",
+				"path/with-dash":       "test",
+			},
+			expected: true,
+		},
+		{
+			name: "invalid ending character",
+			metadata: map[string]interface{}{
+				"ends_with_": "invalid",
+				"ends/with/": "invalid",
+				"ends-with-": "invalid",
+			},
+			expected: false,
+		},
+		{
+			name: "invalid starting character",
+			metadata: map[string]interface{}{
+				"_starts_with_underscore": "invalid",
+				"/starts/with/slash":      "invalid",
+				"-starts-with-dash":       "invalid",
+			},
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isValidMetadata(tt.metadata)
+			assert.Equal(t, tt.expected, result,
+				"isValidMetadata(%v): expected %v, got %v", tt.metadata, tt.expected, result)
+		})
+	}
+}
