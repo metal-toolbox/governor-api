@@ -87,57 +87,25 @@ var NotificationPreferenceWhere = struct {
 
 // NotificationPreferenceRels is where relationship names are stored.
 var NotificationPreferenceRels = struct {
-	User               string
-	NotificationType   string
 	NotificationTarget string
+	NotificationType   string
+	User               string
 }{
-	User:               "User",
-	NotificationType:   "NotificationType",
 	NotificationTarget: "NotificationTarget",
+	NotificationType:   "NotificationType",
+	User:               "User",
 }
 
 // notificationPreferenceR is where relationships are stored.
 type notificationPreferenceR struct {
-	User               *User               `boil:"User" json:"User" toml:"User" yaml:"User"`
-	NotificationType   *NotificationType   `boil:"NotificationType" json:"NotificationType" toml:"NotificationType" yaml:"NotificationType"`
 	NotificationTarget *NotificationTarget `boil:"NotificationTarget" json:"NotificationTarget" toml:"NotificationTarget" yaml:"NotificationTarget"`
+	NotificationType   *NotificationType   `boil:"NotificationType" json:"NotificationType" toml:"NotificationType" yaml:"NotificationType"`
+	User               *User               `boil:"User" json:"User" toml:"User" yaml:"User"`
 }
 
 // NewStruct creates a new relationship struct
 func (*notificationPreferenceR) NewStruct() *notificationPreferenceR {
 	return &notificationPreferenceR{}
-}
-
-func (o *NotificationPreference) GetUser() *User {
-	if o == nil {
-		return nil
-	}
-
-	return o.R.GetUser()
-}
-
-func (r *notificationPreferenceR) GetUser() *User {
-	if r == nil {
-		return nil
-	}
-
-	return r.User
-}
-
-func (o *NotificationPreference) GetNotificationType() *NotificationType {
-	if o == nil {
-		return nil
-	}
-
-	return o.R.GetNotificationType()
-}
-
-func (r *notificationPreferenceR) GetNotificationType() *NotificationType {
-	if r == nil {
-		return nil
-	}
-
-	return r.NotificationType
 }
 
 func (o *NotificationPreference) GetNotificationTarget() *NotificationTarget {
@@ -156,6 +124,38 @@ func (r *notificationPreferenceR) GetNotificationTarget() *NotificationTarget {
 	return r.NotificationTarget
 }
 
+func (o *NotificationPreference) GetNotificationType() *NotificationType {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetNotificationType()
+}
+
+func (r *notificationPreferenceR) GetNotificationType() *NotificationType {
+	if r == nil {
+		return nil
+	}
+
+	return r.NotificationType
+}
+
+func (o *NotificationPreference) GetUser() *User {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetUser()
+}
+
+func (r *notificationPreferenceR) GetUser() *User {
+	if r == nil {
+		return nil
+	}
+
+	return r.User
+}
+
 // notificationPreferenceL is where Load methods for each relationship are stored.
 type notificationPreferenceL struct{}
 
@@ -164,7 +164,7 @@ var (
 	notificationPreferenceColumnsWithoutDefault = []string{"user_id", "notification_type_id"}
 	notificationPreferenceColumnsWithDefault    = []string{"id", "notification_target_id", "notification_target_id_null_string", "enabled"}
 	notificationPreferencePrimaryKeyColumns     = []string{"id"}
-	notificationPreferenceGeneratedColumns      = []string{}
+	notificationPreferenceGeneratedColumns      = []string{"notification_target_id_null_string"}
 )
 
 type (
@@ -472,15 +472,15 @@ func (q notificationPreferenceQuery) Exists(ctx context.Context, exec boil.Conte
 	return count > 0, nil
 }
 
-// User pointed to by the foreign key.
-func (o *NotificationPreference) User(mods ...qm.QueryMod) userQuery {
+// NotificationTarget pointed to by the foreign key.
+func (o *NotificationPreference) NotificationTarget(mods ...qm.QueryMod) notificationTargetQuery {
 	queryMods := []qm.QueryMod{
-		qm.Where("\"id\" = ?", o.UserID),
+		qm.Where("\"id\" = ?", o.NotificationTargetID),
 	}
 
 	queryMods = append(queryMods, mods...)
 
-	return Users(queryMods...)
+	return NotificationTargets(queryMods...)
 }
 
 // NotificationType pointed to by the foreign key.
@@ -494,20 +494,20 @@ func (o *NotificationPreference) NotificationType(mods ...qm.QueryMod) notificat
 	return NotificationTypes(queryMods...)
 }
 
-// NotificationTarget pointed to by the foreign key.
-func (o *NotificationPreference) NotificationTarget(mods ...qm.QueryMod) notificationTargetQuery {
+// User pointed to by the foreign key.
+func (o *NotificationPreference) User(mods ...qm.QueryMod) userQuery {
 	queryMods := []qm.QueryMod{
-		qm.Where("\"id\" = ?", o.NotificationTargetID),
+		qm.Where("\"id\" = ?", o.UserID),
 	}
 
 	queryMods = append(queryMods, mods...)
 
-	return NotificationTargets(queryMods...)
+	return Users(queryMods...)
 }
 
-// LoadUser allows an eager lookup of values, cached into the
+// LoadNotificationTarget allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for an N-1 relationship.
-func (notificationPreferenceL) LoadUser(ctx context.Context, e boil.ContextExecutor, singular bool, maybeNotificationPreference interface{}, mods queries.Applicator) error {
+func (notificationPreferenceL) LoadNotificationTarget(ctx context.Context, e boil.ContextExecutor, singular bool, maybeNotificationPreference interface{}, mods queries.Applicator) error {
 	var slice []*NotificationPreference
 	var object *NotificationPreference
 
@@ -538,7 +538,9 @@ func (notificationPreferenceL) LoadUser(ctx context.Context, e boil.ContextExecu
 		if object.R == nil {
 			object.R = &notificationPreferenceR{}
 		}
-		args[object.UserID] = struct{}{}
+		if !queries.IsNil(object.NotificationTargetID) {
+			args[object.NotificationTargetID] = struct{}{}
+		}
 
 	} else {
 		for _, obj := range slice {
@@ -546,7 +548,9 @@ func (notificationPreferenceL) LoadUser(ctx context.Context, e boil.ContextExecu
 				obj.R = &notificationPreferenceR{}
 			}
 
-			args[obj.UserID] = struct{}{}
+			if !queries.IsNil(obj.NotificationTargetID) {
+				args[obj.NotificationTargetID] = struct{}{}
+			}
 
 		}
 	}
@@ -563,9 +567,9 @@ func (notificationPreferenceL) LoadUser(ctx context.Context, e boil.ContextExecu
 	}
 
 	query := NewQuery(
-		qm.From(`users`),
-		qm.WhereIn(`users.id in ?`, argsSlice...),
-		qmhelper.WhereIsNull(`users.deleted_at`),
+		qm.From(`notification_targets`),
+		qm.WhereIn(`notification_targets.id in ?`, argsSlice...),
+		qmhelper.WhereIsNull(`notification_targets.deleted_at`),
 	)
 	if mods != nil {
 		mods.Apply(query)
@@ -573,22 +577,22 @@ func (notificationPreferenceL) LoadUser(ctx context.Context, e boil.ContextExecu
 
 	results, err := query.QueryContext(ctx, e)
 	if err != nil {
-		return errors.Wrap(err, "failed to eager load User")
+		return errors.Wrap(err, "failed to eager load NotificationTarget")
 	}
 
-	var resultSlice []*User
+	var resultSlice []*NotificationTarget
 	if err = queries.Bind(results, &resultSlice); err != nil {
-		return errors.Wrap(err, "failed to bind eager loaded slice User")
+		return errors.Wrap(err, "failed to bind eager loaded slice NotificationTarget")
 	}
 
 	if err = results.Close(); err != nil {
-		return errors.Wrap(err, "failed to close results of eager load for users")
+		return errors.Wrap(err, "failed to close results of eager load for notification_targets")
 	}
 	if err = results.Err(); err != nil {
-		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for users")
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for notification_targets")
 	}
 
-	if len(userAfterSelectHooks) != 0 {
+	if len(notificationTargetAfterSelectHooks) != 0 {
 		for _, obj := range resultSlice {
 			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
 				return err
@@ -602,9 +606,9 @@ func (notificationPreferenceL) LoadUser(ctx context.Context, e boil.ContextExecu
 
 	if singular {
 		foreign := resultSlice[0]
-		object.R.User = foreign
+		object.R.NotificationTarget = foreign
 		if foreign.R == nil {
-			foreign.R = &userR{}
+			foreign.R = &notificationTargetR{}
 		}
 		foreign.R.NotificationPreferences = append(foreign.R.NotificationPreferences, object)
 		return nil
@@ -612,10 +616,10 @@ func (notificationPreferenceL) LoadUser(ctx context.Context, e boil.ContextExecu
 
 	for _, local := range slice {
 		for _, foreign := range resultSlice {
-			if local.UserID == foreign.ID {
-				local.R.User = foreign
+			if queries.Equal(local.NotificationTargetID, foreign.ID) {
+				local.R.NotificationTarget = foreign
 				if foreign.R == nil {
-					foreign.R = &userR{}
+					foreign.R = &notificationTargetR{}
 				}
 				foreign.R.NotificationPreferences = append(foreign.R.NotificationPreferences, local)
 				break
@@ -747,9 +751,9 @@ func (notificationPreferenceL) LoadNotificationType(ctx context.Context, e boil.
 	return nil
 }
 
-// LoadNotificationTarget allows an eager lookup of values, cached into the
+// LoadUser allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for an N-1 relationship.
-func (notificationPreferenceL) LoadNotificationTarget(ctx context.Context, e boil.ContextExecutor, singular bool, maybeNotificationPreference interface{}, mods queries.Applicator) error {
+func (notificationPreferenceL) LoadUser(ctx context.Context, e boil.ContextExecutor, singular bool, maybeNotificationPreference interface{}, mods queries.Applicator) error {
 	var slice []*NotificationPreference
 	var object *NotificationPreference
 
@@ -780,9 +784,7 @@ func (notificationPreferenceL) LoadNotificationTarget(ctx context.Context, e boi
 		if object.R == nil {
 			object.R = &notificationPreferenceR{}
 		}
-		if !queries.IsNil(object.NotificationTargetID) {
-			args[object.NotificationTargetID] = struct{}{}
-		}
+		args[object.UserID] = struct{}{}
 
 	} else {
 		for _, obj := range slice {
@@ -790,9 +792,7 @@ func (notificationPreferenceL) LoadNotificationTarget(ctx context.Context, e boi
 				obj.R = &notificationPreferenceR{}
 			}
 
-			if !queries.IsNil(obj.NotificationTargetID) {
-				args[obj.NotificationTargetID] = struct{}{}
-			}
+			args[obj.UserID] = struct{}{}
 
 		}
 	}
@@ -809,9 +809,9 @@ func (notificationPreferenceL) LoadNotificationTarget(ctx context.Context, e boi
 	}
 
 	query := NewQuery(
-		qm.From(`notification_targets`),
-		qm.WhereIn(`notification_targets.id in ?`, argsSlice...),
-		qmhelper.WhereIsNull(`notification_targets.deleted_at`),
+		qm.From(`users`),
+		qm.WhereIn(`users.id in ?`, argsSlice...),
+		qmhelper.WhereIsNull(`users.deleted_at`),
 	)
 	if mods != nil {
 		mods.Apply(query)
@@ -819,22 +819,22 @@ func (notificationPreferenceL) LoadNotificationTarget(ctx context.Context, e boi
 
 	results, err := query.QueryContext(ctx, e)
 	if err != nil {
-		return errors.Wrap(err, "failed to eager load NotificationTarget")
+		return errors.Wrap(err, "failed to eager load User")
 	}
 
-	var resultSlice []*NotificationTarget
+	var resultSlice []*User
 	if err = queries.Bind(results, &resultSlice); err != nil {
-		return errors.Wrap(err, "failed to bind eager loaded slice NotificationTarget")
+		return errors.Wrap(err, "failed to bind eager loaded slice User")
 	}
 
 	if err = results.Close(); err != nil {
-		return errors.Wrap(err, "failed to close results of eager load for notification_targets")
+		return errors.Wrap(err, "failed to close results of eager load for users")
 	}
 	if err = results.Err(); err != nil {
-		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for notification_targets")
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for users")
 	}
 
-	if len(notificationTargetAfterSelectHooks) != 0 {
+	if len(userAfterSelectHooks) != 0 {
 		for _, obj := range resultSlice {
 			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
 				return err
@@ -848,9 +848,9 @@ func (notificationPreferenceL) LoadNotificationTarget(ctx context.Context, e boi
 
 	if singular {
 		foreign := resultSlice[0]
-		object.R.NotificationTarget = foreign
+		object.R.User = foreign
 		if foreign.R == nil {
-			foreign.R = &notificationTargetR{}
+			foreign.R = &userR{}
 		}
 		foreign.R.NotificationPreferences = append(foreign.R.NotificationPreferences, object)
 		return nil
@@ -858,109 +858,15 @@ func (notificationPreferenceL) LoadNotificationTarget(ctx context.Context, e boi
 
 	for _, local := range slice {
 		for _, foreign := range resultSlice {
-			if queries.Equal(local.NotificationTargetID, foreign.ID) {
-				local.R.NotificationTarget = foreign
+			if local.UserID == foreign.ID {
+				local.R.User = foreign
 				if foreign.R == nil {
-					foreign.R = &notificationTargetR{}
+					foreign.R = &userR{}
 				}
 				foreign.R.NotificationPreferences = append(foreign.R.NotificationPreferences, local)
 				break
 			}
 		}
-	}
-
-	return nil
-}
-
-// SetUser of the notificationPreference to the related item.
-// Sets o.R.User to related.
-// Adds o to related.R.NotificationPreferences.
-func (o *NotificationPreference) SetUser(ctx context.Context, exec boil.ContextExecutor, insert bool, related *User) error {
-	var err error
-	if insert {
-		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
-			return errors.Wrap(err, "failed to insert into foreign table")
-		}
-	}
-
-	updateQuery := fmt.Sprintf(
-		"UPDATE \"notification_preferences\" SET %s WHERE %s",
-		strmangle.SetParamNames("\"", "\"", 1, []string{"user_id"}),
-		strmangle.WhereClause("\"", "\"", 2, notificationPreferencePrimaryKeyColumns),
-	)
-	values := []interface{}{related.ID, o.ID}
-
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, updateQuery)
-		fmt.Fprintln(writer, values)
-	}
-	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
-		return errors.Wrap(err, "failed to update local table")
-	}
-
-	o.UserID = related.ID
-	if o.R == nil {
-		o.R = &notificationPreferenceR{
-			User: related,
-		}
-	} else {
-		o.R.User = related
-	}
-
-	if related.R == nil {
-		related.R = &userR{
-			NotificationPreferences: NotificationPreferenceSlice{o},
-		}
-	} else {
-		related.R.NotificationPreferences = append(related.R.NotificationPreferences, o)
-	}
-
-	return nil
-}
-
-// SetNotificationType of the notificationPreference to the related item.
-// Sets o.R.NotificationType to related.
-// Adds o to related.R.NotificationPreferences.
-func (o *NotificationPreference) SetNotificationType(ctx context.Context, exec boil.ContextExecutor, insert bool, related *NotificationType) error {
-	var err error
-	if insert {
-		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
-			return errors.Wrap(err, "failed to insert into foreign table")
-		}
-	}
-
-	updateQuery := fmt.Sprintf(
-		"UPDATE \"notification_preferences\" SET %s WHERE %s",
-		strmangle.SetParamNames("\"", "\"", 1, []string{"notification_type_id"}),
-		strmangle.WhereClause("\"", "\"", 2, notificationPreferencePrimaryKeyColumns),
-	)
-	values := []interface{}{related.ID, o.ID}
-
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, updateQuery)
-		fmt.Fprintln(writer, values)
-	}
-	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
-		return errors.Wrap(err, "failed to update local table")
-	}
-
-	o.NotificationTypeID = related.ID
-	if o.R == nil {
-		o.R = &notificationPreferenceR{
-			NotificationType: related,
-		}
-	} else {
-		o.R.NotificationType = related
-	}
-
-	if related.R == nil {
-		related.R = &notificationTypeR{
-			NotificationPreferences: NotificationPreferenceSlice{o},
-		}
-	} else {
-		related.R.NotificationPreferences = append(related.R.NotificationPreferences, o)
 	}
 
 	return nil
@@ -1046,6 +952,100 @@ func (o *NotificationPreference) RemoveNotificationTarget(ctx context.Context, e
 	return nil
 }
 
+// SetNotificationType of the notificationPreference to the related item.
+// Sets o.R.NotificationType to related.
+// Adds o to related.R.NotificationPreferences.
+func (o *NotificationPreference) SetNotificationType(ctx context.Context, exec boil.ContextExecutor, insert bool, related *NotificationType) error {
+	var err error
+	if insert {
+		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+			return errors.Wrap(err, "failed to insert into foreign table")
+		}
+	}
+
+	updateQuery := fmt.Sprintf(
+		"UPDATE \"notification_preferences\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, []string{"notification_type_id"}),
+		strmangle.WhereClause("\"", "\"", 2, notificationPreferencePrimaryKeyColumns),
+	)
+	values := []interface{}{related.ID, o.ID}
+
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, updateQuery)
+		fmt.Fprintln(writer, values)
+	}
+	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	o.NotificationTypeID = related.ID
+	if o.R == nil {
+		o.R = &notificationPreferenceR{
+			NotificationType: related,
+		}
+	} else {
+		o.R.NotificationType = related
+	}
+
+	if related.R == nil {
+		related.R = &notificationTypeR{
+			NotificationPreferences: NotificationPreferenceSlice{o},
+		}
+	} else {
+		related.R.NotificationPreferences = append(related.R.NotificationPreferences, o)
+	}
+
+	return nil
+}
+
+// SetUser of the notificationPreference to the related item.
+// Sets o.R.User to related.
+// Adds o to related.R.NotificationPreferences.
+func (o *NotificationPreference) SetUser(ctx context.Context, exec boil.ContextExecutor, insert bool, related *User) error {
+	var err error
+	if insert {
+		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+			return errors.Wrap(err, "failed to insert into foreign table")
+		}
+	}
+
+	updateQuery := fmt.Sprintf(
+		"UPDATE \"notification_preferences\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, []string{"user_id"}),
+		strmangle.WhereClause("\"", "\"", 2, notificationPreferencePrimaryKeyColumns),
+	)
+	values := []interface{}{related.ID, o.ID}
+
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, updateQuery)
+		fmt.Fprintln(writer, values)
+	}
+	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	o.UserID = related.ID
+	if o.R == nil {
+		o.R = &notificationPreferenceR{
+			User: related,
+		}
+	} else {
+		o.R.User = related
+	}
+
+	if related.R == nil {
+		related.R = &userR{
+			NotificationPreferences: NotificationPreferenceSlice{o},
+		}
+	} else {
+		related.R.NotificationPreferences = append(related.R.NotificationPreferences, o)
+	}
+
+	return nil
+}
+
 // NotificationPreferences retrieves all the records using an executor.
 func NotificationPreferences(mods ...qm.QueryMod) notificationPreferenceQuery {
 	mods = append(mods, qm.From("\"notification_preferences\""))
@@ -1114,6 +1114,7 @@ func (o *NotificationPreference) Insert(ctx context.Context, exec boil.ContextEx
 			notificationPreferenceColumnsWithoutDefault,
 			nzDefaults,
 		)
+		wl = strmangle.SetComplement(wl, notificationPreferenceGeneratedColumns)
 
 		cache.valueMapping, err = queries.BindMapping(notificationPreferenceType, notificationPreferenceMapping, wl)
 		if err != nil {
@@ -1184,6 +1185,7 @@ func (o *NotificationPreference) Update(ctx context.Context, exec boil.ContextEx
 			notificationPreferenceAllColumns,
 			notificationPreferencePrimaryKeyColumns,
 		)
+		wl = strmangle.SetComplement(wl, notificationPreferenceGeneratedColumns)
 
 		if !columns.IsWhitelist() {
 			wl = strmangle.SetComplement(wl, []string{"created_at"})
@@ -1292,6 +1294,131 @@ func (o NotificationPreferenceSlice) UpdateAll(ctx context.Context, exec boil.Co
 		return 0, errors.Wrap(err, "models: unable to retrieve rows affected all in update all notificationPreference")
 	}
 	return rowsAff, nil
+}
+
+// Upsert attempts an insert using an executor, and does an update or ignore on conflict.
+// See boil.Columns documentation for how to properly use updateColumns and insertColumns.
+func (o *NotificationPreference) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) error {
+	if o == nil {
+		return errors.New("models: no notification_preferences provided for upsert")
+	}
+
+	if err := o.doBeforeUpsertHooks(ctx, exec); err != nil {
+		return err
+	}
+
+	nzDefaults := queries.NonZeroDefaultSet(notificationPreferenceColumnsWithDefault, o)
+
+	// Build cache key in-line uglily - mysql vs psql problems
+	buf := strmangle.GetBuffer()
+	if updateOnConflict {
+		buf.WriteByte('t')
+	} else {
+		buf.WriteByte('f')
+	}
+	buf.WriteByte('.')
+	for _, c := range conflictColumns {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
+	buf.WriteString(strconv.Itoa(updateColumns.Kind))
+	for _, c := range updateColumns.Cols {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
+	buf.WriteString(strconv.Itoa(insertColumns.Kind))
+	for _, c := range insertColumns.Cols {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
+	for _, c := range nzDefaults {
+		buf.WriteString(c)
+	}
+	key := buf.String()
+	strmangle.PutBuffer(buf)
+
+	notificationPreferenceUpsertCacheMut.RLock()
+	cache, cached := notificationPreferenceUpsertCache[key]
+	notificationPreferenceUpsertCacheMut.RUnlock()
+
+	var err error
+
+	if !cached {
+		insert, _ := insertColumns.InsertColumnSet(
+			notificationPreferenceAllColumns,
+			notificationPreferenceColumnsWithDefault,
+			notificationPreferenceColumnsWithoutDefault,
+			nzDefaults,
+		)
+
+		update := updateColumns.UpdateColumnSet(
+			notificationPreferenceAllColumns,
+			notificationPreferencePrimaryKeyColumns,
+		)
+
+		insert = strmangle.SetComplement(insert, notificationPreferenceGeneratedColumns)
+		update = strmangle.SetComplement(update, notificationPreferenceGeneratedColumns)
+
+		if updateOnConflict && len(update) == 0 {
+			return errors.New("models: unable to upsert notification_preferences, could not build update column list")
+		}
+
+		ret := strmangle.SetComplement(notificationPreferenceAllColumns, strmangle.SetIntersect(insert, update))
+
+		conflict := conflictColumns
+		if len(conflict) == 0 && updateOnConflict && len(update) != 0 {
+			if len(notificationPreferencePrimaryKeyColumns) == 0 {
+				return errors.New("models: unable to upsert notification_preferences, could not build conflict column list")
+			}
+
+			conflict = make([]string, len(notificationPreferencePrimaryKeyColumns))
+			copy(conflict, notificationPreferencePrimaryKeyColumns)
+		}
+		cache.query = buildUpsertQueryPostgres(dialect, "\"notification_preferences\"", updateOnConflict, ret, update, conflict, insert, opts...)
+
+		cache.valueMapping, err = queries.BindMapping(notificationPreferenceType, notificationPreferenceMapping, insert)
+		if err != nil {
+			return err
+		}
+		if len(ret) != 0 {
+			cache.retMapping, err = queries.BindMapping(notificationPreferenceType, notificationPreferenceMapping, ret)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	value := reflect.Indirect(reflect.ValueOf(o))
+	vals := queries.ValuesFromMapping(value, cache.valueMapping)
+	var returns []interface{}
+	if len(cache.retMapping) != 0 {
+		returns = queries.PtrsFromMapping(value, cache.retMapping)
+	}
+
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, cache.query)
+		fmt.Fprintln(writer, vals)
+	}
+	if len(cache.retMapping) != 0 {
+		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(returns...)
+		if errors.Is(err, sql.ErrNoRows) {
+			err = nil // Postgres doesn't return anything when there's no update
+		}
+	} else {
+		_, err = exec.ExecContext(ctx, cache.query, vals...)
+	}
+	if err != nil {
+		return errors.Wrap(err, "models: unable to upsert notification_preferences")
+	}
+
+	if !cached {
+		notificationPreferenceUpsertCacheMut.Lock()
+		notificationPreferenceUpsertCache[key] = cache
+		notificationPreferenceUpsertCacheMut.Unlock()
+	}
+
+	return o.doAfterUpsertHooks(ctx, exec)
 }
 
 // Delete deletes a single NotificationPreference record with an executor.
@@ -1464,119 +1591,4 @@ func NotificationPreferenceExists(ctx context.Context, exec boil.ContextExecutor
 // Exists checks if the NotificationPreference row exists.
 func (o *NotificationPreference) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, error) {
 	return NotificationPreferenceExists(ctx, exec, o.ID)
-}
-
-// Upsert attempts an insert using an executor, and does an update or ignore on conflict.
-// See boil.Columns documentation for how to properly use updateColumns and insertColumns.
-func (o *NotificationPreference) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
-	if o == nil {
-		return errors.New("models: no notification_preferences provided for upsert")
-	}
-
-	if err := o.doBeforeUpsertHooks(ctx, exec); err != nil {
-		return err
-	}
-
-	nzDefaults := queries.NonZeroDefaultSet(notificationPreferenceColumnsWithDefault, o)
-
-	// Build cache key in-line uglily - mysql vs psql problems
-	buf := strmangle.GetBuffer()
-	if updateOnConflict {
-		buf.WriteByte('t')
-	} else {
-		buf.WriteByte('f')
-	}
-	buf.WriteByte('.')
-	for _, c := range conflictColumns {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	buf.WriteString(strconv.Itoa(updateColumns.Kind))
-	for _, c := range updateColumns.Cols {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	buf.WriteString(strconv.Itoa(insertColumns.Kind))
-	for _, c := range insertColumns.Cols {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	for _, c := range nzDefaults {
-		buf.WriteString(c)
-	}
-	key := buf.String()
-	strmangle.PutBuffer(buf)
-
-	notificationPreferenceUpsertCacheMut.RLock()
-	cache, cached := notificationPreferenceUpsertCache[key]
-	notificationPreferenceUpsertCacheMut.RUnlock()
-
-	var err error
-
-	if !cached {
-		insert, ret := insertColumns.InsertColumnSet(
-			notificationPreferenceAllColumns,
-			notificationPreferenceColumnsWithDefault,
-			notificationPreferenceColumnsWithoutDefault,
-			nzDefaults,
-		)
-		update := updateColumns.UpdateColumnSet(
-			notificationPreferenceAllColumns,
-			notificationPreferencePrimaryKeyColumns,
-		)
-
-		if updateOnConflict && len(update) == 0 {
-			return errors.New("models: unable to upsert notification_preferences, could not build update column list")
-		}
-
-		conflict := conflictColumns
-		if len(conflict) == 0 {
-			conflict = make([]string, len(notificationPreferencePrimaryKeyColumns))
-			copy(conflict, notificationPreferencePrimaryKeyColumns)
-		}
-		cache.query = buildUpsertQueryCockroachDB(dialect, "\"notification_preferences\"", updateOnConflict, ret, update, conflict, insert)
-
-		cache.valueMapping, err = queries.BindMapping(notificationPreferenceType, notificationPreferenceMapping, insert)
-		if err != nil {
-			return err
-		}
-		if len(ret) != 0 {
-			cache.retMapping, err = queries.BindMapping(notificationPreferenceType, notificationPreferenceMapping, ret)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	value := reflect.Indirect(reflect.ValueOf(o))
-	vals := queries.ValuesFromMapping(value, cache.valueMapping)
-	var returns []interface{}
-	if len(cache.retMapping) != 0 {
-		returns = queries.PtrsFromMapping(value, cache.retMapping)
-	}
-
-	if boil.DebugMode {
-		_, _ = fmt.Fprintln(boil.DebugWriter, cache.query)
-		_, _ = fmt.Fprintln(boil.DebugWriter, vals)
-	}
-
-	if len(cache.retMapping) != 0 {
-		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(returns...)
-		if errors.Is(err, sql.ErrNoRows) {
-			err = nil // CockcorachDB doesn't return anything when there's no update
-		}
-	} else {
-		_, err = exec.ExecContext(ctx, cache.query, vals...)
-	}
-	if err != nil {
-		return fmt.Errorf("models: unable to upsert notification_preferences: %w", err)
-	}
-
-	if !cached {
-		notificationPreferenceUpsertCacheMut.Lock()
-		notificationPreferenceUpsertCache[key] = cache
-		notificationPreferenceUpsertCacheMut.Unlock()
-	}
-
-	return o.doAfterUpsertHooks(ctx, exec)
 }

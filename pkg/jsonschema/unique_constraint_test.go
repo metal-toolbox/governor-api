@@ -8,7 +8,7 @@ import (
 
 	"github.com/aarondl/sqlboiler/v4/boil"
 	"github.com/aarondl/sqlboiler/v4/queries/qm"
-	dbm "github.com/metal-toolbox/governor-api/db"
+	dbm "github.com/metal-toolbox/governor-api/db/crdb"
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	"github.com/metal-toolbox/governor-api/internal/models"
 	"github.com/pressly/goose/v3"

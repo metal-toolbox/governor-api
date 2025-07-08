@@ -4,14 +4,14 @@ import (
 	"context"
 	"database/sql"
 
-	_ "github.com/cockroachdb/cockroach-go/v2/crdb/crdbpgxv5" // crdb retries and postgres interface
+	// _ "github.com/cockroachdb/cockroach-go/v2/crdb/crdbpgxv5" // crdb retries and postgres interface
 	// Import postgres driver. Needed since cockroach-go stopped importing it in v2.2.10
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	dbm "github.com/metal-toolbox/governor-api/db"
+	dbm "github.com/metal-toolbox/governor-api/db/psql"
 )
 
 // migrateCmd represents the migrate command

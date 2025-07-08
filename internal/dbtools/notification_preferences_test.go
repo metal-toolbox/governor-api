@@ -7,7 +7,7 @@ import (
 
 	"github.com/aarondl/sqlboiler/v4/queries/qm"
 	"github.com/jmoiron/sqlx"
-	dbm "github.com/metal-toolbox/governor-api/db"
+	dbm "github.com/metal-toolbox/governor-api/db/crdb"
 	"github.com/metal-toolbox/governor-api/internal/models"
 	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/suite"

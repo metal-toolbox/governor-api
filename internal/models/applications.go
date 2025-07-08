@@ -101,14 +101,14 @@ var ApplicationWhere = struct {
 
 // ApplicationRels is where relationship names are stored.
 var ApplicationRels = struct {
-	Type                          string
 	ApproverGroup                 string
+	Type                          string
 	SubjectApplicationAuditEvents string
 	GroupApplicationRequests      string
 	GroupApplications             string
 }{
-	Type:                          "Type",
 	ApproverGroup:                 "ApproverGroup",
+	Type:                          "Type",
 	SubjectApplicationAuditEvents: "SubjectApplicationAuditEvents",
 	GroupApplicationRequests:      "GroupApplicationRequests",
 	GroupApplications:             "GroupApplications",
@@ -116,8 +116,8 @@ var ApplicationRels = struct {
 
 // applicationR is where relationships are stored.
 type applicationR struct {
-	Type                          *ApplicationType             `boil:"Type" json:"Type" toml:"Type" yaml:"Type"`
 	ApproverGroup                 *Group                       `boil:"ApproverGroup" json:"ApproverGroup" toml:"ApproverGroup" yaml:"ApproverGroup"`
+	Type                          *ApplicationType             `boil:"Type" json:"Type" toml:"Type" yaml:"Type"`
 	SubjectApplicationAuditEvents AuditEventSlice              `boil:"SubjectApplicationAuditEvents" json:"SubjectApplicationAuditEvents" toml:"SubjectApplicationAuditEvents" yaml:"SubjectApplicationAuditEvents"`
 	GroupApplicationRequests      GroupApplicationRequestSlice `boil:"GroupApplicationRequests" json:"GroupApplicationRequests" toml:"GroupApplicationRequests" yaml:"GroupApplicationRequests"`
 	GroupApplications             GroupApplicationSlice        `boil:"GroupApplications" json:"GroupApplications" toml:"GroupApplications" yaml:"GroupApplications"`
@@ -126,22 +126,6 @@ type applicationR struct {
 // NewStruct creates a new relationship struct
 func (*applicationR) NewStruct() *applicationR {
 	return &applicationR{}
-}
-
-func (o *Application) GetType() *ApplicationType {
-	if o == nil {
-		return nil
-	}
-
-	return o.R.GetType()
-}
-
-func (r *applicationR) GetType() *ApplicationType {
-	if r == nil {
-		return nil
-	}
-
-	return r.Type
 }
 
 func (o *Application) GetApproverGroup() *Group {
@@ -158,6 +142,22 @@ func (r *applicationR) GetApproverGroup() *Group {
 	}
 
 	return r.ApproverGroup
+}
+
+func (o *Application) GetType() *ApplicationType {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetType()
+}
+
+func (r *applicationR) GetType() *ApplicationType {
+	if r == nil {
+		return nil
+	}
+
+	return r.Type
 }
 
 func (o *Application) GetSubjectApplicationAuditEvents() AuditEventSlice {
@@ -524,17 +524,6 @@ func (q applicationQuery) Exists(ctx context.Context, exec boil.ContextExecutor)
 	return count > 0, nil
 }
 
-// Type pointed to by the foreign key.
-func (o *Application) Type(mods ...qm.QueryMod) applicationTypeQuery {
-	queryMods := []qm.QueryMod{
-		qm.Where("\"id\" = ?", o.TypeID),
-	}
-
-	queryMods = append(queryMods, mods...)
-
-	return ApplicationTypes(queryMods...)
-}
-
 // ApproverGroup pointed to by the foreign key.
 func (o *Application) ApproverGroup(mods ...qm.QueryMod) groupQuery {
 	queryMods := []qm.QueryMod{
@@ -544,6 +533,17 @@ func (o *Application) ApproverGroup(mods ...qm.QueryMod) groupQuery {
 	queryMods = append(queryMods, mods...)
 
 	return Groups(queryMods...)
+}
+
+// Type pointed to by the foreign key.
+func (o *Application) Type(mods ...qm.QueryMod) applicationTypeQuery {
+	queryMods := []qm.QueryMod{
+		qm.Where("\"id\" = ?", o.TypeID),
+	}
+
+	queryMods = append(queryMods, mods...)
+
+	return ApplicationTypes(queryMods...)
 }
 
 // SubjectApplicationAuditEvents retrieves all the audit_event's AuditEvents with an executor via subject_application_id column.
@@ -586,131 +586,6 @@ func (o *Application) GroupApplications(mods ...qm.QueryMod) groupApplicationQue
 	)
 
 	return GroupApplications(queryMods...)
-}
-
-// LoadType allows an eager lookup of values, cached into the
-// loaded structs of the objects. This is for an N-1 relationship.
-func (applicationL) LoadType(ctx context.Context, e boil.ContextExecutor, singular bool, maybeApplication interface{}, mods queries.Applicator) error {
-	var slice []*Application
-	var object *Application
-
-	if singular {
-		var ok bool
-		object, ok = maybeApplication.(*Application)
-		if !ok {
-			object = new(Application)
-			ok = queries.SetFromEmbeddedStruct(&object, &maybeApplication)
-			if !ok {
-				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeApplication))
-			}
-		}
-	} else {
-		s, ok := maybeApplication.(*[]*Application)
-		if ok {
-			slice = *s
-		} else {
-			ok = queries.SetFromEmbeddedStruct(&slice, maybeApplication)
-			if !ok {
-				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeApplication))
-			}
-		}
-	}
-
-	args := make(map[interface{}]struct{})
-	if singular {
-		if object.R == nil {
-			object.R = &applicationR{}
-		}
-		if !queries.IsNil(object.TypeID) {
-			args[object.TypeID] = struct{}{}
-		}
-
-	} else {
-		for _, obj := range slice {
-			if obj.R == nil {
-				obj.R = &applicationR{}
-			}
-
-			if !queries.IsNil(obj.TypeID) {
-				args[obj.TypeID] = struct{}{}
-			}
-
-		}
-	}
-
-	if len(args) == 0 {
-		return nil
-	}
-
-	argsSlice := make([]interface{}, len(args))
-	i := 0
-	for arg := range args {
-		argsSlice[i] = arg
-		i++
-	}
-
-	query := NewQuery(
-		qm.From(`application_types`),
-		qm.WhereIn(`application_types.id in ?`, argsSlice...),
-		qmhelper.WhereIsNull(`application_types.deleted_at`),
-	)
-	if mods != nil {
-		mods.Apply(query)
-	}
-
-	results, err := query.QueryContext(ctx, e)
-	if err != nil {
-		return errors.Wrap(err, "failed to eager load ApplicationType")
-	}
-
-	var resultSlice []*ApplicationType
-	if err = queries.Bind(results, &resultSlice); err != nil {
-		return errors.Wrap(err, "failed to bind eager loaded slice ApplicationType")
-	}
-
-	if err = results.Close(); err != nil {
-		return errors.Wrap(err, "failed to close results of eager load for application_types")
-	}
-	if err = results.Err(); err != nil {
-		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for application_types")
-	}
-
-	if len(applicationTypeAfterSelectHooks) != 0 {
-		for _, obj := range resultSlice {
-			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
-				return err
-			}
-		}
-	}
-
-	if len(resultSlice) == 0 {
-		return nil
-	}
-
-	if singular {
-		foreign := resultSlice[0]
-		object.R.Type = foreign
-		if foreign.R == nil {
-			foreign.R = &applicationTypeR{}
-		}
-		foreign.R.TypeApplications = append(foreign.R.TypeApplications, object)
-		return nil
-	}
-
-	for _, local := range slice {
-		for _, foreign := range resultSlice {
-			if queries.Equal(local.TypeID, foreign.ID) {
-				local.R.Type = foreign
-				if foreign.R == nil {
-					foreign.R = &applicationTypeR{}
-				}
-				foreign.R.TypeApplications = append(foreign.R.TypeApplications, local)
-				break
-			}
-		}
-	}
-
-	return nil
 }
 
 // LoadApproverGroup allows an eager lookup of values, cached into the
@@ -830,6 +705,131 @@ func (applicationL) LoadApproverGroup(ctx context.Context, e boil.ContextExecuto
 					foreign.R = &groupR{}
 				}
 				foreign.R.ApproverGroupApplications = append(foreign.R.ApproverGroupApplications, local)
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadType allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for an N-1 relationship.
+func (applicationL) LoadType(ctx context.Context, e boil.ContextExecutor, singular bool, maybeApplication interface{}, mods queries.Applicator) error {
+	var slice []*Application
+	var object *Application
+
+	if singular {
+		var ok bool
+		object, ok = maybeApplication.(*Application)
+		if !ok {
+			object = new(Application)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeApplication)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeApplication))
+			}
+		}
+	} else {
+		s, ok := maybeApplication.(*[]*Application)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeApplication)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeApplication))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &applicationR{}
+		}
+		if !queries.IsNil(object.TypeID) {
+			args[object.TypeID] = struct{}{}
+		}
+
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &applicationR{}
+			}
+
+			if !queries.IsNil(obj.TypeID) {
+				args[obj.TypeID] = struct{}{}
+			}
+
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`application_types`),
+		qm.WhereIn(`application_types.id in ?`, argsSlice...),
+		qmhelper.WhereIsNull(`application_types.deleted_at`),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load ApplicationType")
+	}
+
+	var resultSlice []*ApplicationType
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice ApplicationType")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results of eager load for application_types")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for application_types")
+	}
+
+	if len(applicationTypeAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(resultSlice) == 0 {
+		return nil
+	}
+
+	if singular {
+		foreign := resultSlice[0]
+		object.R.Type = foreign
+		if foreign.R == nil {
+			foreign.R = &applicationTypeR{}
+		}
+		foreign.R.TypeApplications = append(foreign.R.TypeApplications, object)
+		return nil
+	}
+
+	for _, local := range slice {
+		for _, foreign := range resultSlice {
+			if queries.Equal(local.TypeID, foreign.ID) {
+				local.R.Type = foreign
+				if foreign.R == nil {
+					foreign.R = &applicationTypeR{}
+				}
+				foreign.R.TypeApplications = append(foreign.R.TypeApplications, local)
 				break
 			}
 		}
@@ -1178,86 +1178,6 @@ func (applicationL) LoadGroupApplications(ctx context.Context, e boil.ContextExe
 	return nil
 }
 
-// SetType of the application to the related item.
-// Sets o.R.Type to related.
-// Adds o to related.R.TypeApplications.
-func (o *Application) SetType(ctx context.Context, exec boil.ContextExecutor, insert bool, related *ApplicationType) error {
-	var err error
-	if insert {
-		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
-			return errors.Wrap(err, "failed to insert into foreign table")
-		}
-	}
-
-	updateQuery := fmt.Sprintf(
-		"UPDATE \"applications\" SET %s WHERE %s",
-		strmangle.SetParamNames("\"", "\"", 1, []string{"type_id"}),
-		strmangle.WhereClause("\"", "\"", 2, applicationPrimaryKeyColumns),
-	)
-	values := []interface{}{related.ID, o.ID}
-
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, updateQuery)
-		fmt.Fprintln(writer, values)
-	}
-	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
-		return errors.Wrap(err, "failed to update local table")
-	}
-
-	queries.Assign(&o.TypeID, related.ID)
-	if o.R == nil {
-		o.R = &applicationR{
-			Type: related,
-		}
-	} else {
-		o.R.Type = related
-	}
-
-	if related.R == nil {
-		related.R = &applicationTypeR{
-			TypeApplications: ApplicationSlice{o},
-		}
-	} else {
-		related.R.TypeApplications = append(related.R.TypeApplications, o)
-	}
-
-	return nil
-}
-
-// RemoveType relationship.
-// Sets o.R.Type to nil.
-// Removes o from all passed in related items' relationships struct.
-func (o *Application) RemoveType(ctx context.Context, exec boil.ContextExecutor, related *ApplicationType) error {
-	var err error
-
-	queries.SetScanner(&o.TypeID, nil)
-	if _, err = o.Update(ctx, exec, boil.Whitelist("type_id")); err != nil {
-		return errors.Wrap(err, "failed to update local table")
-	}
-
-	if o.R != nil {
-		o.R.Type = nil
-	}
-	if related == nil || related.R == nil {
-		return nil
-	}
-
-	for i, ri := range related.R.TypeApplications {
-		if queries.Equal(o.TypeID, ri.TypeID) {
-			continue
-		}
-
-		ln := len(related.R.TypeApplications)
-		if ln > 1 && i < ln-1 {
-			related.R.TypeApplications[i] = related.R.TypeApplications[ln-1]
-		}
-		related.R.TypeApplications = related.R.TypeApplications[:ln-1]
-		break
-	}
-	return nil
-}
-
 // SetApproverGroup of the application to the related item.
 // Sets o.R.ApproverGroup to related.
 // Adds o to related.R.ApproverGroupApplications.
@@ -1333,6 +1253,86 @@ func (o *Application) RemoveApproverGroup(ctx context.Context, exec boil.Context
 			related.R.ApproverGroupApplications[i] = related.R.ApproverGroupApplications[ln-1]
 		}
 		related.R.ApproverGroupApplications = related.R.ApproverGroupApplications[:ln-1]
+		break
+	}
+	return nil
+}
+
+// SetType of the application to the related item.
+// Sets o.R.Type to related.
+// Adds o to related.R.TypeApplications.
+func (o *Application) SetType(ctx context.Context, exec boil.ContextExecutor, insert bool, related *ApplicationType) error {
+	var err error
+	if insert {
+		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+			return errors.Wrap(err, "failed to insert into foreign table")
+		}
+	}
+
+	updateQuery := fmt.Sprintf(
+		"UPDATE \"applications\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, []string{"type_id"}),
+		strmangle.WhereClause("\"", "\"", 2, applicationPrimaryKeyColumns),
+	)
+	values := []interface{}{related.ID, o.ID}
+
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, updateQuery)
+		fmt.Fprintln(writer, values)
+	}
+	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	queries.Assign(&o.TypeID, related.ID)
+	if o.R == nil {
+		o.R = &applicationR{
+			Type: related,
+		}
+	} else {
+		o.R.Type = related
+	}
+
+	if related.R == nil {
+		related.R = &applicationTypeR{
+			TypeApplications: ApplicationSlice{o},
+		}
+	} else {
+		related.R.TypeApplications = append(related.R.TypeApplications, o)
+	}
+
+	return nil
+}
+
+// RemoveType relationship.
+// Sets o.R.Type to nil.
+// Removes o from all passed in related items' relationships struct.
+func (o *Application) RemoveType(ctx context.Context, exec boil.ContextExecutor, related *ApplicationType) error {
+	var err error
+
+	queries.SetScanner(&o.TypeID, nil)
+	if _, err = o.Update(ctx, exec, boil.Whitelist("type_id")); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	if o.R != nil {
+		o.R.Type = nil
+	}
+	if related == nil || related.R == nil {
+		return nil
+	}
+
+	for i, ri := range related.R.TypeApplications {
+		if queries.Equal(o.TypeID, ri.TypeID) {
+			continue
+		}
+
+		ln := len(related.R.TypeApplications)
+		if ln > 1 && i < ln-1 {
+			related.R.TypeApplications[i] = related.R.TypeApplications[ln-1]
+		}
+		related.R.TypeApplications = related.R.TypeApplications[:ln-1]
 		break
 	}
 	return nil
@@ -1835,6 +1835,136 @@ func (o ApplicationSlice) UpdateAll(ctx context.Context, exec boil.ContextExecut
 	return rowsAff, nil
 }
 
+// Upsert attempts an insert using an executor, and does an update or ignore on conflict.
+// See boil.Columns documentation for how to properly use updateColumns and insertColumns.
+func (o *Application) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) error {
+	if o == nil {
+		return errors.New("models: no applications provided for upsert")
+	}
+	if !boil.TimestampsAreSkipped(ctx) {
+		currTime := time.Now().In(boil.GetLocation())
+
+		if o.CreatedAt.IsZero() {
+			o.CreatedAt = currTime
+		}
+		o.UpdatedAt = currTime
+	}
+
+	if err := o.doBeforeUpsertHooks(ctx, exec); err != nil {
+		return err
+	}
+
+	nzDefaults := queries.NonZeroDefaultSet(applicationColumnsWithDefault, o)
+
+	// Build cache key in-line uglily - mysql vs psql problems
+	buf := strmangle.GetBuffer()
+	if updateOnConflict {
+		buf.WriteByte('t')
+	} else {
+		buf.WriteByte('f')
+	}
+	buf.WriteByte('.')
+	for _, c := range conflictColumns {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
+	buf.WriteString(strconv.Itoa(updateColumns.Kind))
+	for _, c := range updateColumns.Cols {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
+	buf.WriteString(strconv.Itoa(insertColumns.Kind))
+	for _, c := range insertColumns.Cols {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
+	for _, c := range nzDefaults {
+		buf.WriteString(c)
+	}
+	key := buf.String()
+	strmangle.PutBuffer(buf)
+
+	applicationUpsertCacheMut.RLock()
+	cache, cached := applicationUpsertCache[key]
+	applicationUpsertCacheMut.RUnlock()
+
+	var err error
+
+	if !cached {
+		insert, _ := insertColumns.InsertColumnSet(
+			applicationAllColumns,
+			applicationColumnsWithDefault,
+			applicationColumnsWithoutDefault,
+			nzDefaults,
+		)
+
+		update := updateColumns.UpdateColumnSet(
+			applicationAllColumns,
+			applicationPrimaryKeyColumns,
+		)
+
+		if updateOnConflict && len(update) == 0 {
+			return errors.New("models: unable to upsert applications, could not build update column list")
+		}
+
+		ret := strmangle.SetComplement(applicationAllColumns, strmangle.SetIntersect(insert, update))
+
+		conflict := conflictColumns
+		if len(conflict) == 0 && updateOnConflict && len(update) != 0 {
+			if len(applicationPrimaryKeyColumns) == 0 {
+				return errors.New("models: unable to upsert applications, could not build conflict column list")
+			}
+
+			conflict = make([]string, len(applicationPrimaryKeyColumns))
+			copy(conflict, applicationPrimaryKeyColumns)
+		}
+		cache.query = buildUpsertQueryPostgres(dialect, "\"applications\"", updateOnConflict, ret, update, conflict, insert, opts...)
+
+		cache.valueMapping, err = queries.BindMapping(applicationType, applicationMapping, insert)
+		if err != nil {
+			return err
+		}
+		if len(ret) != 0 {
+			cache.retMapping, err = queries.BindMapping(applicationType, applicationMapping, ret)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	value := reflect.Indirect(reflect.ValueOf(o))
+	vals := queries.ValuesFromMapping(value, cache.valueMapping)
+	var returns []interface{}
+	if len(cache.retMapping) != 0 {
+		returns = queries.PtrsFromMapping(value, cache.retMapping)
+	}
+
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, cache.query)
+		fmt.Fprintln(writer, vals)
+	}
+	if len(cache.retMapping) != 0 {
+		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(returns...)
+		if errors.Is(err, sql.ErrNoRows) {
+			err = nil // Postgres doesn't return anything when there's no update
+		}
+	} else {
+		_, err = exec.ExecContext(ctx, cache.query, vals...)
+	}
+	if err != nil {
+		return errors.Wrap(err, "models: unable to upsert applications")
+	}
+
+	if !cached {
+		applicationUpsertCacheMut.Lock()
+		applicationUpsertCache[key] = cache
+		applicationUpsertCacheMut.Unlock()
+	}
+
+	return o.doAfterUpsertHooks(ctx, exec)
+}
+
 // Delete deletes a single Application record with an executor.
 // Delete will match against the primary key column to find the record to delete.
 func (o *Application) Delete(ctx context.Context, exec boil.ContextExecutor, hardDelete bool) (int64, error) {
@@ -2046,127 +2176,4 @@ func ApplicationExists(ctx context.Context, exec boil.ContextExecutor, iD string
 // Exists checks if the Application row exists.
 func (o *Application) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, error) {
 	return ApplicationExists(ctx, exec, o.ID)
-}
-
-// Upsert attempts an insert using an executor, and does an update or ignore on conflict.
-// See boil.Columns documentation for how to properly use updateColumns and insertColumns.
-func (o *Application) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
-	if o == nil {
-		return errors.New("models: no applications provided for upsert")
-	}
-	if !boil.TimestampsAreSkipped(ctx) {
-		currTime := time.Now().In(boil.GetLocation())
-
-		if o.CreatedAt.IsZero() {
-			o.CreatedAt = currTime
-		}
-		o.UpdatedAt = currTime
-	}
-
-	if err := o.doBeforeUpsertHooks(ctx, exec); err != nil {
-		return err
-	}
-
-	nzDefaults := queries.NonZeroDefaultSet(applicationColumnsWithDefault, o)
-
-	// Build cache key in-line uglily - mysql vs psql problems
-	buf := strmangle.GetBuffer()
-	if updateOnConflict {
-		buf.WriteByte('t')
-	} else {
-		buf.WriteByte('f')
-	}
-	buf.WriteByte('.')
-	for _, c := range conflictColumns {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	buf.WriteString(strconv.Itoa(updateColumns.Kind))
-	for _, c := range updateColumns.Cols {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	buf.WriteString(strconv.Itoa(insertColumns.Kind))
-	for _, c := range insertColumns.Cols {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	for _, c := range nzDefaults {
-		buf.WriteString(c)
-	}
-	key := buf.String()
-	strmangle.PutBuffer(buf)
-
-	applicationUpsertCacheMut.RLock()
-	cache, cached := applicationUpsertCache[key]
-	applicationUpsertCacheMut.RUnlock()
-
-	var err error
-
-	if !cached {
-		insert, ret := insertColumns.InsertColumnSet(
-			applicationAllColumns,
-			applicationColumnsWithDefault,
-			applicationColumnsWithoutDefault,
-			nzDefaults,
-		)
-		update := updateColumns.UpdateColumnSet(
-			applicationAllColumns,
-			applicationPrimaryKeyColumns,
-		)
-
-		if updateOnConflict && len(update) == 0 {
-			return errors.New("models: unable to upsert applications, could not build update column list")
-		}
-
-		conflict := conflictColumns
-		if len(conflict) == 0 {
-			conflict = make([]string, len(applicationPrimaryKeyColumns))
-			copy(conflict, applicationPrimaryKeyColumns)
-		}
-		cache.query = buildUpsertQueryCockroachDB(dialect, "\"applications\"", updateOnConflict, ret, update, conflict, insert)
-
-		cache.valueMapping, err = queries.BindMapping(applicationType, applicationMapping, insert)
-		if err != nil {
-			return err
-		}
-		if len(ret) != 0 {
-			cache.retMapping, err = queries.BindMapping(applicationType, applicationMapping, ret)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	value := reflect.Indirect(reflect.ValueOf(o))
-	vals := queries.ValuesFromMapping(value, cache.valueMapping)
-	var returns []interface{}
-	if len(cache.retMapping) != 0 {
-		returns = queries.PtrsFromMapping(value, cache.retMapping)
-	}
-
-	if boil.DebugMode {
-		_, _ = fmt.Fprintln(boil.DebugWriter, cache.query)
-		_, _ = fmt.Fprintln(boil.DebugWriter, vals)
-	}
-
-	if len(cache.retMapping) != 0 {
-		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(returns...)
-		if errors.Is(err, sql.ErrNoRows) {
-			err = nil // CockcorachDB doesn't return anything when there's no update
-		}
-	} else {
-		_, err = exec.ExecContext(ctx, cache.query, vals...)
-	}
-	if err != nil {
-		return fmt.Errorf("models: unable to upsert applications: %w", err)
-	}
-
-	if !cached {
-		applicationUpsertCacheMut.Lock()
-		applicationUpsertCache[key] = cache
-		applicationUpsertCacheMut.Unlock()
-	}
-
-	return o.doAfterUpsertHooks(ctx, exec)
 }

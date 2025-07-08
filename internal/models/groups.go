@@ -112,11 +112,11 @@ var GroupRels = struct {
 	ApproverGroupApplications              string
 	SubjectGroupAuditEvents                string
 	AdminGroupExtensionResourceDefinitions string
-	GroupApplicationRequests               string
 	ApproverGroupGroupApplicationRequests  string
+	GroupApplicationRequests               string
 	GroupApplications                      string
-	ParentGroupGroupHierarchies            string
 	MemberGroupGroupHierarchies            string
+	ParentGroupGroupHierarchies            string
 	GroupMembershipRequests                string
 	GroupMemberships                       string
 	GroupOrganizations                     string
@@ -126,11 +126,11 @@ var GroupRels = struct {
 	ApproverGroupApplications:              "ApproverGroupApplications",
 	SubjectGroupAuditEvents:                "SubjectGroupAuditEvents",
 	AdminGroupExtensionResourceDefinitions: "AdminGroupExtensionResourceDefinitions",
-	GroupApplicationRequests:               "GroupApplicationRequests",
 	ApproverGroupGroupApplicationRequests:  "ApproverGroupGroupApplicationRequests",
+	GroupApplicationRequests:               "GroupApplicationRequests",
 	GroupApplications:                      "GroupApplications",
-	ParentGroupGroupHierarchies:            "ParentGroupGroupHierarchies",
 	MemberGroupGroupHierarchies:            "MemberGroupGroupHierarchies",
+	ParentGroupGroupHierarchies:            "ParentGroupGroupHierarchies",
 	GroupMembershipRequests:                "GroupMembershipRequests",
 	GroupMemberships:                       "GroupMemberships",
 	GroupOrganizations:                     "GroupOrganizations",
@@ -143,11 +143,11 @@ type groupR struct {
 	ApproverGroupApplications              ApplicationSlice                 `boil:"ApproverGroupApplications" json:"ApproverGroupApplications" toml:"ApproverGroupApplications" yaml:"ApproverGroupApplications"`
 	SubjectGroupAuditEvents                AuditEventSlice                  `boil:"SubjectGroupAuditEvents" json:"SubjectGroupAuditEvents" toml:"SubjectGroupAuditEvents" yaml:"SubjectGroupAuditEvents"`
 	AdminGroupExtensionResourceDefinitions ExtensionResourceDefinitionSlice `boil:"AdminGroupExtensionResourceDefinitions" json:"AdminGroupExtensionResourceDefinitions" toml:"AdminGroupExtensionResourceDefinitions" yaml:"AdminGroupExtensionResourceDefinitions"`
-	GroupApplicationRequests               GroupApplicationRequestSlice     `boil:"GroupApplicationRequests" json:"GroupApplicationRequests" toml:"GroupApplicationRequests" yaml:"GroupApplicationRequests"`
 	ApproverGroupGroupApplicationRequests  GroupApplicationRequestSlice     `boil:"ApproverGroupGroupApplicationRequests" json:"ApproverGroupGroupApplicationRequests" toml:"ApproverGroupGroupApplicationRequests" yaml:"ApproverGroupGroupApplicationRequests"`
+	GroupApplicationRequests               GroupApplicationRequestSlice     `boil:"GroupApplicationRequests" json:"GroupApplicationRequests" toml:"GroupApplicationRequests" yaml:"GroupApplicationRequests"`
 	GroupApplications                      GroupApplicationSlice            `boil:"GroupApplications" json:"GroupApplications" toml:"GroupApplications" yaml:"GroupApplications"`
-	ParentGroupGroupHierarchies            GroupHierarchySlice              `boil:"ParentGroupGroupHierarchies" json:"ParentGroupGroupHierarchies" toml:"ParentGroupGroupHierarchies" yaml:"ParentGroupGroupHierarchies"`
 	MemberGroupGroupHierarchies            GroupHierarchySlice              `boil:"MemberGroupGroupHierarchies" json:"MemberGroupGroupHierarchies" toml:"MemberGroupGroupHierarchies" yaml:"MemberGroupGroupHierarchies"`
+	ParentGroupGroupHierarchies            GroupHierarchySlice              `boil:"ParentGroupGroupHierarchies" json:"ParentGroupGroupHierarchies" toml:"ParentGroupGroupHierarchies" yaml:"ParentGroupGroupHierarchies"`
 	GroupMembershipRequests                GroupMembershipRequestSlice      `boil:"GroupMembershipRequests" json:"GroupMembershipRequests" toml:"GroupMembershipRequests" yaml:"GroupMembershipRequests"`
 	GroupMemberships                       GroupMembershipSlice             `boil:"GroupMemberships" json:"GroupMemberships" toml:"GroupMemberships" yaml:"GroupMemberships"`
 	GroupOrganizations                     GroupOrganizationSlice           `boil:"GroupOrganizations" json:"GroupOrganizations" toml:"GroupOrganizations" yaml:"GroupOrganizations"`
@@ -223,22 +223,6 @@ func (r *groupR) GetAdminGroupExtensionResourceDefinitions() ExtensionResourceDe
 	return r.AdminGroupExtensionResourceDefinitions
 }
 
-func (o *Group) GetGroupApplicationRequests() GroupApplicationRequestSlice {
-	if o == nil {
-		return nil
-	}
-
-	return o.R.GetGroupApplicationRequests()
-}
-
-func (r *groupR) GetGroupApplicationRequests() GroupApplicationRequestSlice {
-	if r == nil {
-		return nil
-	}
-
-	return r.GroupApplicationRequests
-}
-
 func (o *Group) GetApproverGroupGroupApplicationRequests() GroupApplicationRequestSlice {
 	if o == nil {
 		return nil
@@ -253,6 +237,22 @@ func (r *groupR) GetApproverGroupGroupApplicationRequests() GroupApplicationRequ
 	}
 
 	return r.ApproverGroupGroupApplicationRequests
+}
+
+func (o *Group) GetGroupApplicationRequests() GroupApplicationRequestSlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetGroupApplicationRequests()
+}
+
+func (r *groupR) GetGroupApplicationRequests() GroupApplicationRequestSlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.GroupApplicationRequests
 }
 
 func (o *Group) GetGroupApplications() GroupApplicationSlice {
@@ -271,22 +271,6 @@ func (r *groupR) GetGroupApplications() GroupApplicationSlice {
 	return r.GroupApplications
 }
 
-func (o *Group) GetParentGroupGroupHierarchies() GroupHierarchySlice {
-	if o == nil {
-		return nil
-	}
-
-	return o.R.GetParentGroupGroupHierarchies()
-}
-
-func (r *groupR) GetParentGroupGroupHierarchies() GroupHierarchySlice {
-	if r == nil {
-		return nil
-	}
-
-	return r.ParentGroupGroupHierarchies
-}
-
 func (o *Group) GetMemberGroupGroupHierarchies() GroupHierarchySlice {
 	if o == nil {
 		return nil
@@ -301,6 +285,22 @@ func (r *groupR) GetMemberGroupGroupHierarchies() GroupHierarchySlice {
 	}
 
 	return r.MemberGroupGroupHierarchies
+}
+
+func (o *Group) GetParentGroupGroupHierarchies() GroupHierarchySlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetParentGroupGroupHierarchies()
+}
+
+func (r *groupR) GetParentGroupGroupHierarchies() GroupHierarchySlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.ParentGroupGroupHierarchies
 }
 
 func (o *Group) GetGroupMembershipRequests() GroupMembershipRequestSlice {
@@ -736,20 +736,6 @@ func (o *Group) AdminGroupExtensionResourceDefinitions(mods ...qm.QueryMod) exte
 	return ExtensionResourceDefinitions(queryMods...)
 }
 
-// GroupApplicationRequests retrieves all the group_application_request's GroupApplicationRequests with an executor.
-func (o *Group) GroupApplicationRequests(mods ...qm.QueryMod) groupApplicationRequestQuery {
-	var queryMods []qm.QueryMod
-	if len(mods) != 0 {
-		queryMods = append(queryMods, mods...)
-	}
-
-	queryMods = append(queryMods,
-		qm.Where("\"group_application_requests\".\"group_id\"=?", o.ID),
-	)
-
-	return GroupApplicationRequests(queryMods...)
-}
-
 // ApproverGroupGroupApplicationRequests retrieves all the group_application_request's GroupApplicationRequests with an executor via approver_group_id column.
 func (o *Group) ApproverGroupGroupApplicationRequests(mods ...qm.QueryMod) groupApplicationRequestQuery {
 	var queryMods []qm.QueryMod
@@ -759,6 +745,20 @@ func (o *Group) ApproverGroupGroupApplicationRequests(mods ...qm.QueryMod) group
 
 	queryMods = append(queryMods,
 		qm.Where("\"group_application_requests\".\"approver_group_id\"=?", o.ID),
+	)
+
+	return GroupApplicationRequests(queryMods...)
+}
+
+// GroupApplicationRequests retrieves all the group_application_request's GroupApplicationRequests with an executor.
+func (o *Group) GroupApplicationRequests(mods ...qm.QueryMod) groupApplicationRequestQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"group_application_requests\".\"group_id\"=?", o.ID),
 	)
 
 	return GroupApplicationRequests(queryMods...)
@@ -778,20 +778,6 @@ func (o *Group) GroupApplications(mods ...qm.QueryMod) groupApplicationQuery {
 	return GroupApplications(queryMods...)
 }
 
-// ParentGroupGroupHierarchies retrieves all the group_hierarchy's GroupHierarchies with an executor via parent_group_id column.
-func (o *Group) ParentGroupGroupHierarchies(mods ...qm.QueryMod) groupHierarchyQuery {
-	var queryMods []qm.QueryMod
-	if len(mods) != 0 {
-		queryMods = append(queryMods, mods...)
-	}
-
-	queryMods = append(queryMods,
-		qm.Where("\"group_hierarchies\".\"parent_group_id\"=?", o.ID),
-	)
-
-	return GroupHierarchies(queryMods...)
-}
-
 // MemberGroupGroupHierarchies retrieves all the group_hierarchy's GroupHierarchies with an executor via member_group_id column.
 func (o *Group) MemberGroupGroupHierarchies(mods ...qm.QueryMod) groupHierarchyQuery {
 	var queryMods []qm.QueryMod
@@ -801,6 +787,20 @@ func (o *Group) MemberGroupGroupHierarchies(mods ...qm.QueryMod) groupHierarchyQ
 
 	queryMods = append(queryMods,
 		qm.Where("\"group_hierarchies\".\"member_group_id\"=?", o.ID),
+	)
+
+	return GroupHierarchies(queryMods...)
+}
+
+// ParentGroupGroupHierarchies retrieves all the group_hierarchy's GroupHierarchies with an executor via parent_group_id column.
+func (o *Group) ParentGroupGroupHierarchies(mods ...qm.QueryMod) groupHierarchyQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"group_hierarchies\".\"parent_group_id\"=?", o.ID),
 	)
 
 	return GroupHierarchies(queryMods...)
@@ -1328,119 +1328,6 @@ func (groupL) LoadAdminGroupExtensionResourceDefinitions(ctx context.Context, e 
 	return nil
 }
 
-// LoadGroupApplicationRequests allows an eager lookup of values, cached into the
-// loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (groupL) LoadGroupApplicationRequests(ctx context.Context, e boil.ContextExecutor, singular bool, maybeGroup interface{}, mods queries.Applicator) error {
-	var slice []*Group
-	var object *Group
-
-	if singular {
-		var ok bool
-		object, ok = maybeGroup.(*Group)
-		if !ok {
-			object = new(Group)
-			ok = queries.SetFromEmbeddedStruct(&object, &maybeGroup)
-			if !ok {
-				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeGroup))
-			}
-		}
-	} else {
-		s, ok := maybeGroup.(*[]*Group)
-		if ok {
-			slice = *s
-		} else {
-			ok = queries.SetFromEmbeddedStruct(&slice, maybeGroup)
-			if !ok {
-				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeGroup))
-			}
-		}
-	}
-
-	args := make(map[interface{}]struct{})
-	if singular {
-		if object.R == nil {
-			object.R = &groupR{}
-		}
-		args[object.ID] = struct{}{}
-	} else {
-		for _, obj := range slice {
-			if obj.R == nil {
-				obj.R = &groupR{}
-			}
-			args[obj.ID] = struct{}{}
-		}
-	}
-
-	if len(args) == 0 {
-		return nil
-	}
-
-	argsSlice := make([]interface{}, len(args))
-	i := 0
-	for arg := range args {
-		argsSlice[i] = arg
-		i++
-	}
-
-	query := NewQuery(
-		qm.From(`group_application_requests`),
-		qm.WhereIn(`group_application_requests.group_id in ?`, argsSlice...),
-	)
-	if mods != nil {
-		mods.Apply(query)
-	}
-
-	results, err := query.QueryContext(ctx, e)
-	if err != nil {
-		return errors.Wrap(err, "failed to eager load group_application_requests")
-	}
-
-	var resultSlice []*GroupApplicationRequest
-	if err = queries.Bind(results, &resultSlice); err != nil {
-		return errors.Wrap(err, "failed to bind eager loaded slice group_application_requests")
-	}
-
-	if err = results.Close(); err != nil {
-		return errors.Wrap(err, "failed to close results in eager load on group_application_requests")
-	}
-	if err = results.Err(); err != nil {
-		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for group_application_requests")
-	}
-
-	if len(groupApplicationRequestAfterSelectHooks) != 0 {
-		for _, obj := range resultSlice {
-			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
-				return err
-			}
-		}
-	}
-	if singular {
-		object.R.GroupApplicationRequests = resultSlice
-		for _, foreign := range resultSlice {
-			if foreign.R == nil {
-				foreign.R = &groupApplicationRequestR{}
-			}
-			foreign.R.Group = object
-		}
-		return nil
-	}
-
-	for _, foreign := range resultSlice {
-		for _, local := range slice {
-			if local.ID == foreign.GroupID {
-				local.R.GroupApplicationRequests = append(local.R.GroupApplicationRequests, foreign)
-				if foreign.R == nil {
-					foreign.R = &groupApplicationRequestR{}
-				}
-				foreign.R.Group = local
-				break
-			}
-		}
-	}
-
-	return nil
-}
-
 // LoadApproverGroupGroupApplicationRequests allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
 func (groupL) LoadApproverGroupGroupApplicationRequests(ctx context.Context, e boil.ContextExecutor, singular bool, maybeGroup interface{}, mods queries.Applicator) error {
@@ -1546,6 +1433,119 @@ func (groupL) LoadApproverGroupGroupApplicationRequests(ctx context.Context, e b
 					foreign.R = &groupApplicationRequestR{}
 				}
 				foreign.R.ApproverGroup = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadGroupApplicationRequests allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (groupL) LoadGroupApplicationRequests(ctx context.Context, e boil.ContextExecutor, singular bool, maybeGroup interface{}, mods queries.Applicator) error {
+	var slice []*Group
+	var object *Group
+
+	if singular {
+		var ok bool
+		object, ok = maybeGroup.(*Group)
+		if !ok {
+			object = new(Group)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeGroup)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeGroup))
+			}
+		}
+	} else {
+		s, ok := maybeGroup.(*[]*Group)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeGroup)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeGroup))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &groupR{}
+		}
+		args[object.ID] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &groupR{}
+			}
+			args[obj.ID] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`group_application_requests`),
+		qm.WhereIn(`group_application_requests.group_id in ?`, argsSlice...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load group_application_requests")
+	}
+
+	var resultSlice []*GroupApplicationRequest
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice group_application_requests")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on group_application_requests")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for group_application_requests")
+	}
+
+	if len(groupApplicationRequestAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.GroupApplicationRequests = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &groupApplicationRequestR{}
+			}
+			foreign.R.Group = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.GroupID {
+				local.R.GroupApplicationRequests = append(local.R.GroupApplicationRequests, foreign)
+				if foreign.R == nil {
+					foreign.R = &groupApplicationRequestR{}
+				}
+				foreign.R.Group = local
 				break
 			}
 		}
@@ -1668,119 +1668,6 @@ func (groupL) LoadGroupApplications(ctx context.Context, e boil.ContextExecutor,
 	return nil
 }
 
-// LoadParentGroupGroupHierarchies allows an eager lookup of values, cached into the
-// loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (groupL) LoadParentGroupGroupHierarchies(ctx context.Context, e boil.ContextExecutor, singular bool, maybeGroup interface{}, mods queries.Applicator) error {
-	var slice []*Group
-	var object *Group
-
-	if singular {
-		var ok bool
-		object, ok = maybeGroup.(*Group)
-		if !ok {
-			object = new(Group)
-			ok = queries.SetFromEmbeddedStruct(&object, &maybeGroup)
-			if !ok {
-				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeGroup))
-			}
-		}
-	} else {
-		s, ok := maybeGroup.(*[]*Group)
-		if ok {
-			slice = *s
-		} else {
-			ok = queries.SetFromEmbeddedStruct(&slice, maybeGroup)
-			if !ok {
-				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeGroup))
-			}
-		}
-	}
-
-	args := make(map[interface{}]struct{})
-	if singular {
-		if object.R == nil {
-			object.R = &groupR{}
-		}
-		args[object.ID] = struct{}{}
-	} else {
-		for _, obj := range slice {
-			if obj.R == nil {
-				obj.R = &groupR{}
-			}
-			args[obj.ID] = struct{}{}
-		}
-	}
-
-	if len(args) == 0 {
-		return nil
-	}
-
-	argsSlice := make([]interface{}, len(args))
-	i := 0
-	for arg := range args {
-		argsSlice[i] = arg
-		i++
-	}
-
-	query := NewQuery(
-		qm.From(`group_hierarchies`),
-		qm.WhereIn(`group_hierarchies.parent_group_id in ?`, argsSlice...),
-	)
-	if mods != nil {
-		mods.Apply(query)
-	}
-
-	results, err := query.QueryContext(ctx, e)
-	if err != nil {
-		return errors.Wrap(err, "failed to eager load group_hierarchies")
-	}
-
-	var resultSlice []*GroupHierarchy
-	if err = queries.Bind(results, &resultSlice); err != nil {
-		return errors.Wrap(err, "failed to bind eager loaded slice group_hierarchies")
-	}
-
-	if err = results.Close(); err != nil {
-		return errors.Wrap(err, "failed to close results in eager load on group_hierarchies")
-	}
-	if err = results.Err(); err != nil {
-		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for group_hierarchies")
-	}
-
-	if len(groupHierarchyAfterSelectHooks) != 0 {
-		for _, obj := range resultSlice {
-			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
-				return err
-			}
-		}
-	}
-	if singular {
-		object.R.ParentGroupGroupHierarchies = resultSlice
-		for _, foreign := range resultSlice {
-			if foreign.R == nil {
-				foreign.R = &groupHierarchyR{}
-			}
-			foreign.R.ParentGroup = object
-		}
-		return nil
-	}
-
-	for _, foreign := range resultSlice {
-		for _, local := range slice {
-			if local.ID == foreign.ParentGroupID {
-				local.R.ParentGroupGroupHierarchies = append(local.R.ParentGroupGroupHierarchies, foreign)
-				if foreign.R == nil {
-					foreign.R = &groupHierarchyR{}
-				}
-				foreign.R.ParentGroup = local
-				break
-			}
-		}
-	}
-
-	return nil
-}
-
 // LoadMemberGroupGroupHierarchies allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
 func (groupL) LoadMemberGroupGroupHierarchies(ctx context.Context, e boil.ContextExecutor, singular bool, maybeGroup interface{}, mods queries.Applicator) error {
@@ -1886,6 +1773,119 @@ func (groupL) LoadMemberGroupGroupHierarchies(ctx context.Context, e boil.Contex
 					foreign.R = &groupHierarchyR{}
 				}
 				foreign.R.MemberGroup = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadParentGroupGroupHierarchies allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (groupL) LoadParentGroupGroupHierarchies(ctx context.Context, e boil.ContextExecutor, singular bool, maybeGroup interface{}, mods queries.Applicator) error {
+	var slice []*Group
+	var object *Group
+
+	if singular {
+		var ok bool
+		object, ok = maybeGroup.(*Group)
+		if !ok {
+			object = new(Group)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeGroup)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeGroup))
+			}
+		}
+	} else {
+		s, ok := maybeGroup.(*[]*Group)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeGroup)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeGroup))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &groupR{}
+		}
+		args[object.ID] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &groupR{}
+			}
+			args[obj.ID] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`group_hierarchies`),
+		qm.WhereIn(`group_hierarchies.parent_group_id in ?`, argsSlice...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load group_hierarchies")
+	}
+
+	var resultSlice []*GroupHierarchy
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice group_hierarchies")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on group_hierarchies")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for group_hierarchies")
+	}
+
+	if len(groupHierarchyAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.ParentGroupGroupHierarchies = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &groupHierarchyR{}
+			}
+			foreign.R.ParentGroup = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.ParentGroupID {
+				local.R.ParentGroupGroupHierarchies = append(local.R.ParentGroupGroupHierarchies, foreign)
+				if foreign.R == nil {
+					foreign.R = &groupHierarchyR{}
+				}
+				foreign.R.ParentGroup = local
 				break
 			}
 		}
@@ -2808,59 +2808,6 @@ func (o *Group) RemoveAdminGroupExtensionResourceDefinitions(ctx context.Context
 	return nil
 }
 
-// AddGroupApplicationRequests adds the given related objects to the existing relationships
-// of the group, optionally inserting them as new records.
-// Appends related to o.R.GroupApplicationRequests.
-// Sets related.R.Group appropriately.
-func (o *Group) AddGroupApplicationRequests(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*GroupApplicationRequest) error {
-	var err error
-	for _, rel := range related {
-		if insert {
-			rel.GroupID = o.ID
-			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
-				return errors.Wrap(err, "failed to insert into foreign table")
-			}
-		} else {
-			updateQuery := fmt.Sprintf(
-				"UPDATE \"group_application_requests\" SET %s WHERE %s",
-				strmangle.SetParamNames("\"", "\"", 1, []string{"group_id"}),
-				strmangle.WhereClause("\"", "\"", 2, groupApplicationRequestPrimaryKeyColumns),
-			)
-			values := []interface{}{o.ID, rel.ID}
-
-			if boil.IsDebug(ctx) {
-				writer := boil.DebugWriterFrom(ctx)
-				fmt.Fprintln(writer, updateQuery)
-				fmt.Fprintln(writer, values)
-			}
-			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
-				return errors.Wrap(err, "failed to update foreign table")
-			}
-
-			rel.GroupID = o.ID
-		}
-	}
-
-	if o.R == nil {
-		o.R = &groupR{
-			GroupApplicationRequests: related,
-		}
-	} else {
-		o.R.GroupApplicationRequests = append(o.R.GroupApplicationRequests, related...)
-	}
-
-	for _, rel := range related {
-		if rel.R == nil {
-			rel.R = &groupApplicationRequestR{
-				Group: o,
-			}
-		} else {
-			rel.R.Group = o
-		}
-	}
-	return nil
-}
-
 // AddApproverGroupGroupApplicationRequests adds the given related objects to the existing relationships
 // of the group, optionally inserting them as new records.
 // Appends related to o.R.ApproverGroupGroupApplicationRequests.
@@ -2909,6 +2856,59 @@ func (o *Group) AddApproverGroupGroupApplicationRequests(ctx context.Context, ex
 			}
 		} else {
 			rel.R.ApproverGroup = o
+		}
+	}
+	return nil
+}
+
+// AddGroupApplicationRequests adds the given related objects to the existing relationships
+// of the group, optionally inserting them as new records.
+// Appends related to o.R.GroupApplicationRequests.
+// Sets related.R.Group appropriately.
+func (o *Group) AddGroupApplicationRequests(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*GroupApplicationRequest) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.GroupID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"group_application_requests\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"group_id"}),
+				strmangle.WhereClause("\"", "\"", 2, groupApplicationRequestPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.GroupID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &groupR{
+			GroupApplicationRequests: related,
+		}
+	} else {
+		o.R.GroupApplicationRequests = append(o.R.GroupApplicationRequests, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &groupApplicationRequestR{
+				Group: o,
+			}
+		} else {
+			rel.R.Group = o
 		}
 	}
 	return nil
@@ -2967,59 +2967,6 @@ func (o *Group) AddGroupApplications(ctx context.Context, exec boil.ContextExecu
 	return nil
 }
 
-// AddParentGroupGroupHierarchies adds the given related objects to the existing relationships
-// of the group, optionally inserting them as new records.
-// Appends related to o.R.ParentGroupGroupHierarchies.
-// Sets related.R.ParentGroup appropriately.
-func (o *Group) AddParentGroupGroupHierarchies(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*GroupHierarchy) error {
-	var err error
-	for _, rel := range related {
-		if insert {
-			rel.ParentGroupID = o.ID
-			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
-				return errors.Wrap(err, "failed to insert into foreign table")
-			}
-		} else {
-			updateQuery := fmt.Sprintf(
-				"UPDATE \"group_hierarchies\" SET %s WHERE %s",
-				strmangle.SetParamNames("\"", "\"", 1, []string{"parent_group_id"}),
-				strmangle.WhereClause("\"", "\"", 2, groupHierarchyPrimaryKeyColumns),
-			)
-			values := []interface{}{o.ID, rel.ID}
-
-			if boil.IsDebug(ctx) {
-				writer := boil.DebugWriterFrom(ctx)
-				fmt.Fprintln(writer, updateQuery)
-				fmt.Fprintln(writer, values)
-			}
-			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
-				return errors.Wrap(err, "failed to update foreign table")
-			}
-
-			rel.ParentGroupID = o.ID
-		}
-	}
-
-	if o.R == nil {
-		o.R = &groupR{
-			ParentGroupGroupHierarchies: related,
-		}
-	} else {
-		o.R.ParentGroupGroupHierarchies = append(o.R.ParentGroupGroupHierarchies, related...)
-	}
-
-	for _, rel := range related {
-		if rel.R == nil {
-			rel.R = &groupHierarchyR{
-				ParentGroup: o,
-			}
-		} else {
-			rel.R.ParentGroup = o
-		}
-	}
-	return nil
-}
-
 // AddMemberGroupGroupHierarchies adds the given related objects to the existing relationships
 // of the group, optionally inserting them as new records.
 // Appends related to o.R.MemberGroupGroupHierarchies.
@@ -3068,6 +3015,59 @@ func (o *Group) AddMemberGroupGroupHierarchies(ctx context.Context, exec boil.Co
 			}
 		} else {
 			rel.R.MemberGroup = o
+		}
+	}
+	return nil
+}
+
+// AddParentGroupGroupHierarchies adds the given related objects to the existing relationships
+// of the group, optionally inserting them as new records.
+// Appends related to o.R.ParentGroupGroupHierarchies.
+// Sets related.R.ParentGroup appropriately.
+func (o *Group) AddParentGroupGroupHierarchies(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*GroupHierarchy) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.ParentGroupID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"group_hierarchies\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"parent_group_id"}),
+				strmangle.WhereClause("\"", "\"", 2, groupHierarchyPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.ParentGroupID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &groupR{
+			ParentGroupGroupHierarchies: related,
+		}
+	} else {
+		o.R.ParentGroupGroupHierarchies = append(o.R.ParentGroupGroupHierarchies, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &groupHierarchyR{
+				ParentGroup: o,
+			}
+		} else {
+			rel.R.ParentGroup = o
 		}
 	}
 	return nil
@@ -3623,6 +3623,136 @@ func (o GroupSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, co
 	return rowsAff, nil
 }
 
+// Upsert attempts an insert using an executor, and does an update or ignore on conflict.
+// See boil.Columns documentation for how to properly use updateColumns and insertColumns.
+func (o *Group) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) error {
+	if o == nil {
+		return errors.New("models: no groups provided for upsert")
+	}
+	if !boil.TimestampsAreSkipped(ctx) {
+		currTime := time.Now().In(boil.GetLocation())
+
+		if o.CreatedAt.IsZero() {
+			o.CreatedAt = currTime
+		}
+		o.UpdatedAt = currTime
+	}
+
+	if err := o.doBeforeUpsertHooks(ctx, exec); err != nil {
+		return err
+	}
+
+	nzDefaults := queries.NonZeroDefaultSet(groupColumnsWithDefault, o)
+
+	// Build cache key in-line uglily - mysql vs psql problems
+	buf := strmangle.GetBuffer()
+	if updateOnConflict {
+		buf.WriteByte('t')
+	} else {
+		buf.WriteByte('f')
+	}
+	buf.WriteByte('.')
+	for _, c := range conflictColumns {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
+	buf.WriteString(strconv.Itoa(updateColumns.Kind))
+	for _, c := range updateColumns.Cols {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
+	buf.WriteString(strconv.Itoa(insertColumns.Kind))
+	for _, c := range insertColumns.Cols {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
+	for _, c := range nzDefaults {
+		buf.WriteString(c)
+	}
+	key := buf.String()
+	strmangle.PutBuffer(buf)
+
+	groupUpsertCacheMut.RLock()
+	cache, cached := groupUpsertCache[key]
+	groupUpsertCacheMut.RUnlock()
+
+	var err error
+
+	if !cached {
+		insert, _ := insertColumns.InsertColumnSet(
+			groupAllColumns,
+			groupColumnsWithDefault,
+			groupColumnsWithoutDefault,
+			nzDefaults,
+		)
+
+		update := updateColumns.UpdateColumnSet(
+			groupAllColumns,
+			groupPrimaryKeyColumns,
+		)
+
+		if updateOnConflict && len(update) == 0 {
+			return errors.New("models: unable to upsert groups, could not build update column list")
+		}
+
+		ret := strmangle.SetComplement(groupAllColumns, strmangle.SetIntersect(insert, update))
+
+		conflict := conflictColumns
+		if len(conflict) == 0 && updateOnConflict && len(update) != 0 {
+			if len(groupPrimaryKeyColumns) == 0 {
+				return errors.New("models: unable to upsert groups, could not build conflict column list")
+			}
+
+			conflict = make([]string, len(groupPrimaryKeyColumns))
+			copy(conflict, groupPrimaryKeyColumns)
+		}
+		cache.query = buildUpsertQueryPostgres(dialect, "\"groups\"", updateOnConflict, ret, update, conflict, insert, opts...)
+
+		cache.valueMapping, err = queries.BindMapping(groupType, groupMapping, insert)
+		if err != nil {
+			return err
+		}
+		if len(ret) != 0 {
+			cache.retMapping, err = queries.BindMapping(groupType, groupMapping, ret)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	value := reflect.Indirect(reflect.ValueOf(o))
+	vals := queries.ValuesFromMapping(value, cache.valueMapping)
+	var returns []interface{}
+	if len(cache.retMapping) != 0 {
+		returns = queries.PtrsFromMapping(value, cache.retMapping)
+	}
+
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, cache.query)
+		fmt.Fprintln(writer, vals)
+	}
+	if len(cache.retMapping) != 0 {
+		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(returns...)
+		if errors.Is(err, sql.ErrNoRows) {
+			err = nil // Postgres doesn't return anything when there's no update
+		}
+	} else {
+		_, err = exec.ExecContext(ctx, cache.query, vals...)
+	}
+	if err != nil {
+		return errors.Wrap(err, "models: unable to upsert groups")
+	}
+
+	if !cached {
+		groupUpsertCacheMut.Lock()
+		groupUpsertCache[key] = cache
+		groupUpsertCacheMut.Unlock()
+	}
+
+	return o.doAfterUpsertHooks(ctx, exec)
+}
+
 // Delete deletes a single Group record with an executor.
 // Delete will match against the primary key column to find the record to delete.
 func (o *Group) Delete(ctx context.Context, exec boil.ContextExecutor, hardDelete bool) (int64, error) {
@@ -3834,127 +3964,4 @@ func GroupExists(ctx context.Context, exec boil.ContextExecutor, iD string) (boo
 // Exists checks if the Group row exists.
 func (o *Group) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, error) {
 	return GroupExists(ctx, exec, o.ID)
-}
-
-// Upsert attempts an insert using an executor, and does an update or ignore on conflict.
-// See boil.Columns documentation for how to properly use updateColumns and insertColumns.
-func (o *Group) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
-	if o == nil {
-		return errors.New("models: no groups provided for upsert")
-	}
-	if !boil.TimestampsAreSkipped(ctx) {
-		currTime := time.Now().In(boil.GetLocation())
-
-		if o.CreatedAt.IsZero() {
-			o.CreatedAt = currTime
-		}
-		o.UpdatedAt = currTime
-	}
-
-	if err := o.doBeforeUpsertHooks(ctx, exec); err != nil {
-		return err
-	}
-
-	nzDefaults := queries.NonZeroDefaultSet(groupColumnsWithDefault, o)
-
-	// Build cache key in-line uglily - mysql vs psql problems
-	buf := strmangle.GetBuffer()
-	if updateOnConflict {
-		buf.WriteByte('t')
-	} else {
-		buf.WriteByte('f')
-	}
-	buf.WriteByte('.')
-	for _, c := range conflictColumns {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	buf.WriteString(strconv.Itoa(updateColumns.Kind))
-	for _, c := range updateColumns.Cols {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	buf.WriteString(strconv.Itoa(insertColumns.Kind))
-	for _, c := range insertColumns.Cols {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	for _, c := range nzDefaults {
-		buf.WriteString(c)
-	}
-	key := buf.String()
-	strmangle.PutBuffer(buf)
-
-	groupUpsertCacheMut.RLock()
-	cache, cached := groupUpsertCache[key]
-	groupUpsertCacheMut.RUnlock()
-
-	var err error
-
-	if !cached {
-		insert, ret := insertColumns.InsertColumnSet(
-			groupAllColumns,
-			groupColumnsWithDefault,
-			groupColumnsWithoutDefault,
-			nzDefaults,
-		)
-		update := updateColumns.UpdateColumnSet(
-			groupAllColumns,
-			groupPrimaryKeyColumns,
-		)
-
-		if updateOnConflict && len(update) == 0 {
-			return errors.New("models: unable to upsert groups, could not build update column list")
-		}
-
-		conflict := conflictColumns
-		if len(conflict) == 0 {
-			conflict = make([]string, len(groupPrimaryKeyColumns))
-			copy(conflict, groupPrimaryKeyColumns)
-		}
-		cache.query = buildUpsertQueryCockroachDB(dialect, "\"groups\"", updateOnConflict, ret, update, conflict, insert)
-
-		cache.valueMapping, err = queries.BindMapping(groupType, groupMapping, insert)
-		if err != nil {
-			return err
-		}
-		if len(ret) != 0 {
-			cache.retMapping, err = queries.BindMapping(groupType, groupMapping, ret)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	value := reflect.Indirect(reflect.ValueOf(o))
-	vals := queries.ValuesFromMapping(value, cache.valueMapping)
-	var returns []interface{}
-	if len(cache.retMapping) != 0 {
-		returns = queries.PtrsFromMapping(value, cache.retMapping)
-	}
-
-	if boil.DebugMode {
-		_, _ = fmt.Fprintln(boil.DebugWriter, cache.query)
-		_, _ = fmt.Fprintln(boil.DebugWriter, vals)
-	}
-
-	if len(cache.retMapping) != 0 {
-		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(returns...)
-		if errors.Is(err, sql.ErrNoRows) {
-			err = nil // CockcorachDB doesn't return anything when there's no update
-		}
-	} else {
-		_, err = exec.ExecContext(ctx, cache.query, vals...)
-	}
-	if err != nil {
-		return fmt.Errorf("models: unable to upsert groups: %w", err)
-	}
-
-	if !cached {
-		groupUpsertCacheMut.Lock()
-		groupUpsertCache[key] = cache
-		groupUpsertCacheMut.Unlock()
-	}
-
-	return o.doAfterUpsertHooks(ctx, exec)
 }

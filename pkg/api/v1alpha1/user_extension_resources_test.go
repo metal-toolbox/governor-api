@@ -15,7 +15,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/metal-toolbox/auditevent/ginaudit"
-	dbm "github.com/metal-toolbox/governor-api/db"
+	dbm "github.com/metal-toolbox/governor-api/db/crdb"
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	"github.com/metal-toolbox/governor-api/internal/eventbus"
 	"github.com/metal-toolbox/governor-api/internal/models"

@@ -144,26 +144,26 @@ var AuditEventWhere = struct {
 
 // AuditEventRels is where relationship names are stored.
 var AuditEventRels = struct {
-	SubjectUser         string
-	SubjectOrganization string
-	SubjectGroup        string
-	SubjectApplication  string
 	Actor               string
+	SubjectApplication  string
+	SubjectGroup        string
+	SubjectOrganization string
+	SubjectUser         string
 }{
-	SubjectUser:         "SubjectUser",
-	SubjectOrganization: "SubjectOrganization",
-	SubjectGroup:        "SubjectGroup",
-	SubjectApplication:  "SubjectApplication",
 	Actor:               "Actor",
+	SubjectApplication:  "SubjectApplication",
+	SubjectGroup:        "SubjectGroup",
+	SubjectOrganization: "SubjectOrganization",
+	SubjectUser:         "SubjectUser",
 }
 
 // auditEventR is where relationships are stored.
 type auditEventR struct {
-	SubjectUser         *User         `boil:"SubjectUser" json:"SubjectUser" toml:"SubjectUser" yaml:"SubjectUser"`
-	SubjectOrganization *Organization `boil:"SubjectOrganization" json:"SubjectOrganization" toml:"SubjectOrganization" yaml:"SubjectOrganization"`
-	SubjectGroup        *Group        `boil:"SubjectGroup" json:"SubjectGroup" toml:"SubjectGroup" yaml:"SubjectGroup"`
-	SubjectApplication  *Application  `boil:"SubjectApplication" json:"SubjectApplication" toml:"SubjectApplication" yaml:"SubjectApplication"`
 	Actor               *User         `boil:"Actor" json:"Actor" toml:"Actor" yaml:"Actor"`
+	SubjectApplication  *Application  `boil:"SubjectApplication" json:"SubjectApplication" toml:"SubjectApplication" yaml:"SubjectApplication"`
+	SubjectGroup        *Group        `boil:"SubjectGroup" json:"SubjectGroup" toml:"SubjectGroup" yaml:"SubjectGroup"`
+	SubjectOrganization *Organization `boil:"SubjectOrganization" json:"SubjectOrganization" toml:"SubjectOrganization" yaml:"SubjectOrganization"`
+	SubjectUser         *User         `boil:"SubjectUser" json:"SubjectUser" toml:"SubjectUser" yaml:"SubjectUser"`
 }
 
 // NewStruct creates a new relationship struct
@@ -171,52 +171,20 @@ func (*auditEventR) NewStruct() *auditEventR {
 	return &auditEventR{}
 }
 
-func (o *AuditEvent) GetSubjectUser() *User {
+func (o *AuditEvent) GetActor() *User {
 	if o == nil {
 		return nil
 	}
 
-	return o.R.GetSubjectUser()
+	return o.R.GetActor()
 }
 
-func (r *auditEventR) GetSubjectUser() *User {
+func (r *auditEventR) GetActor() *User {
 	if r == nil {
 		return nil
 	}
 
-	return r.SubjectUser
-}
-
-func (o *AuditEvent) GetSubjectOrganization() *Organization {
-	if o == nil {
-		return nil
-	}
-
-	return o.R.GetSubjectOrganization()
-}
-
-func (r *auditEventR) GetSubjectOrganization() *Organization {
-	if r == nil {
-		return nil
-	}
-
-	return r.SubjectOrganization
-}
-
-func (o *AuditEvent) GetSubjectGroup() *Group {
-	if o == nil {
-		return nil
-	}
-
-	return o.R.GetSubjectGroup()
-}
-
-func (r *auditEventR) GetSubjectGroup() *Group {
-	if r == nil {
-		return nil
-	}
-
-	return r.SubjectGroup
+	return r.Actor
 }
 
 func (o *AuditEvent) GetSubjectApplication() *Application {
@@ -235,20 +203,52 @@ func (r *auditEventR) GetSubjectApplication() *Application {
 	return r.SubjectApplication
 }
 
-func (o *AuditEvent) GetActor() *User {
+func (o *AuditEvent) GetSubjectGroup() *Group {
 	if o == nil {
 		return nil
 	}
 
-	return o.R.GetActor()
+	return o.R.GetSubjectGroup()
 }
 
-func (r *auditEventR) GetActor() *User {
+func (r *auditEventR) GetSubjectGroup() *Group {
 	if r == nil {
 		return nil
 	}
 
-	return r.Actor
+	return r.SubjectGroup
+}
+
+func (o *AuditEvent) GetSubjectOrganization() *Organization {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetSubjectOrganization()
+}
+
+func (r *auditEventR) GetSubjectOrganization() *Organization {
+	if r == nil {
+		return nil
+	}
+
+	return r.SubjectOrganization
+}
+
+func (o *AuditEvent) GetSubjectUser() *User {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetSubjectUser()
+}
+
+func (r *auditEventR) GetSubjectUser() *User {
+	if r == nil {
+		return nil
+	}
+
+	return r.SubjectUser
 }
 
 // auditEventL is where Load methods for each relationship are stored.
@@ -567,37 +567,15 @@ func (q auditEventQuery) Exists(ctx context.Context, exec boil.ContextExecutor) 
 	return count > 0, nil
 }
 
-// SubjectUser pointed to by the foreign key.
-func (o *AuditEvent) SubjectUser(mods ...qm.QueryMod) userQuery {
+// Actor pointed to by the foreign key.
+func (o *AuditEvent) Actor(mods ...qm.QueryMod) userQuery {
 	queryMods := []qm.QueryMod{
-		qm.Where("\"id\" = ?", o.SubjectUserID),
+		qm.Where("\"id\" = ?", o.ActorID),
 	}
 
 	queryMods = append(queryMods, mods...)
 
 	return Users(queryMods...)
-}
-
-// SubjectOrganization pointed to by the foreign key.
-func (o *AuditEvent) SubjectOrganization(mods ...qm.QueryMod) organizationQuery {
-	queryMods := []qm.QueryMod{
-		qm.Where("\"id\" = ?", o.SubjectOrganizationID),
-	}
-
-	queryMods = append(queryMods, mods...)
-
-	return Organizations(queryMods...)
-}
-
-// SubjectGroup pointed to by the foreign key.
-func (o *AuditEvent) SubjectGroup(mods ...qm.QueryMod) groupQuery {
-	queryMods := []qm.QueryMod{
-		qm.Where("\"id\" = ?", o.SubjectGroupID),
-	}
-
-	queryMods = append(queryMods, mods...)
-
-	return Groups(queryMods...)
 }
 
 // SubjectApplication pointed to by the foreign key.
@@ -611,10 +589,32 @@ func (o *AuditEvent) SubjectApplication(mods ...qm.QueryMod) applicationQuery {
 	return Applications(queryMods...)
 }
 
-// Actor pointed to by the foreign key.
-func (o *AuditEvent) Actor(mods ...qm.QueryMod) userQuery {
+// SubjectGroup pointed to by the foreign key.
+func (o *AuditEvent) SubjectGroup(mods ...qm.QueryMod) groupQuery {
 	queryMods := []qm.QueryMod{
-		qm.Where("\"id\" = ?", o.ActorID),
+		qm.Where("\"id\" = ?", o.SubjectGroupID),
+	}
+
+	queryMods = append(queryMods, mods...)
+
+	return Groups(queryMods...)
+}
+
+// SubjectOrganization pointed to by the foreign key.
+func (o *AuditEvent) SubjectOrganization(mods ...qm.QueryMod) organizationQuery {
+	queryMods := []qm.QueryMod{
+		qm.Where("\"id\" = ?", o.SubjectOrganizationID),
+	}
+
+	queryMods = append(queryMods, mods...)
+
+	return Organizations(queryMods...)
+}
+
+// SubjectUser pointed to by the foreign key.
+func (o *AuditEvent) SubjectUser(mods ...qm.QueryMod) userQuery {
+	queryMods := []qm.QueryMod{
+		qm.Where("\"id\" = ?", o.SubjectUserID),
 	}
 
 	queryMods = append(queryMods, mods...)
@@ -622,9 +622,9 @@ func (o *AuditEvent) Actor(mods ...qm.QueryMod) userQuery {
 	return Users(queryMods...)
 }
 
-// LoadSubjectUser allows an eager lookup of values, cached into the
+// LoadActor allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for an N-1 relationship.
-func (auditEventL) LoadSubjectUser(ctx context.Context, e boil.ContextExecutor, singular bool, maybeAuditEvent interface{}, mods queries.Applicator) error {
+func (auditEventL) LoadActor(ctx context.Context, e boil.ContextExecutor, singular bool, maybeAuditEvent interface{}, mods queries.Applicator) error {
 	var slice []*AuditEvent
 	var object *AuditEvent
 
@@ -655,8 +655,8 @@ func (auditEventL) LoadSubjectUser(ctx context.Context, e boil.ContextExecutor, 
 		if object.R == nil {
 			object.R = &auditEventR{}
 		}
-		if !queries.IsNil(object.SubjectUserID) {
-			args[object.SubjectUserID] = struct{}{}
+		if !queries.IsNil(object.ActorID) {
+			args[object.ActorID] = struct{}{}
 		}
 
 	} else {
@@ -665,8 +665,8 @@ func (auditEventL) LoadSubjectUser(ctx context.Context, e boil.ContextExecutor, 
 				obj.R = &auditEventR{}
 			}
 
-			if !queries.IsNil(obj.SubjectUserID) {
-				args[obj.SubjectUserID] = struct{}{}
+			if !queries.IsNil(obj.ActorID) {
+				args[obj.ActorID] = struct{}{}
 			}
 
 		}
@@ -723,272 +723,22 @@ func (auditEventL) LoadSubjectUser(ctx context.Context, e boil.ContextExecutor, 
 
 	if singular {
 		foreign := resultSlice[0]
-		object.R.SubjectUser = foreign
+		object.R.Actor = foreign
 		if foreign.R == nil {
 			foreign.R = &userR{}
 		}
-		foreign.R.SubjectUserAuditEvents = append(foreign.R.SubjectUserAuditEvents, object)
+		foreign.R.ActorAuditEvents = append(foreign.R.ActorAuditEvents, object)
 		return nil
 	}
 
 	for _, local := range slice {
 		for _, foreign := range resultSlice {
-			if queries.Equal(local.SubjectUserID, foreign.ID) {
-				local.R.SubjectUser = foreign
+			if queries.Equal(local.ActorID, foreign.ID) {
+				local.R.Actor = foreign
 				if foreign.R == nil {
 					foreign.R = &userR{}
 				}
-				foreign.R.SubjectUserAuditEvents = append(foreign.R.SubjectUserAuditEvents, local)
-				break
-			}
-		}
-	}
-
-	return nil
-}
-
-// LoadSubjectOrganization allows an eager lookup of values, cached into the
-// loaded structs of the objects. This is for an N-1 relationship.
-func (auditEventL) LoadSubjectOrganization(ctx context.Context, e boil.ContextExecutor, singular bool, maybeAuditEvent interface{}, mods queries.Applicator) error {
-	var slice []*AuditEvent
-	var object *AuditEvent
-
-	if singular {
-		var ok bool
-		object, ok = maybeAuditEvent.(*AuditEvent)
-		if !ok {
-			object = new(AuditEvent)
-			ok = queries.SetFromEmbeddedStruct(&object, &maybeAuditEvent)
-			if !ok {
-				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeAuditEvent))
-			}
-		}
-	} else {
-		s, ok := maybeAuditEvent.(*[]*AuditEvent)
-		if ok {
-			slice = *s
-		} else {
-			ok = queries.SetFromEmbeddedStruct(&slice, maybeAuditEvent)
-			if !ok {
-				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeAuditEvent))
-			}
-		}
-	}
-
-	args := make(map[interface{}]struct{})
-	if singular {
-		if object.R == nil {
-			object.R = &auditEventR{}
-		}
-		if !queries.IsNil(object.SubjectOrganizationID) {
-			args[object.SubjectOrganizationID] = struct{}{}
-		}
-
-	} else {
-		for _, obj := range slice {
-			if obj.R == nil {
-				obj.R = &auditEventR{}
-			}
-
-			if !queries.IsNil(obj.SubjectOrganizationID) {
-				args[obj.SubjectOrganizationID] = struct{}{}
-			}
-
-		}
-	}
-
-	if len(args) == 0 {
-		return nil
-	}
-
-	argsSlice := make([]interface{}, len(args))
-	i := 0
-	for arg := range args {
-		argsSlice[i] = arg
-		i++
-	}
-
-	query := NewQuery(
-		qm.From(`organizations`),
-		qm.WhereIn(`organizations.id in ?`, argsSlice...),
-		qmhelper.WhereIsNull(`organizations.deleted_at`),
-	)
-	if mods != nil {
-		mods.Apply(query)
-	}
-
-	results, err := query.QueryContext(ctx, e)
-	if err != nil {
-		return errors.Wrap(err, "failed to eager load Organization")
-	}
-
-	var resultSlice []*Organization
-	if err = queries.Bind(results, &resultSlice); err != nil {
-		return errors.Wrap(err, "failed to bind eager loaded slice Organization")
-	}
-
-	if err = results.Close(); err != nil {
-		return errors.Wrap(err, "failed to close results of eager load for organizations")
-	}
-	if err = results.Err(); err != nil {
-		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for organizations")
-	}
-
-	if len(organizationAfterSelectHooks) != 0 {
-		for _, obj := range resultSlice {
-			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
-				return err
-			}
-		}
-	}
-
-	if len(resultSlice) == 0 {
-		return nil
-	}
-
-	if singular {
-		foreign := resultSlice[0]
-		object.R.SubjectOrganization = foreign
-		if foreign.R == nil {
-			foreign.R = &organizationR{}
-		}
-		foreign.R.SubjectOrganizationAuditEvents = append(foreign.R.SubjectOrganizationAuditEvents, object)
-		return nil
-	}
-
-	for _, local := range slice {
-		for _, foreign := range resultSlice {
-			if queries.Equal(local.SubjectOrganizationID, foreign.ID) {
-				local.R.SubjectOrganization = foreign
-				if foreign.R == nil {
-					foreign.R = &organizationR{}
-				}
-				foreign.R.SubjectOrganizationAuditEvents = append(foreign.R.SubjectOrganizationAuditEvents, local)
-				break
-			}
-		}
-	}
-
-	return nil
-}
-
-// LoadSubjectGroup allows an eager lookup of values, cached into the
-// loaded structs of the objects. This is for an N-1 relationship.
-func (auditEventL) LoadSubjectGroup(ctx context.Context, e boil.ContextExecutor, singular bool, maybeAuditEvent interface{}, mods queries.Applicator) error {
-	var slice []*AuditEvent
-	var object *AuditEvent
-
-	if singular {
-		var ok bool
-		object, ok = maybeAuditEvent.(*AuditEvent)
-		if !ok {
-			object = new(AuditEvent)
-			ok = queries.SetFromEmbeddedStruct(&object, &maybeAuditEvent)
-			if !ok {
-				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeAuditEvent))
-			}
-		}
-	} else {
-		s, ok := maybeAuditEvent.(*[]*AuditEvent)
-		if ok {
-			slice = *s
-		} else {
-			ok = queries.SetFromEmbeddedStruct(&slice, maybeAuditEvent)
-			if !ok {
-				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeAuditEvent))
-			}
-		}
-	}
-
-	args := make(map[interface{}]struct{})
-	if singular {
-		if object.R == nil {
-			object.R = &auditEventR{}
-		}
-		if !queries.IsNil(object.SubjectGroupID) {
-			args[object.SubjectGroupID] = struct{}{}
-		}
-
-	} else {
-		for _, obj := range slice {
-			if obj.R == nil {
-				obj.R = &auditEventR{}
-			}
-
-			if !queries.IsNil(obj.SubjectGroupID) {
-				args[obj.SubjectGroupID] = struct{}{}
-			}
-
-		}
-	}
-
-	if len(args) == 0 {
-		return nil
-	}
-
-	argsSlice := make([]interface{}, len(args))
-	i := 0
-	for arg := range args {
-		argsSlice[i] = arg
-		i++
-	}
-
-	query := NewQuery(
-		qm.From(`groups`),
-		qm.WhereIn(`groups.id in ?`, argsSlice...),
-		qmhelper.WhereIsNull(`groups.deleted_at`),
-	)
-	if mods != nil {
-		mods.Apply(query)
-	}
-
-	results, err := query.QueryContext(ctx, e)
-	if err != nil {
-		return errors.Wrap(err, "failed to eager load Group")
-	}
-
-	var resultSlice []*Group
-	if err = queries.Bind(results, &resultSlice); err != nil {
-		return errors.Wrap(err, "failed to bind eager loaded slice Group")
-	}
-
-	if err = results.Close(); err != nil {
-		return errors.Wrap(err, "failed to close results of eager load for groups")
-	}
-	if err = results.Err(); err != nil {
-		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for groups")
-	}
-
-	if len(groupAfterSelectHooks) != 0 {
-		for _, obj := range resultSlice {
-			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
-				return err
-			}
-		}
-	}
-
-	if len(resultSlice) == 0 {
-		return nil
-	}
-
-	if singular {
-		foreign := resultSlice[0]
-		object.R.SubjectGroup = foreign
-		if foreign.R == nil {
-			foreign.R = &groupR{}
-		}
-		foreign.R.SubjectGroupAuditEvents = append(foreign.R.SubjectGroupAuditEvents, object)
-		return nil
-	}
-
-	for _, local := range slice {
-		for _, foreign := range resultSlice {
-			if queries.Equal(local.SubjectGroupID, foreign.ID) {
-				local.R.SubjectGroup = foreign
-				if foreign.R == nil {
-					foreign.R = &groupR{}
-				}
-				foreign.R.SubjectGroupAuditEvents = append(foreign.R.SubjectGroupAuditEvents, local)
+				foreign.R.ActorAuditEvents = append(foreign.R.ActorAuditEvents, local)
 				break
 			}
 		}
@@ -1122,9 +872,9 @@ func (auditEventL) LoadSubjectApplication(ctx context.Context, e boil.ContextExe
 	return nil
 }
 
-// LoadActor allows an eager lookup of values, cached into the
+// LoadSubjectGroup allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for an N-1 relationship.
-func (auditEventL) LoadActor(ctx context.Context, e boil.ContextExecutor, singular bool, maybeAuditEvent interface{}, mods queries.Applicator) error {
+func (auditEventL) LoadSubjectGroup(ctx context.Context, e boil.ContextExecutor, singular bool, maybeAuditEvent interface{}, mods queries.Applicator) error {
 	var slice []*AuditEvent
 	var object *AuditEvent
 
@@ -1155,8 +905,8 @@ func (auditEventL) LoadActor(ctx context.Context, e boil.ContextExecutor, singul
 		if object.R == nil {
 			object.R = &auditEventR{}
 		}
-		if !queries.IsNil(object.ActorID) {
-			args[object.ActorID] = struct{}{}
+		if !queries.IsNil(object.SubjectGroupID) {
+			args[object.SubjectGroupID] = struct{}{}
 		}
 
 	} else {
@@ -1165,8 +915,258 @@ func (auditEventL) LoadActor(ctx context.Context, e boil.ContextExecutor, singul
 				obj.R = &auditEventR{}
 			}
 
-			if !queries.IsNil(obj.ActorID) {
-				args[obj.ActorID] = struct{}{}
+			if !queries.IsNil(obj.SubjectGroupID) {
+				args[obj.SubjectGroupID] = struct{}{}
+			}
+
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`groups`),
+		qm.WhereIn(`groups.id in ?`, argsSlice...),
+		qmhelper.WhereIsNull(`groups.deleted_at`),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load Group")
+	}
+
+	var resultSlice []*Group
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice Group")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results of eager load for groups")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for groups")
+	}
+
+	if len(groupAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(resultSlice) == 0 {
+		return nil
+	}
+
+	if singular {
+		foreign := resultSlice[0]
+		object.R.SubjectGroup = foreign
+		if foreign.R == nil {
+			foreign.R = &groupR{}
+		}
+		foreign.R.SubjectGroupAuditEvents = append(foreign.R.SubjectGroupAuditEvents, object)
+		return nil
+	}
+
+	for _, local := range slice {
+		for _, foreign := range resultSlice {
+			if queries.Equal(local.SubjectGroupID, foreign.ID) {
+				local.R.SubjectGroup = foreign
+				if foreign.R == nil {
+					foreign.R = &groupR{}
+				}
+				foreign.R.SubjectGroupAuditEvents = append(foreign.R.SubjectGroupAuditEvents, local)
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadSubjectOrganization allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for an N-1 relationship.
+func (auditEventL) LoadSubjectOrganization(ctx context.Context, e boil.ContextExecutor, singular bool, maybeAuditEvent interface{}, mods queries.Applicator) error {
+	var slice []*AuditEvent
+	var object *AuditEvent
+
+	if singular {
+		var ok bool
+		object, ok = maybeAuditEvent.(*AuditEvent)
+		if !ok {
+			object = new(AuditEvent)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeAuditEvent)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeAuditEvent))
+			}
+		}
+	} else {
+		s, ok := maybeAuditEvent.(*[]*AuditEvent)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeAuditEvent)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeAuditEvent))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &auditEventR{}
+		}
+		if !queries.IsNil(object.SubjectOrganizationID) {
+			args[object.SubjectOrganizationID] = struct{}{}
+		}
+
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &auditEventR{}
+			}
+
+			if !queries.IsNil(obj.SubjectOrganizationID) {
+				args[obj.SubjectOrganizationID] = struct{}{}
+			}
+
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`organizations`),
+		qm.WhereIn(`organizations.id in ?`, argsSlice...),
+		qmhelper.WhereIsNull(`organizations.deleted_at`),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load Organization")
+	}
+
+	var resultSlice []*Organization
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice Organization")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results of eager load for organizations")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for organizations")
+	}
+
+	if len(organizationAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(resultSlice) == 0 {
+		return nil
+	}
+
+	if singular {
+		foreign := resultSlice[0]
+		object.R.SubjectOrganization = foreign
+		if foreign.R == nil {
+			foreign.R = &organizationR{}
+		}
+		foreign.R.SubjectOrganizationAuditEvents = append(foreign.R.SubjectOrganizationAuditEvents, object)
+		return nil
+	}
+
+	for _, local := range slice {
+		for _, foreign := range resultSlice {
+			if queries.Equal(local.SubjectOrganizationID, foreign.ID) {
+				local.R.SubjectOrganization = foreign
+				if foreign.R == nil {
+					foreign.R = &organizationR{}
+				}
+				foreign.R.SubjectOrganizationAuditEvents = append(foreign.R.SubjectOrganizationAuditEvents, local)
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadSubjectUser allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for an N-1 relationship.
+func (auditEventL) LoadSubjectUser(ctx context.Context, e boil.ContextExecutor, singular bool, maybeAuditEvent interface{}, mods queries.Applicator) error {
+	var slice []*AuditEvent
+	var object *AuditEvent
+
+	if singular {
+		var ok bool
+		object, ok = maybeAuditEvent.(*AuditEvent)
+		if !ok {
+			object = new(AuditEvent)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeAuditEvent)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeAuditEvent))
+			}
+		}
+	} else {
+		s, ok := maybeAuditEvent.(*[]*AuditEvent)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeAuditEvent)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeAuditEvent))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &auditEventR{}
+		}
+		if !queries.IsNil(object.SubjectUserID) {
+			args[object.SubjectUserID] = struct{}{}
+		}
+
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &auditEventR{}
+			}
+
+			if !queries.IsNil(obj.SubjectUserID) {
+				args[obj.SubjectUserID] = struct{}{}
 			}
 
 		}
@@ -1223,22 +1223,22 @@ func (auditEventL) LoadActor(ctx context.Context, e boil.ContextExecutor, singul
 
 	if singular {
 		foreign := resultSlice[0]
-		object.R.Actor = foreign
+		object.R.SubjectUser = foreign
 		if foreign.R == nil {
 			foreign.R = &userR{}
 		}
-		foreign.R.ActorAuditEvents = append(foreign.R.ActorAuditEvents, object)
+		foreign.R.SubjectUserAuditEvents = append(foreign.R.SubjectUserAuditEvents, object)
 		return nil
 	}
 
 	for _, local := range slice {
 		for _, foreign := range resultSlice {
-			if queries.Equal(local.ActorID, foreign.ID) {
-				local.R.Actor = foreign
+			if queries.Equal(local.SubjectUserID, foreign.ID) {
+				local.R.SubjectUser = foreign
 				if foreign.R == nil {
 					foreign.R = &userR{}
 				}
-				foreign.R.ActorAuditEvents = append(foreign.R.ActorAuditEvents, local)
+				foreign.R.SubjectUserAuditEvents = append(foreign.R.SubjectUserAuditEvents, local)
 				break
 			}
 		}
@@ -1247,10 +1247,10 @@ func (auditEventL) LoadActor(ctx context.Context, e boil.ContextExecutor, singul
 	return nil
 }
 
-// SetSubjectUser of the auditEvent to the related item.
-// Sets o.R.SubjectUser to related.
-// Adds o to related.R.SubjectUserAuditEvents.
-func (o *AuditEvent) SetSubjectUser(ctx context.Context, exec boil.ContextExecutor, insert bool, related *User) error {
+// SetActor of the auditEvent to the related item.
+// Sets o.R.Actor to related.
+// Adds o to related.R.ActorAuditEvents.
+func (o *AuditEvent) SetActor(ctx context.Context, exec boil.ContextExecutor, insert bool, related *User) error {
 	var err error
 	if insert {
 		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
@@ -1260,7 +1260,7 @@ func (o *AuditEvent) SetSubjectUser(ctx context.Context, exec boil.ContextExecut
 
 	updateQuery := fmt.Sprintf(
 		"UPDATE \"audit_events\" SET %s WHERE %s",
-		strmangle.SetParamNames("\"", "\"", 1, []string{"subject_user_id"}),
+		strmangle.SetParamNames("\"", "\"", 1, []string{"actor_id"}),
 		strmangle.WhereClause("\"", "\"", 2, auditEventPrimaryKeyColumns),
 	)
 	values := []interface{}{related.ID, o.ID}
@@ -1274,214 +1274,54 @@ func (o *AuditEvent) SetSubjectUser(ctx context.Context, exec boil.ContextExecut
 		return errors.Wrap(err, "failed to update local table")
 	}
 
-	queries.Assign(&o.SubjectUserID, related.ID)
+	queries.Assign(&o.ActorID, related.ID)
 	if o.R == nil {
 		o.R = &auditEventR{
-			SubjectUser: related,
+			Actor: related,
 		}
 	} else {
-		o.R.SubjectUser = related
+		o.R.Actor = related
 	}
 
 	if related.R == nil {
 		related.R = &userR{
-			SubjectUserAuditEvents: AuditEventSlice{o},
+			ActorAuditEvents: AuditEventSlice{o},
 		}
 	} else {
-		related.R.SubjectUserAuditEvents = append(related.R.SubjectUserAuditEvents, o)
+		related.R.ActorAuditEvents = append(related.R.ActorAuditEvents, o)
 	}
 
 	return nil
 }
 
-// RemoveSubjectUser relationship.
-// Sets o.R.SubjectUser to nil.
+// RemoveActor relationship.
+// Sets o.R.Actor to nil.
 // Removes o from all passed in related items' relationships struct.
-func (o *AuditEvent) RemoveSubjectUser(ctx context.Context, exec boil.ContextExecutor, related *User) error {
+func (o *AuditEvent) RemoveActor(ctx context.Context, exec boil.ContextExecutor, related *User) error {
 	var err error
 
-	queries.SetScanner(&o.SubjectUserID, nil)
-	if _, err = o.Update(ctx, exec, boil.Whitelist("subject_user_id")); err != nil {
+	queries.SetScanner(&o.ActorID, nil)
+	if _, err = o.Update(ctx, exec, boil.Whitelist("actor_id")); err != nil {
 		return errors.Wrap(err, "failed to update local table")
 	}
 
 	if o.R != nil {
-		o.R.SubjectUser = nil
+		o.R.Actor = nil
 	}
 	if related == nil || related.R == nil {
 		return nil
 	}
 
-	for i, ri := range related.R.SubjectUserAuditEvents {
-		if queries.Equal(o.SubjectUserID, ri.SubjectUserID) {
+	for i, ri := range related.R.ActorAuditEvents {
+		if queries.Equal(o.ActorID, ri.ActorID) {
 			continue
 		}
 
-		ln := len(related.R.SubjectUserAuditEvents)
+		ln := len(related.R.ActorAuditEvents)
 		if ln > 1 && i < ln-1 {
-			related.R.SubjectUserAuditEvents[i] = related.R.SubjectUserAuditEvents[ln-1]
+			related.R.ActorAuditEvents[i] = related.R.ActorAuditEvents[ln-1]
 		}
-		related.R.SubjectUserAuditEvents = related.R.SubjectUserAuditEvents[:ln-1]
-		break
-	}
-	return nil
-}
-
-// SetSubjectOrganization of the auditEvent to the related item.
-// Sets o.R.SubjectOrganization to related.
-// Adds o to related.R.SubjectOrganizationAuditEvents.
-func (o *AuditEvent) SetSubjectOrganization(ctx context.Context, exec boil.ContextExecutor, insert bool, related *Organization) error {
-	var err error
-	if insert {
-		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
-			return errors.Wrap(err, "failed to insert into foreign table")
-		}
-	}
-
-	updateQuery := fmt.Sprintf(
-		"UPDATE \"audit_events\" SET %s WHERE %s",
-		strmangle.SetParamNames("\"", "\"", 1, []string{"subject_organization_id"}),
-		strmangle.WhereClause("\"", "\"", 2, auditEventPrimaryKeyColumns),
-	)
-	values := []interface{}{related.ID, o.ID}
-
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, updateQuery)
-		fmt.Fprintln(writer, values)
-	}
-	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
-		return errors.Wrap(err, "failed to update local table")
-	}
-
-	queries.Assign(&o.SubjectOrganizationID, related.ID)
-	if o.R == nil {
-		o.R = &auditEventR{
-			SubjectOrganization: related,
-		}
-	} else {
-		o.R.SubjectOrganization = related
-	}
-
-	if related.R == nil {
-		related.R = &organizationR{
-			SubjectOrganizationAuditEvents: AuditEventSlice{o},
-		}
-	} else {
-		related.R.SubjectOrganizationAuditEvents = append(related.R.SubjectOrganizationAuditEvents, o)
-	}
-
-	return nil
-}
-
-// RemoveSubjectOrganization relationship.
-// Sets o.R.SubjectOrganization to nil.
-// Removes o from all passed in related items' relationships struct.
-func (o *AuditEvent) RemoveSubjectOrganization(ctx context.Context, exec boil.ContextExecutor, related *Organization) error {
-	var err error
-
-	queries.SetScanner(&o.SubjectOrganizationID, nil)
-	if _, err = o.Update(ctx, exec, boil.Whitelist("subject_organization_id")); err != nil {
-		return errors.Wrap(err, "failed to update local table")
-	}
-
-	if o.R != nil {
-		o.R.SubjectOrganization = nil
-	}
-	if related == nil || related.R == nil {
-		return nil
-	}
-
-	for i, ri := range related.R.SubjectOrganizationAuditEvents {
-		if queries.Equal(o.SubjectOrganizationID, ri.SubjectOrganizationID) {
-			continue
-		}
-
-		ln := len(related.R.SubjectOrganizationAuditEvents)
-		if ln > 1 && i < ln-1 {
-			related.R.SubjectOrganizationAuditEvents[i] = related.R.SubjectOrganizationAuditEvents[ln-1]
-		}
-		related.R.SubjectOrganizationAuditEvents = related.R.SubjectOrganizationAuditEvents[:ln-1]
-		break
-	}
-	return nil
-}
-
-// SetSubjectGroup of the auditEvent to the related item.
-// Sets o.R.SubjectGroup to related.
-// Adds o to related.R.SubjectGroupAuditEvents.
-func (o *AuditEvent) SetSubjectGroup(ctx context.Context, exec boil.ContextExecutor, insert bool, related *Group) error {
-	var err error
-	if insert {
-		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
-			return errors.Wrap(err, "failed to insert into foreign table")
-		}
-	}
-
-	updateQuery := fmt.Sprintf(
-		"UPDATE \"audit_events\" SET %s WHERE %s",
-		strmangle.SetParamNames("\"", "\"", 1, []string{"subject_group_id"}),
-		strmangle.WhereClause("\"", "\"", 2, auditEventPrimaryKeyColumns),
-	)
-	values := []interface{}{related.ID, o.ID}
-
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, updateQuery)
-		fmt.Fprintln(writer, values)
-	}
-	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
-		return errors.Wrap(err, "failed to update local table")
-	}
-
-	queries.Assign(&o.SubjectGroupID, related.ID)
-	if o.R == nil {
-		o.R = &auditEventR{
-			SubjectGroup: related,
-		}
-	} else {
-		o.R.SubjectGroup = related
-	}
-
-	if related.R == nil {
-		related.R = &groupR{
-			SubjectGroupAuditEvents: AuditEventSlice{o},
-		}
-	} else {
-		related.R.SubjectGroupAuditEvents = append(related.R.SubjectGroupAuditEvents, o)
-	}
-
-	return nil
-}
-
-// RemoveSubjectGroup relationship.
-// Sets o.R.SubjectGroup to nil.
-// Removes o from all passed in related items' relationships struct.
-func (o *AuditEvent) RemoveSubjectGroup(ctx context.Context, exec boil.ContextExecutor, related *Group) error {
-	var err error
-
-	queries.SetScanner(&o.SubjectGroupID, nil)
-	if _, err = o.Update(ctx, exec, boil.Whitelist("subject_group_id")); err != nil {
-		return errors.Wrap(err, "failed to update local table")
-	}
-
-	if o.R != nil {
-		o.R.SubjectGroup = nil
-	}
-	if related == nil || related.R == nil {
-		return nil
-	}
-
-	for i, ri := range related.R.SubjectGroupAuditEvents {
-		if queries.Equal(o.SubjectGroupID, ri.SubjectGroupID) {
-			continue
-		}
-
-		ln := len(related.R.SubjectGroupAuditEvents)
-		if ln > 1 && i < ln-1 {
-			related.R.SubjectGroupAuditEvents[i] = related.R.SubjectGroupAuditEvents[ln-1]
-		}
-		related.R.SubjectGroupAuditEvents = related.R.SubjectGroupAuditEvents[:ln-1]
+		related.R.ActorAuditEvents = related.R.ActorAuditEvents[:ln-1]
 		break
 	}
 	return nil
@@ -1567,10 +1407,10 @@ func (o *AuditEvent) RemoveSubjectApplication(ctx context.Context, exec boil.Con
 	return nil
 }
 
-// SetActor of the auditEvent to the related item.
-// Sets o.R.Actor to related.
-// Adds o to related.R.ActorAuditEvents.
-func (o *AuditEvent) SetActor(ctx context.Context, exec boil.ContextExecutor, insert bool, related *User) error {
+// SetSubjectGroup of the auditEvent to the related item.
+// Sets o.R.SubjectGroup to related.
+// Adds o to related.R.SubjectGroupAuditEvents.
+func (o *AuditEvent) SetSubjectGroup(ctx context.Context, exec boil.ContextExecutor, insert bool, related *Group) error {
 	var err error
 	if insert {
 		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
@@ -1580,7 +1420,7 @@ func (o *AuditEvent) SetActor(ctx context.Context, exec boil.ContextExecutor, in
 
 	updateQuery := fmt.Sprintf(
 		"UPDATE \"audit_events\" SET %s WHERE %s",
-		strmangle.SetParamNames("\"", "\"", 1, []string{"actor_id"}),
+		strmangle.SetParamNames("\"", "\"", 1, []string{"subject_group_id"}),
 		strmangle.WhereClause("\"", "\"", 2, auditEventPrimaryKeyColumns),
 	)
 	values := []interface{}{related.ID, o.ID}
@@ -1594,54 +1434,214 @@ func (o *AuditEvent) SetActor(ctx context.Context, exec boil.ContextExecutor, in
 		return errors.Wrap(err, "failed to update local table")
 	}
 
-	queries.Assign(&o.ActorID, related.ID)
+	queries.Assign(&o.SubjectGroupID, related.ID)
 	if o.R == nil {
 		o.R = &auditEventR{
-			Actor: related,
+			SubjectGroup: related,
 		}
 	} else {
-		o.R.Actor = related
+		o.R.SubjectGroup = related
 	}
 
 	if related.R == nil {
-		related.R = &userR{
-			ActorAuditEvents: AuditEventSlice{o},
+		related.R = &groupR{
+			SubjectGroupAuditEvents: AuditEventSlice{o},
 		}
 	} else {
-		related.R.ActorAuditEvents = append(related.R.ActorAuditEvents, o)
+		related.R.SubjectGroupAuditEvents = append(related.R.SubjectGroupAuditEvents, o)
 	}
 
 	return nil
 }
 
-// RemoveActor relationship.
-// Sets o.R.Actor to nil.
+// RemoveSubjectGroup relationship.
+// Sets o.R.SubjectGroup to nil.
 // Removes o from all passed in related items' relationships struct.
-func (o *AuditEvent) RemoveActor(ctx context.Context, exec boil.ContextExecutor, related *User) error {
+func (o *AuditEvent) RemoveSubjectGroup(ctx context.Context, exec boil.ContextExecutor, related *Group) error {
 	var err error
 
-	queries.SetScanner(&o.ActorID, nil)
-	if _, err = o.Update(ctx, exec, boil.Whitelist("actor_id")); err != nil {
+	queries.SetScanner(&o.SubjectGroupID, nil)
+	if _, err = o.Update(ctx, exec, boil.Whitelist("subject_group_id")); err != nil {
 		return errors.Wrap(err, "failed to update local table")
 	}
 
 	if o.R != nil {
-		o.R.Actor = nil
+		o.R.SubjectGroup = nil
 	}
 	if related == nil || related.R == nil {
 		return nil
 	}
 
-	for i, ri := range related.R.ActorAuditEvents {
-		if queries.Equal(o.ActorID, ri.ActorID) {
+	for i, ri := range related.R.SubjectGroupAuditEvents {
+		if queries.Equal(o.SubjectGroupID, ri.SubjectGroupID) {
 			continue
 		}
 
-		ln := len(related.R.ActorAuditEvents)
+		ln := len(related.R.SubjectGroupAuditEvents)
 		if ln > 1 && i < ln-1 {
-			related.R.ActorAuditEvents[i] = related.R.ActorAuditEvents[ln-1]
+			related.R.SubjectGroupAuditEvents[i] = related.R.SubjectGroupAuditEvents[ln-1]
 		}
-		related.R.ActorAuditEvents = related.R.ActorAuditEvents[:ln-1]
+		related.R.SubjectGroupAuditEvents = related.R.SubjectGroupAuditEvents[:ln-1]
+		break
+	}
+	return nil
+}
+
+// SetSubjectOrganization of the auditEvent to the related item.
+// Sets o.R.SubjectOrganization to related.
+// Adds o to related.R.SubjectOrganizationAuditEvents.
+func (o *AuditEvent) SetSubjectOrganization(ctx context.Context, exec boil.ContextExecutor, insert bool, related *Organization) error {
+	var err error
+	if insert {
+		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+			return errors.Wrap(err, "failed to insert into foreign table")
+		}
+	}
+
+	updateQuery := fmt.Sprintf(
+		"UPDATE \"audit_events\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, []string{"subject_organization_id"}),
+		strmangle.WhereClause("\"", "\"", 2, auditEventPrimaryKeyColumns),
+	)
+	values := []interface{}{related.ID, o.ID}
+
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, updateQuery)
+		fmt.Fprintln(writer, values)
+	}
+	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	queries.Assign(&o.SubjectOrganizationID, related.ID)
+	if o.R == nil {
+		o.R = &auditEventR{
+			SubjectOrganization: related,
+		}
+	} else {
+		o.R.SubjectOrganization = related
+	}
+
+	if related.R == nil {
+		related.R = &organizationR{
+			SubjectOrganizationAuditEvents: AuditEventSlice{o},
+		}
+	} else {
+		related.R.SubjectOrganizationAuditEvents = append(related.R.SubjectOrganizationAuditEvents, o)
+	}
+
+	return nil
+}
+
+// RemoveSubjectOrganization relationship.
+// Sets o.R.SubjectOrganization to nil.
+// Removes o from all passed in related items' relationships struct.
+func (o *AuditEvent) RemoveSubjectOrganization(ctx context.Context, exec boil.ContextExecutor, related *Organization) error {
+	var err error
+
+	queries.SetScanner(&o.SubjectOrganizationID, nil)
+	if _, err = o.Update(ctx, exec, boil.Whitelist("subject_organization_id")); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	if o.R != nil {
+		o.R.SubjectOrganization = nil
+	}
+	if related == nil || related.R == nil {
+		return nil
+	}
+
+	for i, ri := range related.R.SubjectOrganizationAuditEvents {
+		if queries.Equal(o.SubjectOrganizationID, ri.SubjectOrganizationID) {
+			continue
+		}
+
+		ln := len(related.R.SubjectOrganizationAuditEvents)
+		if ln > 1 && i < ln-1 {
+			related.R.SubjectOrganizationAuditEvents[i] = related.R.SubjectOrganizationAuditEvents[ln-1]
+		}
+		related.R.SubjectOrganizationAuditEvents = related.R.SubjectOrganizationAuditEvents[:ln-1]
+		break
+	}
+	return nil
+}
+
+// SetSubjectUser of the auditEvent to the related item.
+// Sets o.R.SubjectUser to related.
+// Adds o to related.R.SubjectUserAuditEvents.
+func (o *AuditEvent) SetSubjectUser(ctx context.Context, exec boil.ContextExecutor, insert bool, related *User) error {
+	var err error
+	if insert {
+		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+			return errors.Wrap(err, "failed to insert into foreign table")
+		}
+	}
+
+	updateQuery := fmt.Sprintf(
+		"UPDATE \"audit_events\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, []string{"subject_user_id"}),
+		strmangle.WhereClause("\"", "\"", 2, auditEventPrimaryKeyColumns),
+	)
+	values := []interface{}{related.ID, o.ID}
+
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, updateQuery)
+		fmt.Fprintln(writer, values)
+	}
+	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	queries.Assign(&o.SubjectUserID, related.ID)
+	if o.R == nil {
+		o.R = &auditEventR{
+			SubjectUser: related,
+		}
+	} else {
+		o.R.SubjectUser = related
+	}
+
+	if related.R == nil {
+		related.R = &userR{
+			SubjectUserAuditEvents: AuditEventSlice{o},
+		}
+	} else {
+		related.R.SubjectUserAuditEvents = append(related.R.SubjectUserAuditEvents, o)
+	}
+
+	return nil
+}
+
+// RemoveSubjectUser relationship.
+// Sets o.R.SubjectUser to nil.
+// Removes o from all passed in related items' relationships struct.
+func (o *AuditEvent) RemoveSubjectUser(ctx context.Context, exec boil.ContextExecutor, related *User) error {
+	var err error
+
+	queries.SetScanner(&o.SubjectUserID, nil)
+	if _, err = o.Update(ctx, exec, boil.Whitelist("subject_user_id")); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	if o.R != nil {
+		o.R.SubjectUser = nil
+	}
+	if related == nil || related.R == nil {
+		return nil
+	}
+
+	for i, ri := range related.R.SubjectUserAuditEvents {
+		if queries.Equal(o.SubjectUserID, ri.SubjectUserID) {
+			continue
+		}
+
+		ln := len(related.R.SubjectUserAuditEvents)
+		if ln > 1 && i < ln-1 {
+			related.R.SubjectUserAuditEvents[i] = related.R.SubjectUserAuditEvents[ln-1]
+		}
+		related.R.SubjectUserAuditEvents = related.R.SubjectUserAuditEvents[:ln-1]
 		break
 	}
 	return nil
@@ -1902,6 +1902,135 @@ func (o AuditEventSlice) UpdateAll(ctx context.Context, exec boil.ContextExecuto
 	return rowsAff, nil
 }
 
+// Upsert attempts an insert using an executor, and does an update or ignore on conflict.
+// See boil.Columns documentation for how to properly use updateColumns and insertColumns.
+func (o *AuditEvent) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) error {
+	if o == nil {
+		return errors.New("models: no audit_events provided for upsert")
+	}
+	if !boil.TimestampsAreSkipped(ctx) {
+		currTime := time.Now().In(boil.GetLocation())
+
+		if o.CreatedAt.IsZero() {
+			o.CreatedAt = currTime
+		}
+	}
+
+	if err := o.doBeforeUpsertHooks(ctx, exec); err != nil {
+		return err
+	}
+
+	nzDefaults := queries.NonZeroDefaultSet(auditEventColumnsWithDefault, o)
+
+	// Build cache key in-line uglily - mysql vs psql problems
+	buf := strmangle.GetBuffer()
+	if updateOnConflict {
+		buf.WriteByte('t')
+	} else {
+		buf.WriteByte('f')
+	}
+	buf.WriteByte('.')
+	for _, c := range conflictColumns {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
+	buf.WriteString(strconv.Itoa(updateColumns.Kind))
+	for _, c := range updateColumns.Cols {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
+	buf.WriteString(strconv.Itoa(insertColumns.Kind))
+	for _, c := range insertColumns.Cols {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
+	for _, c := range nzDefaults {
+		buf.WriteString(c)
+	}
+	key := buf.String()
+	strmangle.PutBuffer(buf)
+
+	auditEventUpsertCacheMut.RLock()
+	cache, cached := auditEventUpsertCache[key]
+	auditEventUpsertCacheMut.RUnlock()
+
+	var err error
+
+	if !cached {
+		insert, _ := insertColumns.InsertColumnSet(
+			auditEventAllColumns,
+			auditEventColumnsWithDefault,
+			auditEventColumnsWithoutDefault,
+			nzDefaults,
+		)
+
+		update := updateColumns.UpdateColumnSet(
+			auditEventAllColumns,
+			auditEventPrimaryKeyColumns,
+		)
+
+		if updateOnConflict && len(update) == 0 {
+			return errors.New("models: unable to upsert audit_events, could not build update column list")
+		}
+
+		ret := strmangle.SetComplement(auditEventAllColumns, strmangle.SetIntersect(insert, update))
+
+		conflict := conflictColumns
+		if len(conflict) == 0 && updateOnConflict && len(update) != 0 {
+			if len(auditEventPrimaryKeyColumns) == 0 {
+				return errors.New("models: unable to upsert audit_events, could not build conflict column list")
+			}
+
+			conflict = make([]string, len(auditEventPrimaryKeyColumns))
+			copy(conflict, auditEventPrimaryKeyColumns)
+		}
+		cache.query = buildUpsertQueryPostgres(dialect, "\"audit_events\"", updateOnConflict, ret, update, conflict, insert, opts...)
+
+		cache.valueMapping, err = queries.BindMapping(auditEventType, auditEventMapping, insert)
+		if err != nil {
+			return err
+		}
+		if len(ret) != 0 {
+			cache.retMapping, err = queries.BindMapping(auditEventType, auditEventMapping, ret)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	value := reflect.Indirect(reflect.ValueOf(o))
+	vals := queries.ValuesFromMapping(value, cache.valueMapping)
+	var returns []interface{}
+	if len(cache.retMapping) != 0 {
+		returns = queries.PtrsFromMapping(value, cache.retMapping)
+	}
+
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, cache.query)
+		fmt.Fprintln(writer, vals)
+	}
+	if len(cache.retMapping) != 0 {
+		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(returns...)
+		if errors.Is(err, sql.ErrNoRows) {
+			err = nil // Postgres doesn't return anything when there's no update
+		}
+	} else {
+		_, err = exec.ExecContext(ctx, cache.query, vals...)
+	}
+	if err != nil {
+		return errors.Wrap(err, "models: unable to upsert audit_events")
+	}
+
+	if !cached {
+		auditEventUpsertCacheMut.Lock()
+		auditEventUpsertCache[key] = cache
+		auditEventUpsertCacheMut.Unlock()
+	}
+
+	return o.doAfterUpsertHooks(ctx, exec)
+}
+
 // Delete deletes a single AuditEvent record with an executor.
 // Delete will match against the primary key column to find the record to delete.
 func (o *AuditEvent) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
@@ -2072,126 +2201,4 @@ func AuditEventExists(ctx context.Context, exec boil.ContextExecutor, iD string)
 // Exists checks if the AuditEvent row exists.
 func (o *AuditEvent) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, error) {
 	return AuditEventExists(ctx, exec, o.ID)
-}
-
-// Upsert attempts an insert using an executor, and does an update or ignore on conflict.
-// See boil.Columns documentation for how to properly use updateColumns and insertColumns.
-func (o *AuditEvent) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
-	if o == nil {
-		return errors.New("models: no audit_events provided for upsert")
-	}
-	if !boil.TimestampsAreSkipped(ctx) {
-		currTime := time.Now().In(boil.GetLocation())
-
-		if o.CreatedAt.IsZero() {
-			o.CreatedAt = currTime
-		}
-	}
-
-	if err := o.doBeforeUpsertHooks(ctx, exec); err != nil {
-		return err
-	}
-
-	nzDefaults := queries.NonZeroDefaultSet(auditEventColumnsWithDefault, o)
-
-	// Build cache key in-line uglily - mysql vs psql problems
-	buf := strmangle.GetBuffer()
-	if updateOnConflict {
-		buf.WriteByte('t')
-	} else {
-		buf.WriteByte('f')
-	}
-	buf.WriteByte('.')
-	for _, c := range conflictColumns {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	buf.WriteString(strconv.Itoa(updateColumns.Kind))
-	for _, c := range updateColumns.Cols {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	buf.WriteString(strconv.Itoa(insertColumns.Kind))
-	for _, c := range insertColumns.Cols {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	for _, c := range nzDefaults {
-		buf.WriteString(c)
-	}
-	key := buf.String()
-	strmangle.PutBuffer(buf)
-
-	auditEventUpsertCacheMut.RLock()
-	cache, cached := auditEventUpsertCache[key]
-	auditEventUpsertCacheMut.RUnlock()
-
-	var err error
-
-	if !cached {
-		insert, ret := insertColumns.InsertColumnSet(
-			auditEventAllColumns,
-			auditEventColumnsWithDefault,
-			auditEventColumnsWithoutDefault,
-			nzDefaults,
-		)
-		update := updateColumns.UpdateColumnSet(
-			auditEventAllColumns,
-			auditEventPrimaryKeyColumns,
-		)
-
-		if updateOnConflict && len(update) == 0 {
-			return errors.New("models: unable to upsert audit_events, could not build update column list")
-		}
-
-		conflict := conflictColumns
-		if len(conflict) == 0 {
-			conflict = make([]string, len(auditEventPrimaryKeyColumns))
-			copy(conflict, auditEventPrimaryKeyColumns)
-		}
-		cache.query = buildUpsertQueryCockroachDB(dialect, "\"audit_events\"", updateOnConflict, ret, update, conflict, insert)
-
-		cache.valueMapping, err = queries.BindMapping(auditEventType, auditEventMapping, insert)
-		if err != nil {
-			return err
-		}
-		if len(ret) != 0 {
-			cache.retMapping, err = queries.BindMapping(auditEventType, auditEventMapping, ret)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	value := reflect.Indirect(reflect.ValueOf(o))
-	vals := queries.ValuesFromMapping(value, cache.valueMapping)
-	var returns []interface{}
-	if len(cache.retMapping) != 0 {
-		returns = queries.PtrsFromMapping(value, cache.retMapping)
-	}
-
-	if boil.DebugMode {
-		_, _ = fmt.Fprintln(boil.DebugWriter, cache.query)
-		_, _ = fmt.Fprintln(boil.DebugWriter, vals)
-	}
-
-	if len(cache.retMapping) != 0 {
-		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(returns...)
-		if errors.Is(err, sql.ErrNoRows) {
-			err = nil // CockcorachDB doesn't return anything when there's no update
-		}
-	} else {
-		_, err = exec.ExecContext(ctx, cache.query, vals...)
-	}
-	if err != nil {
-		return fmt.Errorf("models: unable to upsert audit_events: %w", err)
-	}
-
-	if !cached {
-		auditEventUpsertCacheMut.Lock()
-		auditEventUpsertCache[key] = cache
-		auditEventUpsertCacheMut.Unlock()
-	}
-
-	return o.doAfterUpsertHooks(ctx, exec)
 }

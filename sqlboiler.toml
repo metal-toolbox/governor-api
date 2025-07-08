@@ -10,3 +10,12 @@ port = 26257
 user = "root"
 sslmode = "disable"
 blacklist = ["goose_db_version", "notification_defaults"]
+
+[psql]
+dbname = "governor_dev"
+host = "pg"
+port = 5432
+user = "postgres"
+pass = "postgres"
+sslmode = "disable"
+blacklist = ["goose_db_version", "notification_defaults"]

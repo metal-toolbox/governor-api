@@ -87,38 +87,22 @@ var GroupApplicationWhere = struct {
 
 // GroupApplicationRels is where relationship names are stored.
 var GroupApplicationRels = struct {
-	Group       string
 	Application string
+	Group       string
 }{
-	Group:       "Group",
 	Application: "Application",
+	Group:       "Group",
 }
 
 // groupApplicationR is where relationships are stored.
 type groupApplicationR struct {
-	Group       *Group       `boil:"Group" json:"Group" toml:"Group" yaml:"Group"`
 	Application *Application `boil:"Application" json:"Application" toml:"Application" yaml:"Application"`
+	Group       *Group       `boil:"Group" json:"Group" toml:"Group" yaml:"Group"`
 }
 
 // NewStruct creates a new relationship struct
 func (*groupApplicationR) NewStruct() *groupApplicationR {
 	return &groupApplicationR{}
-}
-
-func (o *GroupApplication) GetGroup() *Group {
-	if o == nil {
-		return nil
-	}
-
-	return o.R.GetGroup()
-}
-
-func (r *groupApplicationR) GetGroup() *Group {
-	if r == nil {
-		return nil
-	}
-
-	return r.Group
 }
 
 func (o *GroupApplication) GetApplication() *Application {
@@ -135,6 +119,22 @@ func (r *groupApplicationR) GetApplication() *Application {
 	}
 
 	return r.Application
+}
+
+func (o *GroupApplication) GetGroup() *Group {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetGroup()
+}
+
+func (r *groupApplicationR) GetGroup() *Group {
+	if r == nil {
+		return nil
+	}
+
+	return r.Group
 }
 
 // groupApplicationL is where Load methods for each relationship are stored.
@@ -453,17 +453,6 @@ func (q groupApplicationQuery) Exists(ctx context.Context, exec boil.ContextExec
 	return count > 0, nil
 }
 
-// Group pointed to by the foreign key.
-func (o *GroupApplication) Group(mods ...qm.QueryMod) groupQuery {
-	queryMods := []qm.QueryMod{
-		qm.Where("\"id\" = ?", o.GroupID),
-	}
-
-	queryMods = append(queryMods, mods...)
-
-	return Groups(queryMods...)
-}
-
 // Application pointed to by the foreign key.
 func (o *GroupApplication) Application(mods ...qm.QueryMod) applicationQuery {
 	queryMods := []qm.QueryMod{
@@ -475,125 +464,15 @@ func (o *GroupApplication) Application(mods ...qm.QueryMod) applicationQuery {
 	return Applications(queryMods...)
 }
 
-// LoadGroup allows an eager lookup of values, cached into the
-// loaded structs of the objects. This is for an N-1 relationship.
-func (groupApplicationL) LoadGroup(ctx context.Context, e boil.ContextExecutor, singular bool, maybeGroupApplication interface{}, mods queries.Applicator) error {
-	var slice []*GroupApplication
-	var object *GroupApplication
-
-	if singular {
-		var ok bool
-		object, ok = maybeGroupApplication.(*GroupApplication)
-		if !ok {
-			object = new(GroupApplication)
-			ok = queries.SetFromEmbeddedStruct(&object, &maybeGroupApplication)
-			if !ok {
-				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeGroupApplication))
-			}
-		}
-	} else {
-		s, ok := maybeGroupApplication.(*[]*GroupApplication)
-		if ok {
-			slice = *s
-		} else {
-			ok = queries.SetFromEmbeddedStruct(&slice, maybeGroupApplication)
-			if !ok {
-				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeGroupApplication))
-			}
-		}
+// Group pointed to by the foreign key.
+func (o *GroupApplication) Group(mods ...qm.QueryMod) groupQuery {
+	queryMods := []qm.QueryMod{
+		qm.Where("\"id\" = ?", o.GroupID),
 	}
 
-	args := make(map[interface{}]struct{})
-	if singular {
-		if object.R == nil {
-			object.R = &groupApplicationR{}
-		}
-		args[object.GroupID] = struct{}{}
+	queryMods = append(queryMods, mods...)
 
-	} else {
-		for _, obj := range slice {
-			if obj.R == nil {
-				obj.R = &groupApplicationR{}
-			}
-
-			args[obj.GroupID] = struct{}{}
-
-		}
-	}
-
-	if len(args) == 0 {
-		return nil
-	}
-
-	argsSlice := make([]interface{}, len(args))
-	i := 0
-	for arg := range args {
-		argsSlice[i] = arg
-		i++
-	}
-
-	query := NewQuery(
-		qm.From(`groups`),
-		qm.WhereIn(`groups.id in ?`, argsSlice...),
-		qmhelper.WhereIsNull(`groups.deleted_at`),
-	)
-	if mods != nil {
-		mods.Apply(query)
-	}
-
-	results, err := query.QueryContext(ctx, e)
-	if err != nil {
-		return errors.Wrap(err, "failed to eager load Group")
-	}
-
-	var resultSlice []*Group
-	if err = queries.Bind(results, &resultSlice); err != nil {
-		return errors.Wrap(err, "failed to bind eager loaded slice Group")
-	}
-
-	if err = results.Close(); err != nil {
-		return errors.Wrap(err, "failed to close results of eager load for groups")
-	}
-	if err = results.Err(); err != nil {
-		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for groups")
-	}
-
-	if len(groupAfterSelectHooks) != 0 {
-		for _, obj := range resultSlice {
-			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
-				return err
-			}
-		}
-	}
-
-	if len(resultSlice) == 0 {
-		return nil
-	}
-
-	if singular {
-		foreign := resultSlice[0]
-		object.R.Group = foreign
-		if foreign.R == nil {
-			foreign.R = &groupR{}
-		}
-		foreign.R.GroupApplications = append(foreign.R.GroupApplications, object)
-		return nil
-	}
-
-	for _, local := range slice {
-		for _, foreign := range resultSlice {
-			if local.GroupID == foreign.ID {
-				local.R.Group = foreign
-				if foreign.R == nil {
-					foreign.R = &groupR{}
-				}
-				foreign.R.GroupApplications = append(foreign.R.GroupApplications, local)
-				break
-			}
-		}
-	}
-
-	return nil
+	return Groups(queryMods...)
 }
 
 // LoadApplication allows an eager lookup of values, cached into the
@@ -717,48 +596,122 @@ func (groupApplicationL) LoadApplication(ctx context.Context, e boil.ContextExec
 	return nil
 }
 
-// SetGroup of the groupApplication to the related item.
-// Sets o.R.Group to related.
-// Adds o to related.R.GroupApplications.
-func (o *GroupApplication) SetGroup(ctx context.Context, exec boil.ContextExecutor, insert bool, related *Group) error {
-	var err error
-	if insert {
-		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
-			return errors.Wrap(err, "failed to insert into foreign table")
+// LoadGroup allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for an N-1 relationship.
+func (groupApplicationL) LoadGroup(ctx context.Context, e boil.ContextExecutor, singular bool, maybeGroupApplication interface{}, mods queries.Applicator) error {
+	var slice []*GroupApplication
+	var object *GroupApplication
+
+	if singular {
+		var ok bool
+		object, ok = maybeGroupApplication.(*GroupApplication)
+		if !ok {
+			object = new(GroupApplication)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeGroupApplication)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeGroupApplication))
+			}
+		}
+	} else {
+		s, ok := maybeGroupApplication.(*[]*GroupApplication)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeGroupApplication)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeGroupApplication))
+			}
 		}
 	}
 
-	updateQuery := fmt.Sprintf(
-		"UPDATE \"group_applications\" SET %s WHERE %s",
-		strmangle.SetParamNames("\"", "\"", 1, []string{"group_id"}),
-		strmangle.WhereClause("\"", "\"", 2, groupApplicationPrimaryKeyColumns),
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &groupApplicationR{}
+		}
+		args[object.GroupID] = struct{}{}
+
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &groupApplicationR{}
+			}
+
+			args[obj.GroupID] = struct{}{}
+
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`groups`),
+		qm.WhereIn(`groups.id in ?`, argsSlice...),
+		qmhelper.WhereIsNull(`groups.deleted_at`),
 	)
-	values := []interface{}{related.ID, o.ID}
-
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, updateQuery)
-		fmt.Fprintln(writer, values)
-	}
-	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
-		return errors.Wrap(err, "failed to update local table")
+	if mods != nil {
+		mods.Apply(query)
 	}
 
-	o.GroupID = related.ID
-	if o.R == nil {
-		o.R = &groupApplicationR{
-			Group: related,
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load Group")
+	}
+
+	var resultSlice []*Group
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice Group")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results of eager load for groups")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for groups")
+	}
+
+	if len(groupAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
 		}
-	} else {
-		o.R.Group = related
 	}
 
-	if related.R == nil {
-		related.R = &groupR{
-			GroupApplications: GroupApplicationSlice{o},
+	if len(resultSlice) == 0 {
+		return nil
+	}
+
+	if singular {
+		foreign := resultSlice[0]
+		object.R.Group = foreign
+		if foreign.R == nil {
+			foreign.R = &groupR{}
 		}
-	} else {
-		related.R.GroupApplications = append(related.R.GroupApplications, o)
+		foreign.R.GroupApplications = append(foreign.R.GroupApplications, object)
+		return nil
+	}
+
+	for _, local := range slice {
+		for _, foreign := range resultSlice {
+			if local.GroupID == foreign.ID {
+				local.R.Group = foreign
+				if foreign.R == nil {
+					foreign.R = &groupR{}
+				}
+				foreign.R.GroupApplications = append(foreign.R.GroupApplications, local)
+				break
+			}
+		}
 	}
 
 	return nil
@@ -802,6 +755,53 @@ func (o *GroupApplication) SetApplication(ctx context.Context, exec boil.Context
 
 	if related.R == nil {
 		related.R = &applicationR{
+			GroupApplications: GroupApplicationSlice{o},
+		}
+	} else {
+		related.R.GroupApplications = append(related.R.GroupApplications, o)
+	}
+
+	return nil
+}
+
+// SetGroup of the groupApplication to the related item.
+// Sets o.R.Group to related.
+// Adds o to related.R.GroupApplications.
+func (o *GroupApplication) SetGroup(ctx context.Context, exec boil.ContextExecutor, insert bool, related *Group) error {
+	var err error
+	if insert {
+		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+			return errors.Wrap(err, "failed to insert into foreign table")
+		}
+	}
+
+	updateQuery := fmt.Sprintf(
+		"UPDATE \"group_applications\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, []string{"group_id"}),
+		strmangle.WhereClause("\"", "\"", 2, groupApplicationPrimaryKeyColumns),
+	)
+	values := []interface{}{related.ID, o.ID}
+
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, updateQuery)
+		fmt.Fprintln(writer, values)
+	}
+	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	o.GroupID = related.ID
+	if o.R == nil {
+		o.R = &groupApplicationR{
+			Group: related,
+		}
+	} else {
+		o.R.Group = related
+	}
+
+	if related.R == nil {
+		related.R = &groupR{
 			GroupApplications: GroupApplicationSlice{o},
 		}
 	} else {
@@ -1075,6 +1075,136 @@ func (o GroupApplicationSlice) UpdateAll(ctx context.Context, exec boil.ContextE
 	return rowsAff, nil
 }
 
+// Upsert attempts an insert using an executor, and does an update or ignore on conflict.
+// See boil.Columns documentation for how to properly use updateColumns and insertColumns.
+func (o *GroupApplication) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) error {
+	if o == nil {
+		return errors.New("models: no group_applications provided for upsert")
+	}
+	if !boil.TimestampsAreSkipped(ctx) {
+		currTime := time.Now().In(boil.GetLocation())
+
+		if o.CreatedAt.IsZero() {
+			o.CreatedAt = currTime
+		}
+		o.UpdatedAt = currTime
+	}
+
+	if err := o.doBeforeUpsertHooks(ctx, exec); err != nil {
+		return err
+	}
+
+	nzDefaults := queries.NonZeroDefaultSet(groupApplicationColumnsWithDefault, o)
+
+	// Build cache key in-line uglily - mysql vs psql problems
+	buf := strmangle.GetBuffer()
+	if updateOnConflict {
+		buf.WriteByte('t')
+	} else {
+		buf.WriteByte('f')
+	}
+	buf.WriteByte('.')
+	for _, c := range conflictColumns {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
+	buf.WriteString(strconv.Itoa(updateColumns.Kind))
+	for _, c := range updateColumns.Cols {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
+	buf.WriteString(strconv.Itoa(insertColumns.Kind))
+	for _, c := range insertColumns.Cols {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
+	for _, c := range nzDefaults {
+		buf.WriteString(c)
+	}
+	key := buf.String()
+	strmangle.PutBuffer(buf)
+
+	groupApplicationUpsertCacheMut.RLock()
+	cache, cached := groupApplicationUpsertCache[key]
+	groupApplicationUpsertCacheMut.RUnlock()
+
+	var err error
+
+	if !cached {
+		insert, _ := insertColumns.InsertColumnSet(
+			groupApplicationAllColumns,
+			groupApplicationColumnsWithDefault,
+			groupApplicationColumnsWithoutDefault,
+			nzDefaults,
+		)
+
+		update := updateColumns.UpdateColumnSet(
+			groupApplicationAllColumns,
+			groupApplicationPrimaryKeyColumns,
+		)
+
+		if updateOnConflict && len(update) == 0 {
+			return errors.New("models: unable to upsert group_applications, could not build update column list")
+		}
+
+		ret := strmangle.SetComplement(groupApplicationAllColumns, strmangle.SetIntersect(insert, update))
+
+		conflict := conflictColumns
+		if len(conflict) == 0 && updateOnConflict && len(update) != 0 {
+			if len(groupApplicationPrimaryKeyColumns) == 0 {
+				return errors.New("models: unable to upsert group_applications, could not build conflict column list")
+			}
+
+			conflict = make([]string, len(groupApplicationPrimaryKeyColumns))
+			copy(conflict, groupApplicationPrimaryKeyColumns)
+		}
+		cache.query = buildUpsertQueryPostgres(dialect, "\"group_applications\"", updateOnConflict, ret, update, conflict, insert, opts...)
+
+		cache.valueMapping, err = queries.BindMapping(groupApplicationType, groupApplicationMapping, insert)
+		if err != nil {
+			return err
+		}
+		if len(ret) != 0 {
+			cache.retMapping, err = queries.BindMapping(groupApplicationType, groupApplicationMapping, ret)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	value := reflect.Indirect(reflect.ValueOf(o))
+	vals := queries.ValuesFromMapping(value, cache.valueMapping)
+	var returns []interface{}
+	if len(cache.retMapping) != 0 {
+		returns = queries.PtrsFromMapping(value, cache.retMapping)
+	}
+
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, cache.query)
+		fmt.Fprintln(writer, vals)
+	}
+	if len(cache.retMapping) != 0 {
+		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(returns...)
+		if errors.Is(err, sql.ErrNoRows) {
+			err = nil // Postgres doesn't return anything when there's no update
+		}
+	} else {
+		_, err = exec.ExecContext(ctx, cache.query, vals...)
+	}
+	if err != nil {
+		return errors.Wrap(err, "models: unable to upsert group_applications")
+	}
+
+	if !cached {
+		groupApplicationUpsertCacheMut.Lock()
+		groupApplicationUpsertCache[key] = cache
+		groupApplicationUpsertCacheMut.Unlock()
+	}
+
+	return o.doAfterUpsertHooks(ctx, exec)
+}
+
 // Delete deletes a single GroupApplication record with an executor.
 // Delete will match against the primary key column to find the record to delete.
 func (o *GroupApplication) Delete(ctx context.Context, exec boil.ContextExecutor, hardDelete bool) (int64, error) {
@@ -1286,127 +1416,4 @@ func GroupApplicationExists(ctx context.Context, exec boil.ContextExecutor, iD s
 // Exists checks if the GroupApplication row exists.
 func (o *GroupApplication) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, error) {
 	return GroupApplicationExists(ctx, exec, o.ID)
-}
-
-// Upsert attempts an insert using an executor, and does an update or ignore on conflict.
-// See boil.Columns documentation for how to properly use updateColumns and insertColumns.
-func (o *GroupApplication) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
-	if o == nil {
-		return errors.New("models: no group_applications provided for upsert")
-	}
-	if !boil.TimestampsAreSkipped(ctx) {
-		currTime := time.Now().In(boil.GetLocation())
-
-		if o.CreatedAt.IsZero() {
-			o.CreatedAt = currTime
-		}
-		o.UpdatedAt = currTime
-	}
-
-	if err := o.doBeforeUpsertHooks(ctx, exec); err != nil {
-		return err
-	}
-
-	nzDefaults := queries.NonZeroDefaultSet(groupApplicationColumnsWithDefault, o)
-
-	// Build cache key in-line uglily - mysql vs psql problems
-	buf := strmangle.GetBuffer()
-	if updateOnConflict {
-		buf.WriteByte('t')
-	} else {
-		buf.WriteByte('f')
-	}
-	buf.WriteByte('.')
-	for _, c := range conflictColumns {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	buf.WriteString(strconv.Itoa(updateColumns.Kind))
-	for _, c := range updateColumns.Cols {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	buf.WriteString(strconv.Itoa(insertColumns.Kind))
-	for _, c := range insertColumns.Cols {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	for _, c := range nzDefaults {
-		buf.WriteString(c)
-	}
-	key := buf.String()
-	strmangle.PutBuffer(buf)
-
-	groupApplicationUpsertCacheMut.RLock()
-	cache, cached := groupApplicationUpsertCache[key]
-	groupApplicationUpsertCacheMut.RUnlock()
-
-	var err error
-
-	if !cached {
-		insert, ret := insertColumns.InsertColumnSet(
-			groupApplicationAllColumns,
-			groupApplicationColumnsWithDefault,
-			groupApplicationColumnsWithoutDefault,
-			nzDefaults,
-		)
-		update := updateColumns.UpdateColumnSet(
-			groupApplicationAllColumns,
-			groupApplicationPrimaryKeyColumns,
-		)
-
-		if updateOnConflict && len(update) == 0 {
-			return errors.New("models: unable to upsert group_applications, could not build update column list")
-		}
-
-		conflict := conflictColumns
-		if len(conflict) == 0 {
-			conflict = make([]string, len(groupApplicationPrimaryKeyColumns))
-			copy(conflict, groupApplicationPrimaryKeyColumns)
-		}
-		cache.query = buildUpsertQueryCockroachDB(dialect, "\"group_applications\"", updateOnConflict, ret, update, conflict, insert)
-
-		cache.valueMapping, err = queries.BindMapping(groupApplicationType, groupApplicationMapping, insert)
-		if err != nil {
-			return err
-		}
-		if len(ret) != 0 {
-			cache.retMapping, err = queries.BindMapping(groupApplicationType, groupApplicationMapping, ret)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	value := reflect.Indirect(reflect.ValueOf(o))
-	vals := queries.ValuesFromMapping(value, cache.valueMapping)
-	var returns []interface{}
-	if len(cache.retMapping) != 0 {
-		returns = queries.PtrsFromMapping(value, cache.retMapping)
-	}
-
-	if boil.DebugMode {
-		_, _ = fmt.Fprintln(boil.DebugWriter, cache.query)
-		_, _ = fmt.Fprintln(boil.DebugWriter, vals)
-	}
-
-	if len(cache.retMapping) != 0 {
-		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(returns...)
-		if errors.Is(err, sql.ErrNoRows) {
-			err = nil // CockcorachDB doesn't return anything when there's no update
-		}
-	} else {
-		_, err = exec.ExecContext(ctx, cache.query, vals...)
-	}
-	if err != nil {
-		return fmt.Errorf("models: unable to upsert group_applications: %w", err)
-	}
-
-	if !cached {
-		groupApplicationUpsertCacheMut.Lock()
-		groupApplicationUpsertCache[key] = cache
-		groupApplicationUpsertCacheMut.Unlock()
-	}
-
-	return o.doAfterUpsertHooks(ctx, exec)
 }

@@ -50,3 +50,63 @@ func makeCacheKey(cols boil.Columns, nzDefaults []string) string {
 	strmangle.PutBuffer(buf)
 	return str
 }
+
+// Enum values for ExtensionResourceScope
+const (
+	ExtensionResourceScopeSystem       string = "system"
+	ExtensionResourceScopeUser         string = "user"
+	ExtensionResourceScopeOrganization string = "organization"
+)
+
+func AllExtensionResourceScope() []string {
+	return []string{
+		ExtensionResourceScopeSystem,
+		ExtensionResourceScopeUser,
+		ExtensionResourceScopeOrganization,
+	}
+}
+
+// Enum values for ExtensionStatus
+const (
+	ExtensionStatusOnline  string = "online"
+	ExtensionStatusOffline string = "offline"
+	ExtensionStatusError   string = "error"
+)
+
+func AllExtensionStatus() []string {
+	return []string{
+		ExtensionStatusOnline,
+		ExtensionStatusOffline,
+		ExtensionStatusError,
+	}
+}
+
+// Enum values for RequestKind
+const (
+	RequestKindNewMember           string = "new_member"
+	RequestKindAdminPromotion      string = "admin_promotion"
+	RequestKindMembershipExtension string = "membership_extension"
+)
+
+func AllRequestKind() []string {
+	return []string{
+		RequestKindNewMember,
+		RequestKindAdminPromotion,
+		RequestKindMembershipExtension,
+	}
+}
+
+// Enum values for UserStatus
+const (
+	UserStatusActive    string = "active"
+	UserStatusInactive  string = "inactive"
+	UserStatusSuspended string = "suspended"
+)
+
+func AllUserStatus() []string {
+	return []string{
+		UserStatusActive,
+		UserStatusInactive,
+		UserStatusSuspended,
+	}
+}

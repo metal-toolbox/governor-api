@@ -1,5 +1,5 @@
-// Package db provides an embedded filesystem containing all the database migrations
-package db
+// Package psql provides an embedded filesystem containing all the psql migrations
+package psql
 
 import (
 	"embed"

@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/aarondl/null/v8"
-	dbm "github.com/metal-toolbox/governor-api/db"
+	dbm "github.com/metal-toolbox/governor-api/db/crdb"
 	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/assert"
 )
