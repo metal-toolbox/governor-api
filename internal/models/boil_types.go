@@ -53,16 +53,14 @@ func makeCacheKey(cols boil.Columns, nzDefaults []string) string {
 
 // Enum values for ExtensionResourceScope
 const (
-	ExtensionResourceScopeSystem       string = "system"
-	ExtensionResourceScopeUser         string = "user"
-	ExtensionResourceScopeOrganization string = "organization"
+	ExtensionResourceScopeUser   string = "user"
+	ExtensionResourceScopeSystem string = "system"
 )
 
 func AllExtensionResourceScope() []string {
 	return []string{
-		ExtensionResourceScopeSystem,
 		ExtensionResourceScopeUser,
-		ExtensionResourceScopeOrganization,
+		ExtensionResourceScopeSystem,
 	}
 }
 
@@ -70,43 +68,39 @@ func AllExtensionResourceScope() []string {
 const (
 	ExtensionStatusOnline  string = "online"
 	ExtensionStatusOffline string = "offline"
-	ExtensionStatusError   string = "error"
 )
 
 func AllExtensionStatus() []string {
 	return []string{
 		ExtensionStatusOnline,
 		ExtensionStatusOffline,
-		ExtensionStatusError,
 	}
 }
 
 // Enum values for RequestKind
 const (
-	RequestKindNewMember           string = "new_member"
-	RequestKindAdminPromotion      string = "admin_promotion"
-	RequestKindMembershipExtension string = "membership_extension"
+	RequestKindNewMember      string = "new_member"
+	RequestKindAdminPromotion string = "admin_promotion"
 )
 
 func AllRequestKind() []string {
 	return []string{
 		RequestKindNewMember,
 		RequestKindAdminPromotion,
-		RequestKindMembershipExtension,
 	}
 }
 
 // Enum values for UserStatus
 const (
+	UserStatusPending   string = "pending"
 	UserStatusActive    string = "active"
-	UserStatusInactive  string = "inactive"
 	UserStatusSuspended string = "suspended"
 )
 
 func AllUserStatus() []string {
 	return []string{
+		UserStatusPending,
 		UserStatusActive,
-		UserStatusInactive,
 		UserStatusSuspended,
 	}
 }

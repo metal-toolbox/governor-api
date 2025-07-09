@@ -1,6 +1,5 @@
 volumes:
-  crdb-data:
-  hydra-sqlite:
+  pg_data:
   audit-log:
     driver_opts:
       type: tmpfs
@@ -24,38 +23,44 @@ services:
     volumes:
       - ./nsc:/nsc
       - ..:/workspace:cached
+      - type: volume
+        source: audit-log
+        target: /app-audit
+        read_only: false
     networks:
       - governor
+
+  # DB
+  pg:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - governor
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   create-databases:
-    image: cockroachdb/cockroach:v22.1.11
+    image: postgres:17
     restart: on-failure:5
-    command: "sql --insecure -e 'CREATE DATABASE IF NOT EXISTS hydra_dev; CREATE DATABASE IF NOT EXISTS governor_dev;'"
-    env_file:
-      - .env
     depends_on:
-      - crdb
+      pg:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: postgres
     networks:
       - governor
+    command: "psql -h pg -U postgres -c 'CREATE DATABASE governor_dev;' -c 'CREATE DATABASE hydra_dev;'"
 
-  crdb:
-    image: cockroachdb/cockroach:v22.1.11
-    volumes:
-      - crdb-data:/cockroach/cockroach-data
-    command: start-single-node --insecure
-    ports:
-      - "8080:8080"
-      - "26257:26257"
-    restart: unless-stopped
-    healthcheck:
-      test: "curl --fail http://localhost:8080/health?ready=1 || exit 1"
-      interval: "2s"
-      retries: 3
-      start_period: "15s"
-      timeout: "5s"
-    networks:
-      - governor
-
+  # hydra
   hydra:
     image: oryd/hydra:v1.11.10
     ports:
@@ -66,13 +71,9 @@ services:
     depends_on:
       - hydra-migrate
     volumes:
-      - type: volume
-        source: hydra-sqlite
-        target: /var/lib/sqlite
-        read_only: false
       - ./hydra:/etc/config/hydra
     environment:
-      - DSN=cockroach://root@crdb:26257/hydra_dev?sslmode=disable&max_conns=20&max_idle_conns=4
+      - DSN=postgres://postgres:postgres@pg:5432/hydra_dev?sslmode=disable&max_conns=20&max_idle_conns=4
     restart: unless-stopped
     networks:
       - governor
@@ -80,15 +81,11 @@ services:
   hydra-migrate:
     image: oryd/hydra:v1.11.10
     environment:
-      - DSN=cockroach://root@crdb:26257/hydra_dev?sslmode=disable&max_conns=20&max_idle_conns=4
+      - DSN=postgres://postgres:postgres@pg:5432/hydra_dev?sslmode=disable&max_conns=20&max_idle_conns=4
     command: migrate -c /etc/config/hydra/hydra.yml sql -e --yes
     depends_on:
       - create-databases
     volumes:
-      - type: volume
-        source: hydra-sqlite
-        target: /var/lib/sqlite
-        read_only: false
       - ./hydra:/etc/config/hydra
     restart: on-failure
     networks:
@@ -120,3 +117,29 @@ services:
     restart: unless-stopped
     networks:
       - governor
+
+  trace:
+    image: jaegertracing/all-in-one:1.48
+    ports:
+      - "6831:6831/udp"
+      - "6832:6832/udp"
+      - "5778:5778"
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
+      - "14250:14250"
+      - "14268:14268"
+      - "14269:14269"
+      - "9411:9411"
+    networks:
+      - governor
+
+  audit:
+    image: ghcr.io/metal-toolbox/audittail:v0.9.0
+    command: -f /app-audit/audit.log
+    volumes:
+      - type: volume
+        source: audit-log
+        target: /app-audit
+        read_only: false
+    restart: unless-stopped

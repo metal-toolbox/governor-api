@@ -8,7 +8,7 @@ services:
       - --development
       - "--config=/.governor.yaml"
     depends_on:
-      - crdb
+      - pg
       - audit
     volumes:
       - type: volume
@@ -25,20 +25,23 @@ services:
     networks:
       - governor
 
-  crdb:
-    image: cockroachdb/cockroach:v22.1.11
-    volumes:
-      - db:/cockroach/cockroach-data
-    command: start-single-node --insecure
+  pg:
+    image: postgres:17
     environment:
-      #   sometimes crdb fails to start because of time drift - this helps to get it going
-      - COCKROACH_RAFT_CLOSEDTS_ASSERTIONS_ENABLED=false
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: governor_dev
     ports:
-      - "8080:8080"
-      - "26257:26257"
-    restart: unless-stopped
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
     networks:
       - governor
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   hydra:
     image: oryd/hydra:v1.11.10
@@ -56,7 +59,7 @@ services:
         read_only: false
       - ./hydra:/etc/config/hydra
     environment:
-      - DSN=cockroach://root@crdb:26257/hydra?sslmode=disable&max_conns=20&max_idle_conns=4
+      - DSN=cockroach://postgres:postgres@pg:5432/hydra?sslmode=disable&max_conns=20&max_idle_conns=4
     restart: unless-stopped
     networks:
       - governor
@@ -64,10 +67,11 @@ services:
   hydra-migrate:
     image: oryd/hydra:v1.11.10
     environment:
-      - DSN=cockroach://root@crdb:26257/hydra?sslmode=disable&max_conns=20&max_idle_conns=4
+      - DSN=cockroach://postgres:postgres@pg:5432/hydra?sslmode=disable&max_conns=20&max_idle_conns=4
     command: migrate -c /etc/config/hydra/hydra.yml sql -e --yes
     depends_on:
-      - crdb
+      pg:
+        condition: service_healthy
     volumes:
       - type: volume
         source: hydra-sqlite
@@ -99,7 +103,7 @@ services:
       - governor
 
 volumes:
-  db:
+  pg_data:
   hydra-sqlite:
   audit-log:
     driver_opts:

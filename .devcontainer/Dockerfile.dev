@@ -1,10 +1,7 @@
 ARG VARIANT=bullseye
-ARG GO_VERSION=1.23
-ARG CRDB_VERSION=22.1.11
+ARG GO_VERSION=1.24
 
-# Used to install cockroachdb into the devcontainer
-FROM cockroachdb/cockroach:v${CRDB_VERSION} as CRDB
-
+# Used to install postgres into the devcontainer
 FROM mcr.microsoft.com/vscode/devcontainers/go:${GO_VERSION}-${VARIANT}
 ENV HYDRA_VERSION=1.11.10
 ENV NATS_CLI_VERSION=0.0.35
@@ -13,12 +10,8 @@ RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | gpg --dearmor > /usr/sha
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends \
     bash-completion uuid-runtime iputils-ping zsh \
+    postgresql-common postgresql-client \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
-
-# Set up crdb
-RUN mkdir /usr/local/lib/cockroach
-COPY --from=CRDB /cockroach/cockroach /usr/local/bin
-COPY --from=CRDB /usr/local/lib/cockroach/*.so /usr/local/lib/cockroach/
 
 # Install hydra
 RUN curl -o /tmp/install.sh https://raw.githubusercontent.com/ory/meta/master/install.sh \

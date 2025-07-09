@@ -1,19 +1,26 @@
 services:
-  crdb:
-    image: cockroachdb/cockroach:v22.1.11
-    command: start-single-node --insecure
+  pg:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     ports:
-      - "26257:26257"
-    restart: unless-stopped
+      - "5432:5432"
     networks:
       - governor
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   go:
     image: golang:1.24.5
     depends_on:
-      - crdb
+      pg:
+        condition: service_healthy
     environment:
-      GOVERNOR_DB_URI: postgresql://root@crdb:26257/governor_test?sslmode=disable
+      GOVERNOR_DB_URI: postgresql://postgres:postgres@pg:5432/governor_test?sslmode=disable
     volumes:
       - type: bind
         source: ./

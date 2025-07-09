@@ -2,7 +2,7 @@
 admin-groups:
   - "governor-admins"
 db:
-  uri: "postgresql://root@crdb:26257/defaultdb?sslmode=disable"
+  uri: "postgresql://postgres:postgres@pg:5432/governor_dev?sslmode=disable"
 nats:
   url: "nats://nats:4222"
 oidc:
