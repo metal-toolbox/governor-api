@@ -4,14 +4,14 @@ import (
 	"context"
 	"database/sql"
 
-	// _ "github.com/cockroachdb/cockroach-go/v2/crdb/crdbpgxv5" // crdb retries and postgres interface
-	// Import postgres driver. Needed since cockroach-go stopped importing it in v2.2.10
+	_ "github.com/cockroachdb/cockroach-go/v2/crdb/crdbpgxv5" // crdb retries and postgres interface
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	dbm "github.com/metal-toolbox/governor-api/db/psql"
+	crdbmigrations "github.com/metal-toolbox/governor-api/db/crdb"
+	psqlmigrations "github.com/metal-toolbox/governor-api/db/psql"
 )
 
 // migrateCmd represents the migrate command
@@ -41,6 +41,9 @@ fix                  Apply sequential ordering to migrations
 
 func init() {
 	rootCmd.AddCommand(migrateCmd)
+
+	migrateCmd.PersistentFlags().String("db-driver", "postgres", "Database driver to use for migrations (default: postgres)")
+	viperBindFlag("db.driver", migrateCmd.PersistentFlags().Lookup("db-driver"))
 }
 
 func migrate(ctx context.Context, command string, args []string) {
@@ -55,7 +58,14 @@ func migrate(ctx context.Context, command string, args []string) {
 		}
 	}()
 
-	goose.SetBaseFS(dbm.Migrations)
+	switch viper.GetString("db.driver") {
+	case "postgres":
+		goose.SetBaseFS(psqlmigrations.Migrations)
+	case "crdb":
+		goose.SetBaseFS(crdbmigrations.Migrations)
+	default:
+		logger.Fatalw("unsupported database driver", "driver", viper.GetString("db.driver"))
+	}
 
 	if err := goose.RunContext(ctx, command, db, "migrations", args...); err != nil {
 		logger.Fatalw("migrate command failed", "command", command, "error", err)
@@ -64,7 +74,7 @@ func migrate(ctx context.Context, command string, args []string) {
 
 // RunMigration is meant to assist when manually running a migration or when the migration is embedded.
 func RunMigration(db *sql.DB) {
-	goose.SetBaseFS(dbm.Migrations)
+	goose.SetBaseFS(psqlmigrations.Migrations)
 
 	if err := goose.Up(db, "migrations"); err != nil {
 		logger.Fatalw("migration failed", "error", err)
