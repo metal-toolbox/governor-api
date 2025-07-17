@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/metal-toolbox/governor-api/internal/models"
+	models "github.com/metal-toolbox/governor-api/internal/models/psql"
 
 	"github.com/aarondl/sqlboiler/v4/queries/qm"
 	"github.com/gin-gonic/gin"

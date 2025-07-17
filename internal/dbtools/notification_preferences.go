@@ -13,7 +13,7 @@ import (
 	"github.com/aarondl/sqlboiler/v4/boil"
 	"github.com/aarondl/sqlboiler/v4/queries"
 	"github.com/aarondl/sqlboiler/v4/queries/qm"
-	"github.com/metal-toolbox/governor-api/internal/models"
+	models "github.com/metal-toolbox/governor-api/internal/models/psql"
 )
 
 // ErrDBUpdateNotificationPreferences is returned when there's an error occurred

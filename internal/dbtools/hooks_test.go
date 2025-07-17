@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/metal-toolbox/governor-api/internal/models"
+	models "github.com/metal-toolbox/governor-api/internal/models/psql"
 )
 
 func TestCalculateChangeset(t *testing.T) {

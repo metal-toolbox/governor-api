@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	"github.com/metal-toolbox/governor-api/internal/models"
+	models "github.com/metal-toolbox/governor-api/internal/models/psql"
 )
 
 const (

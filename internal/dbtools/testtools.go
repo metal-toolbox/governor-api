@@ -16,7 +16,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/require"
 
-	"github.com/metal-toolbox/governor-api/internal/models"
+	models "github.com/metal-toolbox/governor-api/internal/models/psql"
 )
 
 var (

@@ -1,6 +1,6 @@
 wipe = true
 pkgname = "models"
-output = "internal/models"
+output = "internal/models/psql"
 no-tests = true
 
 [crdb]

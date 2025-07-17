@@ -1,5 +1,5 @@
 all: lint test
-PHONY: test test-local coverage lint golint clean vendor local-dev-databases docker-up docker-down integration-test unit-test test-users ci-test
+PHONY: test coverage lint golint clean vendor ci-test
 
 PG_STRING=postgres://postgres:postgres@pg:5432
 DB_NAME=governor

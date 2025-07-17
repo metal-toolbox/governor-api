@@ -6,7 +6,7 @@ import (
 	"github.com/aarondl/sqlboiler/v4/boil"
 	"github.com/gin-gonic/gin"
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
-	"github.com/metal-toolbox/governor-api/internal/models"
+	models "github.com/metal-toolbox/governor-api/internal/models/psql"
 )
 
 // UserNotificationPreferences is an alias export for the same struct in
