@@ -18,7 +18,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/metal-toolbox/auditevent/ginaudit"
-	dbm "github.com/metal-toolbox/governor-api/db/crdb"
+	dbm "github.com/metal-toolbox/governor-api/db/psql"
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	"github.com/metal-toolbox/governor-api/internal/eventbus"
 	"github.com/pressly/goose/v3"
@@ -94,15 +94,7 @@ func (s *SystemExtensionResourceTestSuite) SetupSuite() {
 
 	s.conn = &mockNATSConn{}
 
-	ts, err := dbtools.NewCRDBTestServer()
-	if err != nil {
-		panic(err)
-	}
-
-	s.db, err = sql.Open("postgres", ts.PGURL().String())
-	if err != nil {
-		panic(err)
-	}
+	s.db = dbtools.NewPGTestServer(s.T())
 
 	goose.SetBaseFS(dbm.Migrations)
 

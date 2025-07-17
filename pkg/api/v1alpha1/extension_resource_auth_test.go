@@ -14,7 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/metal-toolbox/auditevent/ginaudit"
-	dbm "github.com/metal-toolbox/governor-api/db/crdb"
+	dbm "github.com/metal-toolbox/governor-api/db/psql"
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	"github.com/metal-toolbox/governor-api/internal/eventbus"
 	"github.com/metal-toolbox/governor-api/internal/models"
@@ -221,15 +221,7 @@ func (s *ExtensionResourcesGroupAuthTestSuite) SetupSuite() {
 
 	s.conn = &mockNATSConn{}
 
-	ts, err := dbtools.NewCRDBTestServer()
-	if err != nil {
-		panic(err)
-	}
-
-	s.db, err = sql.Open("postgres", ts.PGURL().String())
-	if err != nil {
-		panic(err)
-	}
+	s.db = dbtools.NewPGTestServer(s.T())
 
 	goose.SetBaseFS(dbm.Migrations)
 

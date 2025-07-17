@@ -14,11 +14,22 @@ services:
       timeout: 5s
       retries: 5
 
-  go:
-    image: golang:1.24.5
+  create-databases:
+    image: postgres:17
+    restart: on-failure:5
     depends_on:
       pg:
         condition: service_healthy
+    environment:
+      PGPASSWORD: postgres
+    networks:
+      - governor
+    command: "psql -h pg -U postgres -c 'CREATE DATABASE governor_test;'"
+
+  go:
+    image: golang:1.24.5
+    depends_on:
+      - create-databases
     environment:
       GOVERNOR_DB_URI: postgresql://postgres:postgres@pg:5432/governor_test?sslmode=disable
     volumes:

@@ -74,7 +74,9 @@ func (s *UniqueConstraintSchema) Validate(ctx *jsonschemav6.ValidatorContext, v 
 			continue
 		}
 
-		qms = append(qms, qm.Where(`resource->>? = ?`, k, v))
+		// Convert value to string for JSON comparison since JSONB ->> operator returns text
+		strValue := fmt.Sprintf("%v", v)
+		qms = append(qms, qm.Where(`resource->>? = ?`, k, strValue))
 		props = append(props, k)
 	}
 
