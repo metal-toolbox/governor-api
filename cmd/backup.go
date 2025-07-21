@@ -57,6 +57,10 @@ var (
 				driver = backupper.DBDriverPostgres
 			}
 
+			if viper.GetBool("restore.migrate") {
+				RunMigration(db.DB)
+			}
+
 			// Perform restore operations using the db connection
 			r := backupper.New(db, driver, backupper.WithLogger(logger.Desugar()))
 
@@ -123,4 +127,6 @@ func init() {
 	viperBindFlag("restore.driver", restoreCMD.Flags().Lookup("driver"))
 	restoreCMD.Flags().String("input", "stdin", "Input source for restore")
 	viperBindFlag("restore.input", restoreCMD.Flags().Lookup("input"))
+	restoreCMD.Flags().Bool("migrate", false, "Enable migration during restore")
+	viperBindFlag("restore.migrate", restoreCMD.Flags().Lookup("migrate"))
 }
