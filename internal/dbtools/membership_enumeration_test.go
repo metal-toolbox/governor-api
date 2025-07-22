@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/aarondl/null/v8"
 	dbm "github.com/metal-toolbox/governor-api/db"
 	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/assert"
-	"github.com/volatiletech/null/v8"
 )
 
 var db *sql.DB

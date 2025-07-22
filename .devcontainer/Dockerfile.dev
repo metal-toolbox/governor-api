@@ -36,8 +36,8 @@ RUN curl -o /tmp/install.sh  https://raw.githubusercontent.com/nats-io/nsc/main/
 
 # [Optional] Uncomment the next lines to use go get to install anything else you need
 RUN go install -v github.com/cweill/gotests/gotests@v1.6.0 \
-    && go install github.com/volatiletech/sqlboiler/v4@latest \
-    && go install github.com/volatiletech/sqlboiler/v4/drivers/sqlboiler-psql@latest \
+    && go install github.com/aarondl/sqlboiler/v4@latest \
+    && go install github.com/aarondl/sqlboiler/v4/drivers/sqlboiler-psql@latest \
     && go install github.com/glerchundi/sqlboiler-crdb/v4@latest \
     && go install github.com/nats-io/natscli/nats@v${NATS_CLI_VERSION} \
     && go install github.com/nats-io/nkeys/nk@latest

@@ -10,14 +10,14 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/aarondl/sqlboiler/v4/boil"
+	"github.com/aarondl/sqlboiler/v4/queries/qm"
 	"github.com/gin-gonic/gin"
 	"github.com/metal-toolbox/auditevent/ginaudit"
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	"github.com/metal-toolbox/governor-api/internal/models"
 	events "github.com/metal-toolbox/governor-api/pkg/events/v1alpha1"
 	"github.com/metal-toolbox/governor-api/pkg/jsonschema"
-	"github.com/volatiletech/sqlboiler/v4/boil"
-	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
 // UserExtensionResource is the user extension resource response

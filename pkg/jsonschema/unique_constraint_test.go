@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/aarondl/sqlboiler/v4/boil"
+	"github.com/aarondl/sqlboiler/v4/queries/qm"
 	dbm "github.com/metal-toolbox/governor-api/db"
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	"github.com/metal-toolbox/governor-api/internal/models"
@@ -13,8 +15,6 @@ import (
 	jsonschemav6 "github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"github.com/volatiletech/sqlboiler/v4/boil"
-	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 )

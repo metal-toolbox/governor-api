@@ -100,7 +100,7 @@ To create data for your local governor instance, while your cockroach instance i
 
 ### Models in Governor
 
-We model database tables with `sqlboiler`, you can find the repo with docs [here](https://github.com/volatiletech/sqlboiler).
+We model database tables with `sqlboiler`, you can find the repo with docs [here](https://github.com/aarondl/sqlboiler).
 
 `sqlboiler` is a database first approach to ORM, in that you first create the database schema when changing the model, then `sqlboiler` autogenerates model code from the database.
 
@@ -114,5 +114,5 @@ If you change this code, you're likely to need these references:
 
 |Link|Description|
 |-|-|
-|[SQLBoiler Readme](https://github.com/volatiletech/sqlboiler)|The readme hosts great documentation for getting started with models or queries|
+|[SQLBoiler Readme](https://github.com/aarondl/sqlboiler)|The readme hosts great documentation for getting started with models or queries|
 |[Gin Readme](https://github.com/gin-gonic/gin)|The gin readme likewise hosts great documentation for query params, and most of what you need|

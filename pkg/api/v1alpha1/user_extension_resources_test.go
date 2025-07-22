@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/aarondl/null/v8"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -21,7 +22,6 @@ import (
 	events "github.com/metal-toolbox/governor-api/pkg/events/v1alpha1"
 	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/suite"
-	"github.com/volatiletech/null/v8"
 	"go.hollow.sh/toolbox/ginauth"
 	"go.uber.org/zap"
 )

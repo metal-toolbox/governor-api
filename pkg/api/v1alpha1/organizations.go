@@ -5,10 +5,10 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/aarondl/sqlboiler/v4/boil"
+	"github.com/aarondl/sqlboiler/v4/queries/qm"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/volatiletech/sqlboiler/v4/boil"
-	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 	"go.uber.org/zap"
 
 	"github.com/metal-toolbox/governor-api/internal/dbtools"

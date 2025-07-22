@@ -143,7 +143,7 @@ generate-models-dc:
 	sqlboiler --add-soft-deletes crdb
 
 generate-models:
-	go install github.com/volatiletech/sqlboiler/v4@latest
+	go install github.com/aarondl/sqlboiler/v4@latest
 	go get -u github.com/glerchundi/sqlboiler-crdb/v4
 	go install github.com/glerchundi/sqlboiler-crdb/v4
 	docker-compose -f docker-compose.yml up -d crdb

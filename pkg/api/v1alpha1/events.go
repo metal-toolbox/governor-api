@@ -8,9 +8,9 @@ import (
 
 	"github.com/metal-toolbox/governor-api/internal/models"
 
+	"github.com/aarondl/sqlboiler/v4/queries/qm"
 	"github.com/gin-gonic/gin"
 	"github.com/metal-toolbox/auditevent/ginaudit"
-	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 	"go.uber.org/zap"
 )
 
