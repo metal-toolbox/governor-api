@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aarondl/sqlboiler/v4/types"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -22,7 +23,6 @@ import (
 	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"github.com/volatiletech/sqlboiler/v4/types"
 	"go.hollow.sh/toolbox/ginauth"
 	"go.uber.org/zap"
 )

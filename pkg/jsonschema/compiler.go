@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/aarondl/sqlboiler/v4/boil"
 	"github.com/metal-toolbox/governor-api/internal/models"
 	jsonschemav6 "github.com/santhosh-tekuri/jsonschema/v6"
-	"github.com/volatiletech/sqlboiler/v4/boil"
 )
 
 // Compiler is a struct for a JSON schema compiler

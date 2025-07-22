@@ -6,10 +6,10 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/aarondl/sqlboiler/v4/boil"
+	"github.com/aarondl/sqlboiler/v4/queries/qm"
 	"github.com/metal-toolbox/governor-api/internal/models"
 	jsonschemav6 "github.com/santhosh-tekuri/jsonschema/v6"
-	"github.com/volatiletech/sqlboiler/v4/boil"
-	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
 var (

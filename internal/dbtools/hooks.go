@@ -7,10 +7,10 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/aarondl/null/v8"
+	"github.com/aarondl/sqlboiler/v4/boil"
+	"github.com/aarondl/sqlboiler/v4/types"
 	"github.com/gosimple/slug"
-	"github.com/volatiletech/null/v8"
-	"github.com/volatiletech/sqlboiler/v4/boil"
-	"github.com/volatiletech/sqlboiler/v4/types"
 
 	"github.com/metal-toolbox/governor-api/internal/models"
 )

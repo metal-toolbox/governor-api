@@ -5,12 +5,12 @@ import (
 	"database/sql"
 	"testing"
 
+	"github.com/aarondl/sqlboiler/v4/queries/qm"
 	"github.com/jmoiron/sqlx"
 	dbm "github.com/metal-toolbox/governor-api/db"
 	"github.com/metal-toolbox/governor-api/internal/models"
 	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/suite"
-	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
 // NotificationPreferencesTestSuite is a test suite to run unit tests on

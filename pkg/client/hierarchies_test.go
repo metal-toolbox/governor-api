@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/aarondl/null/v8"
 	"github.com/metal-toolbox/governor-api/pkg/api/v1alpha1"
 	"github.com/stretchr/testify/assert"
-	"github.com/volatiletech/null/v8"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2"
 )

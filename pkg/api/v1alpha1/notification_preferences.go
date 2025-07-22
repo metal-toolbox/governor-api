@@ -3,10 +3,10 @@ package v1alpha1
 import (
 	"net/http"
 
+	"github.com/aarondl/sqlboiler/v4/boil"
 	"github.com/gin-gonic/gin"
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	"github.com/metal-toolbox/governor-api/internal/models"
-	"github.com/volatiletech/sqlboiler/v4/boil"
 )
 
 // UserNotificationPreferences is an alias export for the same struct in
