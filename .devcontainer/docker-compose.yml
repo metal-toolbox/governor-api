@@ -119,7 +119,7 @@ services:
       - governor
 
   trace:
-    image: jaegertracing/all-in-one:1.48
+    image: jaegertracing/all-in-one:1.60
     ports:
       - "6831:6831/udp"
       - "6832:6832/udp"
