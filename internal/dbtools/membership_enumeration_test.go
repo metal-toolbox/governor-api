@@ -7,53 +7,52 @@ import (
 	"testing"
 
 	"github.com/aarondl/null/v8"
-	dbm "github.com/metal-toolbox/governor-api/db"
+	dbm "github.com/metal-toolbox/governor-api/db/psql"
 	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
-var db *sql.DB
+// MembershipEnumerationTestSuite is a test suite to run unit tests on
+// all membership enumeration db tests
+type MembershipEnumerationTestSuite struct {
+	suite.Suite
 
-func init() {
-	ts, err := NewCRDBTestServer()
-	if err != nil {
-		panic(err)
-	}
+	db *sql.DB
+}
 
-	db, err = sql.Open("postgres", ts.PGURL().String())
-	if err != nil {
-		panic(err)
-	}
+func (s *MembershipEnumerationTestSuite) SetupSuite() {
+	s.db = NewPGTestServer(s.T())
 
 	goose.SetBaseFS(dbm.Migrations)
 
-	if err := goose.Up(db, "migrations"); err != nil {
+	if err := goose.Up(s.db, "migrations"); err != nil {
 		panic("migration failed - could not set up test db")
 	}
 
-	err = seedTestDB(db)
+	err := s.seedTestDB()
 	if err != nil {
 		panic("db setup failed - could not seed test db")
 	}
 }
 
-func TestServerRunning(t *testing.T) {
+func (s *MembershipEnumerationTestSuite) TestServerRunning() {
 	var c int
 
-	r, err := db.Query("SELECT COUNT(*) AS c FROM users;")
+	r, err := s.db.Query("SELECT COUNT(*) AS c FROM users;")
 	if err != nil {
-		t.Fatal("could not query test database", err)
+		s.T().Fatal("could not query test database", err)
 	}
 
 	r.Next()
 
 	scan := r.Scan(&c)
 
-	assert.NoError(t, scan)
-	assert.Equal(t, c, 5)
+	assert.NoError(s.T(), scan)
+	assert.Equal(s.T(), c, 5)
 }
 
-func TestGetAllGroupMemberships(t *testing.T) {
+func (s *MembershipEnumerationTestSuite) TestGetAllGroupMemberships() {
 	expect := []EnumeratedMembership{
 		{
 			UserID:    "00000001-0000-0000-0000-000000000001",
@@ -127,14 +126,14 @@ func TestGetAllGroupMemberships(t *testing.T) {
 		},
 	}
 
-	allMemberships, err := GetAllGroupMemberships(context.TODO(), db, false)
+	allMemberships, err := GetAllGroupMemberships(context.TODO(), s.db, false)
 
-	if assert.NoError(t, err) {
-		assert.True(t, assert.ElementsMatch(t, allMemberships, expect))
+	if assert.NoError(s.T(), err) {
+		assert.True(s.T(), assert.ElementsMatch(s.T(), allMemberships, expect))
 	}
 }
 
-func TestGetMembershipsForUser(t *testing.T) {
+func (s *MembershipEnumerationTestSuite) TestGetMembershipsForUser() {
 	testCases := map[string][]EnumeratedMembership{
 		"00000001-0000-0000-0000-000000000001": {
 			{
@@ -219,8 +218,8 @@ func TestGetMembershipsForUser(t *testing.T) {
 	}
 
 	for user, expect := range testCases {
-		t.Run(fmt.Sprintf("groups for user: %s", user), func(t *testing.T) {
-			enumeratedMemberships, err := GetMembershipsForUser(context.TODO(), db, user, false)
+		s.T().Run(fmt.Sprintf("groups for user: %s", user), func(t *testing.T) {
+			enumeratedMemberships, err := GetMembershipsForUser(context.TODO(), s.db, user, false)
 
 			if assert.NoError(t, err) {
 				assert.True(t, assert.ElementsMatch(t, enumeratedMemberships, expect))
@@ -229,7 +228,7 @@ func TestGetMembershipsForUser(t *testing.T) {
 	}
 }
 
-func TestGetMembersOfGroup(t *testing.T) {
+func (s *MembershipEnumerationTestSuite) TestGetMembersOfGroup() {
 	testCases := map[string][]EnumeratedMembership{
 		"00000002-0000-0000-0000-000000000003": {
 			{
@@ -312,8 +311,8 @@ func TestGetMembersOfGroup(t *testing.T) {
 	}
 
 	for user, expect := range testCases {
-		t.Run(fmt.Sprintf("users for group: %s", user), func(t *testing.T) {
-			enumeratedMemberships, err := GetMembersOfGroup(context.TODO(), db, user, false)
+		s.T().Run(fmt.Sprintf("users for group: %s", user), func(t *testing.T) {
+			enumeratedMemberships, err := GetMembersOfGroup(context.TODO(), s.db, user, false)
 
 			if assert.NoError(t, err) {
 				assert.True(t, assert.ElementsMatch(t, enumeratedMemberships, expect))
@@ -322,7 +321,7 @@ func TestGetMembersOfGroup(t *testing.T) {
 	}
 }
 
-func TestHierarchyWouldCreateCycle(t *testing.T) {
+func (s *MembershipEnumerationTestSuite) TestHierarchyWouldCreateCycle() {
 	type testCase struct {
 		parent string
 		member string
@@ -338,8 +337,8 @@ func TestHierarchyWouldCreateCycle(t *testing.T) {
 	}
 
 	for test, expect := range testCases {
-		t.Run(fmt.Sprintf("test for cycle: %s member of %s", test.member, test.parent), func(t *testing.T) {
-			result, err := HierarchyWouldCreateCycle(context.TODO(), db, test.parent, test.member)
+		s.T().Run(fmt.Sprintf("test for cycle: %s member of %s", test.member, test.parent), func(t *testing.T) {
+			result, err := HierarchyWouldCreateCycle(context.TODO(), s.db, test.parent, test.member)
 
 			assert.NoError(t, err)
 
@@ -369,7 +368,7 @@ func TestHierarchyWouldCreateCycle(t *testing.T) {
 //     │        ▼
 //     └────► User5
 
-func seedTestDB(db *sql.DB) error {
+func (s *MembershipEnumerationTestSuite) seedTestDB() error {
 	testData := []string{
 		`INSERT INTO "users" ("id", "external_id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
 		('00000001-0000-0000-0000-000000000001', NULL, 'User1', 'user1@email.com', 0, NULL, NULL, '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL, NULL, NULL, 'pending');`,
@@ -418,11 +417,16 @@ func seedTestDB(db *sql.DB) error {
 		('00000004-0000-0000-0000-000000000004', '00000002-0000-0000-0000-000000000004', '00000002-0000-0000-0000-000000000005', '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL);`,
 	}
 	for _, q := range testData {
-		_, err := db.Query(q)
+		_, err := s.db.Query(q)
 		if err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+// TestMembershipEnumerationSuite runs the membership enumeration test suite
+func TestMembershipEnumerationSuite(t *testing.T) {
+	suite.Run(t, new(MembershipEnumerationTestSuite))
 }

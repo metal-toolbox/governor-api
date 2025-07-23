@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/aarondl/sqlboiler/v4/boil"
-	"github.com/metal-toolbox/governor-api/internal/models"
+	models "github.com/metal-toolbox/governor-api/internal/models/psql"
 	jsonschemav6 "github.com/santhosh-tekuri/jsonschema/v6"
 )
 

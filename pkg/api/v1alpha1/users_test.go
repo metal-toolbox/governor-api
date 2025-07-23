@@ -16,10 +16,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/metal-toolbox/auditevent/ginaudit"
-	dbm "github.com/metal-toolbox/governor-api/db"
+	dbm "github.com/metal-toolbox/governor-api/db/psql"
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	"github.com/metal-toolbox/governor-api/internal/eventbus"
-	"github.com/metal-toolbox/governor-api/internal/models"
+	models "github.com/metal-toolbox/governor-api/internal/models/psql"
 	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -67,18 +67,7 @@ func (s *UserTestSuite) v1alpha1() *Router {
 
 func (s *UserTestSuite) SetupSuite() {
 	s.conn = &mockNATSConn{}
-
-	gin.SetMode(gin.TestMode)
-
-	ts, err := dbtools.NewCRDBTestServer()
-	if err != nil {
-		panic(err)
-	}
-
-	s.db, err = sql.Open("postgres", ts.PGURL().String())
-	if err != nil {
-		panic(err)
-	}
+	s.db = dbtools.NewPGTestServer(s.T())
 
 	goose.SetBaseFS(dbm.Migrations)
 

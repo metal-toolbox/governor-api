@@ -13,7 +13,7 @@ import (
 	"github.com/aarondl/sqlboiler/v4/boil"
 	"github.com/aarondl/sqlboiler/v4/queries"
 	"github.com/aarondl/sqlboiler/v4/queries/qm"
-	"github.com/metal-toolbox/governor-api/internal/models"
+	models "github.com/metal-toolbox/governor-api/internal/models/psql"
 )
 
 // ErrDBUpdateNotificationPreferences is returned when there's an error occurred
@@ -100,7 +100,7 @@ func GetNotificationPreferences(ctx context.Context, uid string, ex boil.Context
 		`
 		SELECT
 			nd.type_slug AS notification_type,
-			jsonb_agg((nd.target_slug, IFNULL(np.enabled, nd.default_enabled))) AS notification_targets
+			jsonb_agg((nd.target_slug, COALESCE(np.enabled, nd.default_enabled))) AS notification_targets
 		FROM notification_defaults as nd
 		FULL OUTER JOIN np on (np.target_id = nd.target_id AND np.type_id = nd.type_id)
 		WHERE nd.type_slug IS NOT NULL

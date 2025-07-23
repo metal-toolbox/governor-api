@@ -11,7 +11,7 @@ import (
 	"github.com/metal-toolbox/auditevent/ginaudit"
 
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
-	"github.com/metal-toolbox/governor-api/internal/models"
+	models "github.com/metal-toolbox/governor-api/internal/models/psql"
 	events "github.com/metal-toolbox/governor-api/pkg/events/v1alpha1"
 )
 

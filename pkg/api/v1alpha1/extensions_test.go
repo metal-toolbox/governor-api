@@ -14,10 +14,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/metal-toolbox/auditevent/ginaudit"
-	dbm "github.com/metal-toolbox/governor-api/db"
+	dbm "github.com/metal-toolbox/governor-api/db/psql"
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	"github.com/metal-toolbox/governor-api/internal/eventbus"
-	"github.com/metal-toolbox/governor-api/internal/models"
+	models "github.com/metal-toolbox/governor-api/internal/models/psql"
 	events "github.com/metal-toolbox/governor-api/pkg/events/v1alpha1"
 	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/assert"
@@ -69,15 +69,7 @@ func (s *ExtensionsTestSuite) SetupSuite() {
 
 	gin.SetMode(gin.TestMode)
 
-	ts, err := dbtools.NewCRDBTestServer()
-	if err != nil {
-		panic(err)
-	}
-
-	s.db, err = sql.Open("postgres", ts.PGURL().String())
-	if err != nil {
-		panic(err)
-	}
+	s.db = dbtools.NewPGTestServer(s.T())
 
 	goose.SetBaseFS(dbm.Migrations)
 

@@ -12,7 +12,7 @@ import (
 	"github.com/aarondl/sqlboiler/v4/types"
 	"github.com/gosimple/slug"
 
-	"github.com/metal-toolbox/governor-api/internal/models"
+	models "github.com/metal-toolbox/governor-api/internal/models/psql"
 )
 
 // RegisterHooks adds any hooks that are configured to the models library

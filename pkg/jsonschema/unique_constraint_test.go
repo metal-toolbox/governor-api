@@ -8,9 +8,9 @@ import (
 
 	"github.com/aarondl/sqlboiler/v4/boil"
 	"github.com/aarondl/sqlboiler/v4/queries/qm"
-	dbm "github.com/metal-toolbox/governor-api/db"
+	dbm "github.com/metal-toolbox/governor-api/db/psql"
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
-	"github.com/metal-toolbox/governor-api/internal/models"
+	models "github.com/metal-toolbox/governor-api/internal/models/psql"
 	"github.com/pressly/goose/v3"
 	jsonschemav6 "github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/stretchr/testify/assert"
@@ -50,15 +50,7 @@ func (s *UniqueConstrainTestSuite) seedTestDB() error {
 }
 
 func (s *UniqueConstrainTestSuite) SetupSuite() {
-	ts, err := dbtools.NewCRDBTestServer()
-	if err != nil {
-		panic(err)
-	}
-
-	s.db, err = sql.Open("postgres", ts.PGURL().String())
-	if err != nil {
-		panic(err)
-	}
+	s.db = dbtools.NewPGTestServer(s.T())
 
 	goose.SetBaseFS(dbm.Migrations)
 

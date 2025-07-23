@@ -8,7 +8,7 @@ import (
 
 	"github.com/aarondl/sqlboiler/v4/boil"
 	"github.com/aarondl/sqlboiler/v4/queries/qm"
-	"github.com/metal-toolbox/governor-api/internal/models"
+	models "github.com/metal-toolbox/governor-api/internal/models/psql"
 	jsonschemav6 "github.com/santhosh-tekuri/jsonschema/v6"
 )
 
@@ -74,7 +74,9 @@ func (s *UniqueConstraintSchema) Validate(ctx *jsonschemav6.ValidatorContext, v 
 			continue
 		}
 
-		qms = append(qms, qm.Where(`resource->>? = ?`, k, v))
+		// Convert value to string for JSON comparison since JSONB ->> operator returns text
+		strValue := fmt.Sprintf("%v", v)
+		qms = append(qms, qm.Where(`resource->>? = ?`, k, strValue))
 		props = append(props, k)
 	}
 

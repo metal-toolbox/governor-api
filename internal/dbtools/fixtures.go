@@ -4,7 +4,7 @@
 package dbtools
 
 import (
-	"github.com/metal-toolbox/governor-api/internal/models"
+	models "github.com/metal-toolbox/governor-api/internal/models/psql"
 )
 
 //nolint:revive

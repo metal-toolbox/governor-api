@@ -7,8 +7,8 @@ import (
 
 	"github.com/aarondl/sqlboiler/v4/queries/qm"
 	"github.com/jmoiron/sqlx"
-	dbm "github.com/metal-toolbox/governor-api/db"
-	"github.com/metal-toolbox/governor-api/internal/models"
+	dbm "github.com/metal-toolbox/governor-api/db/psql"
+	models "github.com/metal-toolbox/governor-api/internal/models/psql"
 	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/suite"
 )
@@ -48,15 +48,7 @@ func (s *NotificationPreferencesTestSuite) seedTestDB() error {
 }
 
 func (s *NotificationPreferencesTestSuite) SetupSuite() {
-	ts, err := NewCRDBTestServer()
-	if err != nil {
-		panic(err)
-	}
-
-	s.db, err = sql.Open("postgres", ts.PGURL().String())
-	if err != nil {
-		panic(err)
-	}
+	s.db = NewPGTestServer(s.T())
 
 	goose.SetBaseFS(dbm.Migrations)
 
