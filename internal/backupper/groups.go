@@ -101,31 +101,31 @@ func (b *Backupper) sort(in []*sortable) []*sortable {
 	)
 
 	// topological sort with DFS
-	dfs = func(nodes *sortable) bool {
-		if recursionMap[nodes.id] {
-			b.logger.Warn("Detected cycle in group dependencies", zap.String("group_id", nodes.id))
+	dfs = func(node *sortable) bool {
+		if recursionMap[node.id] {
+			b.logger.Warn("Detected cycle in group dependencies", zap.String("group_id", node.id))
 			return false
 		}
 
-		if visited[nodes.id] {
+		if visited[node.id] {
 			return true
 		}
 
-		visited[nodes.id] = true
-		recursionMap[nodes.id] = true
+		visited[node.id] = true
+		recursionMap[node.id] = true
 
 		// if node has parent and exists in map
-		if m, exists := existsMap[nodes.parent]; exists {
+		if m, exists := existsMap[node.parent]; exists {
 			if !dfs(m) {
 				// circular dependency detected
-				recursionMap[nodes.id] = false
+				recursionMap[node.id] = false
 				return false
 			}
 		}
 
-		recursionMap[nodes.id] = false
+		recursionMap[node.id] = false
 
-		result = append(result, nodes)
+		result = append(result, node)
 
 		return true
 	}
