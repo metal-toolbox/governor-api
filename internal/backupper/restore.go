@@ -29,9 +29,12 @@ func (b *Backupper) Restore(ctx context.Context, reader io.Reader) error {
 			return err
 		}
 
+		sortableGroups := b.psqlGroupsToSortable(data.Groups)
+		sorted := b.sortPSQLGroups(sortableGroups)
+
 		restorationGroups = []restorationGroup{
 			{name: "application types", data: toInsertable(data.ApplicationTypes)},
-			{name: "groups", data: toInsertable(data.Groups)},
+			{name: "groups", data: toInsertable(sorted)},
 			{name: "users", data: toInsertable(data.Users)},
 			{name: "extensions", data: toInsertable(data.Extensions)},
 			{name: "notification targets", data: toInsertable(data.NotificationTargets)},
@@ -58,9 +61,12 @@ func (b *Backupper) Restore(ctx context.Context, reader io.Reader) error {
 			return err
 		}
 
+		sortableGroups := b.crdbGroupsToSortable(data.Groups)
+		sorted := b.sortCRDBGroups(sortableGroups)
+
 		restorationGroups = []restorationGroup{
 			{name: "application types", data: toInsertable(data.ApplicationTypes)},
-			{name: "groups", data: toInsertable(data.Groups)},
+			{name: "groups", data: toInsertable(sorted)},
 			{name: "users", data: toInsertable(data.Users)},
 			{name: "extensions", data: toInsertable(data.Extensions)},
 			{name: "notification targets", data: toInsertable(data.NotificationTargets)},
