@@ -114,12 +114,14 @@ func (b *Backupper) sort(in []*sortable) []*sortable {
 		visited[node.id] = true
 		recursionMap[node.id] = true
 
-		// if node has parent and exists in map
-		if m, exists := existsMap[node.parent]; exists {
-			if !dfs(m) {
-				// circular dependency detected
-				recursionMap[node.id] = false
-				return false
+		// if node has a non-empty parent and exists in map
+		if node.parent != "" {
+			if m, exists := existsMap[node.parent]; exists {
+				if !dfs(m) {
+					// circular dependency detected
+					recursionMap[node.id] = false
+					return false
+				}
 			}
 		}
 
