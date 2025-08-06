@@ -16,7 +16,7 @@ services:
       retries: 5
 
   go:
-    image: golang:1.24.5
+    image: golang:1.24.6
     depends_on:
       pg:
         condition: service_healthy
