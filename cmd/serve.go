@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -19,8 +20,8 @@ import (
 var serveCmd = &cobra.Command{
 	Use:   "serve",
 	Short: "starts the governor api server",
-	RunE: func(_ *cobra.Command, _ []string) error {
-		return startAPI()
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		return startAPI(cmd.Context())
 	},
 }
 
@@ -36,7 +37,7 @@ func init() {
 	ginjwt.RegisterViperOIDCFlags(viper.GetViper(), serveCmd)
 }
 
-func startAPI() error {
+func startAPI(ctx context.Context) error {
 	logger.Debug("initializing tracer and database")
 
 	db := initTracingAndDB()
@@ -124,7 +125,7 @@ func startAPI() error {
 		"nats.subject-prefix", viper.GetString("nats.subject-prefix"),
 	)
 
-	nc, natsClose, err := newNATSConnection(viper.GetViper())
+	nc, natsClose, err := newNATSConnection(ctx, viper.GetViper())
 	if err != nil {
 		return err
 	}

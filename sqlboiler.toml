@@ -12,7 +12,7 @@ sslmode = "disable"
 blacklist = ["goose_db_version", "notification_defaults"]
 
 [psql]
-dbname = "governor_dev"
+dbname = "governor_test"
 host = "pg"
 port = 5432
 user = "postgres"

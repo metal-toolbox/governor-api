@@ -3,7 +3,6 @@ package cmd
 
 import (
 	"strings"
-	"time"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
@@ -13,8 +12,7 @@ import (
 )
 
 const (
-	appName                         = "governor-api"
-	defaultIAMRuntimeTimeoutSeconds = 15
+	appName = "governor-api"
 )
 
 var (
@@ -65,15 +63,17 @@ func init() {
 	rootCmd.PersistentFlags().String("nats-subject-prefix", "governor.events", "prefix for NATS subjects")
 	viperBindFlag("nats.subject-prefix", rootCmd.PersistentFlags().Lookup("nats-subject-prefix"))
 
-	rootCmd.PersistentFlags().Bool("nats-use-runtime-access-token", false, "use IAM runtime to authenticate to NATS")
-	viperBindFlag("nats.use-runtime-access-token", rootCmd.PersistentFlags().Lookup("nats-use-runtime-access-token"))
+	rootCmd.PersistentFlags().Bool("nats-workload-identity-federation-enabled", false, "use workload identity federation to authenticate to NATS")
+	viperBindFlag("nats.workload-identity-federation.enabled", rootCmd.PersistentFlags().Lookup("nats-workload-identity-federation-enabled"))
 
-	// IAM runtime
-	rootCmd.PersistentFlags().String("iam-runtime-socket", "unix:///tmp/runtime.sock", "IAM runtime socket path")
-	viperBindFlag("iam-runtime.socket", rootCmd.PersistentFlags().Lookup("iam-runtime-socket"))
+	rootCmd.PersistentFlags().String("nats-workload-identity-federation-token-url", "", "workload identity federation token URL")
+	viperBindFlag("nats.workload-identity-federation.token-url", rootCmd.PersistentFlags().Lookup("nats-workload-identity-federation-token-url"))
 
-	rootCmd.PersistentFlags().Duration("iam-runtime-timeout", defaultIAMRuntimeTimeoutSeconds*time.Second, "IAM runtime timeout")
-	viperBindFlag("iam-runtime.timeout", rootCmd.PersistentFlags().Lookup("iam-runtime-timeout"))
+	rootCmd.PersistentFlags().String("nats-workload-identity-federation-kube-service-account", "", "Kubernetes service account token file path")
+	viperBindFlag("nats.workload-identity-federation.kube-service-account", rootCmd.PersistentFlags().Lookup("nats-workload-identity-federation-kube-service-account"))
+
+	rootCmd.PersistentFlags().StringSlice("nats-workload-identity-federation-scopes", []string{}, "workload identity federation scopes")
+	viperBindFlag("nats.workload-identity-federation.scopes", rootCmd.PersistentFlags().Lookup("nats-workload-identity-federation-scopes"))
 }
 
 // initConfig reads in config file and ENV variables if set.
