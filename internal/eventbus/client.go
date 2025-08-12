@@ -125,5 +125,13 @@ func (c *Client) Publish(ctx context.Context, sub string, event *events.Event) e
 		Header:  headers,
 	}
 
-	return c.conn.PublishMsg(msg)
+	if err := c.conn.PublishMsg(msg); err != nil {
+		c.logger.Error("failed to publish event to the event bus", zap.Error(err))
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
+
+		return err
+	}
+
+	return nil
 }
