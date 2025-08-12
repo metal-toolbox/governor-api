@@ -5,12 +5,15 @@ import (
 	"net/http"
 	"time"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2"
 )
 
 const (
-	defaultReuseExpiry = 30 * time.Second
+	defaultReuseExpiry    = 30 * time.Second
+	defaultRequestTimeout = 15 * time.Second
 )
 
 // SubjectTokenFn is a function that retrieves the subject token.
@@ -24,12 +27,14 @@ type WorkloadTokenSource struct {
 	audience         string
 	httpClient       *http.Client
 	tokenReuseExpiry time.Duration
-
+	requestTimeout   time.Duration
 	subjectTokenType SubjectTokenType
+	token            *oauth2.Token
+	subjectToken     *oauth2.Token
 
 	ctx    context.Context
 	logger *zap.Logger
-	token  *oauth2.Token
+	tracer trace.Tracer
 }
 
 // Option is a functional config option for the TokenSource.
@@ -45,12 +50,14 @@ func NewWorkloadTokenSource(
 		ctx:              ctx,
 		tokenURL:         tokenurl,
 		httpClient:       http.DefaultClient,
+		requestTimeout:   defaultRequestTimeout,
 		tokenReuseExpiry: defaultReuseExpiry,
 		subjectTokenType: DefaultSubjectTokenType,
 		logger:           zap.NewNop(),
+		tracer:           otel.GetTracerProvider().Tracer("github.com/metal-toolbox/governor-api:workloadidentity"),
 	}
 
-	w.subjectTokenFn = kubeServiceAccountTokenFn(defaultKubeServiceAccountPath, w.logger)
+	w.subjectTokenFn = w.kubeServiceAccountTokenFn(defaultKubeServiceAccountPath)
 
 	for _, opt := range opts {
 		opt(w)
@@ -70,10 +77,10 @@ func NewTokenSource(
 
 // WithKubeSubjectToken sets the function to retrieve subject token from a kubernetes
 // service account token file.
-func WithKubeSubjectToken(tokenPath string) Option {
+func WithKubeSubjectToken(tokenPath string, tt SubjectTokenType) Option {
 	return func(w *WorkloadTokenSource) {
-		w.subjectTokenFn = kubeServiceAccountTokenFn(tokenPath, w.logger)
-		w.subjectTokenType = DefaultSubjectTokenType
+		w.subjectTokenFn = w.kubeServiceAccountTokenFn(tokenPath)
+		w.subjectTokenType = tt
 	}
 }
 
@@ -118,5 +125,19 @@ func WithAudience(aud string) Option {
 func WithHTTPClient(client *http.Client) Option {
 	return func(w *WorkloadTokenSource) {
 		w.httpClient = client
+	}
+}
+
+// WithRequestTimeout sets the request timeout for token requests.
+func WithRequestTimeout(timeout time.Duration) Option {
+	return func(w *WorkloadTokenSource) {
+		w.requestTimeout = timeout
+	}
+}
+
+// WithTracer sets the tracer for the WorkloadTokenSource.
+func WithTracer(tracer trace.Tracer) Option {
+	return func(w *WorkloadTokenSource) {
+		w.tracer = tracer
 	}
 }

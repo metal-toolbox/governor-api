@@ -1,6 +1,7 @@
 package workloadidentity
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -9,6 +10,10 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/zap"
 	"golang.org/x/oauth2"
 )
 
@@ -65,22 +70,37 @@ type TokenExchangeErrorResponse struct {
 
 // Token returns a new OAuth2 token for the workload identity.
 func (w *WorkloadTokenSource) Token() (*oauth2.Token, error) {
+	ctx, span := w.tracer.Start(w.ctx, "WorkloadTokenSource.Token", trace.WithNewRoot())
+	defer span.End()
+
 	if w.token != nil && time.Until(w.token.Expiry) > w.tokenReuseExpiry {
+		span.AddEvent("token reused")
+		span.SetAttributes(attribute.Int64("exp", w.token.Expiry.Unix()))
+
 		return w.token, nil
 	}
 
-	subjectToken, err := w.subjectTokenFn(w.ctx)
-	if err != nil {
-		return nil, fmt.Errorf("error getting subject token: %w", err)
-	}
+	var subjectToken string
+	if w.subjectToken != nil && time.Until(w.subjectToken.Expiry) > w.tokenReuseExpiry {
+		subjectToken = w.subjectToken.AccessToken
+	} else {
+		st, err := w.subjectTokenFn(w.ctx)
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "error getting subject token")
 
-	s := strings.TrimSpace(subjectToken.AccessToken)
+			return nil, fmt.Errorf("error getting subject token: %w", err)
+		}
+
+		w.subjectToken = st
+		subjectToken = st.AccessToken
+	}
 
 	form := url.Values{}
 
 	form.Add("grant_type", grantType)
 	form.Add("subject_token_type", string(w.subjectTokenType))
-	form.Add("subject_token", s)
+	form.Add("subject_token", subjectToken)
 
 	if len(w.scopes) > 0 {
 		form.Add("scope", strings.Join(w.scopes, " "))
@@ -90,8 +110,14 @@ func (w *WorkloadTokenSource) Token() (*oauth2.Token, error) {
 		form.Add("audience", w.audience)
 	}
 
-	req, err := http.NewRequestWithContext(w.ctx, http.MethodPost, w.tokenURL, strings.NewReader(form.Encode()))
+	ctx, cancel := context.WithTimeout(ctx, w.requestTimeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, w.tokenURL, strings.NewReader(form.Encode()))
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "error creating request")
+
 		return nil, fmt.Errorf("error creating request: %w", err)
 	}
 
@@ -99,6 +125,9 @@ func (w *WorkloadTokenSource) Token() (*oauth2.Token, error) {
 
 	resp, err := w.httpClient.Do(req)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "error sending request")
+
 		return nil, fmt.Errorf("error sending request: %w", err)
 	}
 
@@ -107,6 +136,9 @@ func (w *WorkloadTokenSource) Token() (*oauth2.Token, error) {
 	if resp.StatusCode >= http.StatusBadRequest {
 		var errorResponse TokenExchangeErrorResponse
 		if err := json.NewDecoder(resp.Body).Decode(&errorResponse); err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "error decoding response")
+
 			return nil, fmt.Errorf(
 				"%w: exchange failed with %s", ErrExchangingToken, resp.Status,
 			)
@@ -120,23 +152,39 @@ func (w *WorkloadTokenSource) Token() (*oauth2.Token, error) {
 			errmsg = errorResponse.Error
 		}
 
-		return nil, fmt.Errorf("%w: %s", ErrExchangingToken, errmsg)
+		err := fmt.Errorf("%w: %s", ErrExchangingToken, errmsg)
+
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "error exchanging token")
+
+		return nil, err
 	}
 
 	var successResponse TokenExchangeSuccessfulResponse
 	if err := json.NewDecoder(resp.Body).Decode(&successResponse); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "error decoding success response")
+
 		return nil, fmt.Errorf("error decoding success response: %w", err)
 	}
 
 	t, _, err := jwt.NewParser().ParseUnverified(successResponse.AccessToken, jwt.MapClaims{})
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "error parsing access token")
+
 		return nil, fmt.Errorf("error parsing access token: %w", err)
 	}
 
 	exp, err := t.Claims.GetExpirationTime()
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "error getting expiration time")
+
 		return nil, fmt.Errorf("error getting expiration time: %w", err)
 	}
+
+	w.logger.Debug("exchanged token", zap.Any("claims", t.Claims))
 
 	w.token = &oauth2.Token{
 		AccessToken: successResponse.AccessToken,

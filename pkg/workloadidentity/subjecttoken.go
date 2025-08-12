@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"go.opentelemetry.io/otel/codes"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2"
 )
@@ -14,26 +16,34 @@ import (
 const defaultKubeServiceAccountPath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 
 // kubeServiceAccountTokenFn returns a function that retrieves the Kubernetes service account token.
-func kubeServiceAccountTokenFn(path string, logger *zap.Logger) SubjectTokenFn {
-	if logger == nil {
-		logger = zap.NewNop()
-	}
+func (w *WorkloadTokenSource) kubeServiceAccountTokenFn(path string) SubjectTokenFn {
+	return func(ctx context.Context) (*oauth2.Token, error) {
+		_, span := w.tracer.Start(ctx, "kubeServiceAccountTokenFn")
+		defer span.End()
 
-	return func(_ context.Context) (*oauth2.Token, error) {
 		tokenData, err := os.ReadFile(path)
 		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "error reading kube token file")
+
 			return nil, fmt.Errorf("error reading kube token file: %w", err)
 		}
 
-		tokenstr := string(tokenData)
+		tokenstr := strings.TrimSpace(string(tokenData))
 
 		token, _, err := jwt.NewParser().ParseUnverified(tokenstr, jwt.MapClaims{})
 		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "error parsing kube token")
+
 			return nil, fmt.Errorf("error parsing kube token: %w", err)
 		}
 
 		exp, err := token.Claims.GetExpirationTime()
 		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "error getting expiration time")
+
 			return nil, fmt.Errorf("error getting expiration time: %w", err)
 		}
 
@@ -42,7 +52,7 @@ func kubeServiceAccountTokenFn(path string, logger *zap.Logger) SubjectTokenFn {
 			expiryTime = exp.Time
 		}
 
-		logger.Debug(
+		w.logger.Debug(
 			"subject token",
 			zap.Time("exp", expiryTime),
 			zap.Any("claims", token.Claims),
