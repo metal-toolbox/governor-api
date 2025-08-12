@@ -24,7 +24,7 @@ require (
 	github.com/metal-toolbox/iam-runtime v0.4.1
 	github.com/metal-toolbox/iam-runtime-contrib v1.0.1
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/nats-io/nats.go v1.43.0
+	github.com/nats-io/nats.go v1.44.0
 	github.com/peterldowns/pgtestdb v0.1.1
 	github.com/pressly/goose/v3 v3.24.3
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2
