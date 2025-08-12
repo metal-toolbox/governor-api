@@ -146,9 +146,12 @@ func (w *WorkloadTokenSource) Token() (*oauth2.Token, error) {
 
 		var errmsg string
 
-		if errorResponse.ErrorDescription != "" {
+		switch {
+		case errorResponse.Error == "":
+			errmsg = "no additional information was provided by IDP"
+		case errorResponse.ErrorDescription != "":
 			errmsg = fmt.Sprintf("%s: %s", errorResponse.Error, errorResponse.ErrorDescription)
-		} else {
+		default:
 			errmsg = errorResponse.Error
 		}
 
