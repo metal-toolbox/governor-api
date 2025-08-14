@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"database/sql"
 	"io"
 	"os"
@@ -23,7 +24,7 @@ var (
 			driverstr := viper.GetString("backup.driver")
 			conn := viper.GetString("db.uri")
 
-			db := newBackupDB(conn)
+			db := newBackupDB(cmd.Context(), conn)
 			defer db.Close()
 
 			driver := backupper.DBDriverCRDB
@@ -49,7 +50,7 @@ var (
 			driverstr := viper.GetString("restore.driver")
 			conn := viper.GetString("db.uri")
 
-			db := newBackupDB(conn)
+			db := newBackupDB(cmd.Context(), conn)
 			defer db.Close()
 
 			driver := backupper.DBDriverCRDB
@@ -98,7 +99,7 @@ func inputReader() io.Reader {
 	return file
 }
 
-func newBackupDB(conn string) *sqlx.DB {
+func newBackupDB(ctx context.Context, conn string) *sqlx.DB {
 	connector, err := pq.NewConnector(conn)
 	if err != nil {
 		logger.Fatalw("failed initializing sql connector", "error", err)
@@ -107,7 +108,7 @@ func newBackupDB(conn string) *sqlx.DB {
 	innerDB := sql.OpenDB(connector)
 	db := sqlx.NewDb(innerDB, "postgres")
 
-	if err := db.Ping(); err != nil {
+	if err := db.PingContext(ctx); err != nil {
 		logger.Fatalw("failed verifying database connection", "error", err)
 	}
 

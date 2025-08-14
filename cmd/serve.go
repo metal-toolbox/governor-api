@@ -40,7 +40,7 @@ func init() {
 func startAPI(ctx context.Context) error {
 	logger.Debug("initializing tracer and database")
 
-	db := initTracingAndDB()
+	db := initTracingAndDB(ctx)
 
 	dbtools.RegisterHooks()
 
@@ -125,12 +125,12 @@ func startAPI(ctx context.Context) error {
 		"nats.subject-prefix", viper.GetString("nats.subject-prefix"),
 	)
 
-	nc, natsClose, err := newNATSConnection(ctx, viper.GetViper())
+	nc, err := appConfig.NATSConn(ctx, appName, logger.Desugar())
 	if err != nil {
 		return err
 	}
 
-	defer natsClose()
+	defer nc.Close()
 
 	eb := eventbus.NewClient(
 		eventbus.WithLogger(logger.Desugar()),

@@ -4,7 +4,7 @@ package cmd
 import (
 	"strings"
 
-	"github.com/metal-toolbox/governor-api/pkg/workloadidentity"
+	"github.com/metal-toolbox/governor-api/pkg/configs"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -17,8 +17,9 @@ const (
 )
 
 var (
-	cfgFile string
-	logger  *zap.SugaredLogger
+	cfgFile   string
+	logger    *zap.SugaredLogger
+	appConfig = configs.Configs{}
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -54,25 +55,7 @@ func init() {
 	rootCmd.PersistentFlags().Bool("development", false, "enable development settings")
 	viperBindFlag("development", rootCmd.PersistentFlags().Lookup("development"))
 
-	// NATS flags
-	rootCmd.PersistentFlags().String("nats-url", "nats://127.0.0.1:4222", "NATS server connection url")
-	viperBindFlag("nats.url", rootCmd.PersistentFlags().Lookup("nats-url"))
-	rootCmd.PersistentFlags().String("nats-creds-file", "", "Path to the file containing the NATS credentials file")
-	viperBindFlag("nats.creds-file", rootCmd.PersistentFlags().Lookup("nats-creds-file"))
-	rootCmd.PersistentFlags().String("nats-subject-prefix", "governor.events", "prefix for NATS subjects")
-	viperBindFlag("nats.subject-prefix", rootCmd.PersistentFlags().Lookup("nats-subject-prefix"))
-	rootCmd.PersistentFlags().Bool("nats-workload-identity-federation-enabled", false, "use workload identity federation to authenticate to NATS")
-	viperBindFlag("nats.workload-identity-federation.enabled", rootCmd.PersistentFlags().Lookup("nats-workload-identity-federation-enabled"))
-	rootCmd.PersistentFlags().String("nats-workload-identity-federation-token-url", "", "workload identity federation token URL")
-	viperBindFlag("nats.workload-identity-federation.token-url", rootCmd.PersistentFlags().Lookup("nats-workload-identity-federation-token-url"))
-	rootCmd.PersistentFlags().String("nats-workload-identity-federation-kube-service-account", "", "Kubernetes service account token file path")
-	viperBindFlag("nats.workload-identity-federation.kube-service-account", rootCmd.PersistentFlags().Lookup("nats-workload-identity-federation-kube-service-account"))
-	rootCmd.PersistentFlags().StringSlice("nats-workload-identity-federation-scopes", []string{}, "workload identity federation scopes")
-	viperBindFlag("nats.workload-identity-federation.scopes", rootCmd.PersistentFlags().Lookup("nats-workload-identity-federation-scopes"))
-	rootCmd.PersistentFlags().String("nats-workload-identity-federation-audience", "", "workload identity federation audience")
-	viperBindFlag("nats.workload-identity-federation.audience", rootCmd.PersistentFlags().Lookup("nats-workload-identity-federation-audience"))
-	rootCmd.PersistentFlags().String("nats-workload-identity-federation-subject-token-type", string(workloadidentity.DefaultSubjectTokenType), "workload identity federation subject token type")
-	viperBindFlag("nats.workload-identity-federation.subject-token-type", rootCmd.PersistentFlags().Lookup("nats-workload-identity-federation-subject-token-type"))
+	configs.AddFlags(rootCmd.PersistentFlags())
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -101,6 +84,13 @@ func initConfig() {
 	if err == nil {
 		logger.Infow("using config file", "file", viper.ConfigFileUsed())
 	}
+
+	c, err := configs.LoadConfig()
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	appConfig = *c
 }
 
 func setupLogging() {
