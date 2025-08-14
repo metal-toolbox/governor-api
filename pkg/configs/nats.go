@@ -5,7 +5,6 @@ import (
 
 	"github.com/nats-io/nats.go"
 	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2"
 )
@@ -76,22 +75,13 @@ func (c *NATSConfig) ToNATSConnection(
 	return nats.Connect(c.URL, opts...)
 }
 
-// LoadNATSConfig loads the configuration for NATS.
-func LoadNATSConfig() (*NATSConfig, error) {
-	var cfg NATSConfig
-
-	err := viper.UnmarshalKey("nats", &cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	// Validate AuthMode
-	switch cfg.AuthMode {
+// Validate validates the NATS configuration.
+func (c *NATSConfig) Validate() error {
+	switch c.AuthMode {
 	case AuthModeCredsFileOnly, AuthModeWorkloadIdentity, AuthModeIAMRuntime:
-		// Valid auth mode
 	default:
-		return nil, fmt.Errorf("%w: %s", ErrInvalidNATSAuthMode, cfg.AuthMode)
+		return fmt.Errorf("%w: %s", ErrInvalidNATSAuthMode, c.AuthMode)
 	}
 
-	return &cfg, nil
+	return nil
 }

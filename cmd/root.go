@@ -85,12 +85,13 @@ func initConfig() {
 		logger.Infow("using config file", "file", viper.ConfigFileUsed())
 	}
 
-	c, err := configs.LoadConfig()
-	if err != nil {
-		logger.Fatal(err)
+	if err := viper.Unmarshal(&appConfig); err != nil {
+		logger.Desugar().Fatal("unable to decode config into struct", zap.Error(err))
 	}
 
-	appConfig = *c
+	if err := appConfig.Validate(); err != nil {
+		logger.Desugar().Fatal("invalid config", zap.Error(err))
+	}
 }
 
 func setupLogging() {

@@ -5,22 +5,21 @@ import (
 
 	"github.com/metal-toolbox/governor-api/pkg/workloadidentity"
 	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
 )
 
 // AddWorkloadIdentityFlags adds workload identity federation flags to the given FlagSet.
 func AddWorkloadIdentityFlags(flags *pflag.FlagSet) {
-	flags.String("workload-identity-federation-token-url", "", "workload identity federation token URL")
-	viperBindFlag("workload-identity-federation.token-url", flags.Lookup("workload-identity-federation-token-url"))
-	flags.String("workload-identity-federation-kube-service-account", "", "Kubernetes service account token file path")
-	viperBindFlag("workload-identity-federation.kube-service-account", flags.Lookup("workload-identity-federation-kube-service-account"))
-	flags.StringSlice("workload-identity-federation-scopes", []string{}, "workload identity federation scopes")
-	viperBindFlag("workload-identity-federation.scopes", flags.Lookup("workload-identity-federation-scopes"))
-	flags.String("workload-identity-federation-audience", "", "workload identity federation audience")
-	viperBindFlag("workload-identity-federation.audience", flags.Lookup("workload-identity-federation-audience"))
-	flags.String("workload-identity-federation-subject-token-type", string(workloadidentity.DefaultSubjectTokenType), "workload identity federation subject token type")
-	viperBindFlag("workload-identity-federation.subject-token-type", flags.Lookup("workload-identity-federation-subject-token-type"))
+	flags.String("workload-identity-token-url", "", "workload identity federation token URL")
+	viperBindFlag("workload-identity.token-url", flags.Lookup("workload-identity-token-url"))
+	flags.String("workload-identity-kube-service-account", "", "Kubernetes service account token file path")
+	viperBindFlag("workload-identity.kube-service-account", flags.Lookup("workload-identity-kube-service-account"))
+	flags.StringSlice("workload-identity-scopes", []string{}, "workload identity federation scopes")
+	viperBindFlag("workload-identity.scopes", flags.Lookup("workload-identity-scopes"))
+	flags.String("workload-identity-audience", "", "workload identity federation audience")
+	viperBindFlag("workload-identity.audience", flags.Lookup("workload-identity-audience"))
+	flags.String("workload-identity-subject-token-type", string(workloadidentity.DefaultSubjectTokenType), "workload identity federation subject token type")
+	viperBindFlag("workload-identity.subject-token-type", flags.Lookup("workload-identity-subject-token-type"))
 }
 
 // WorkloadIdentityConfig holds the configuration for workload identity federation.
@@ -47,19 +46,12 @@ func (c *WorkloadIdentityConfig) ToTokenSource(ctx context.Context) (oauth2.Toke
 	), nil
 }
 
-// LoadWorkloadIdentityConfig loads the configuration for workload identity federation.
-func LoadWorkloadIdentityConfig() (*WorkloadIdentityConfig, error) {
-	var cfg WorkloadIdentityConfig
-
-	err := viper.UnmarshalKey("workload-identity-federation", &cfg)
+// Validate validates the workload identity configuration.
+func (c *WorkloadIdentityConfig) Validate() error {
+	_, err := workloadidentity.NewSubjectTokenTypeFromString(c.SubjectTokenType)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	// Set default subject token type if empty
-	if cfg.SubjectTokenType == "" {
-		cfg.SubjectTokenType = string(workloadidentity.DefaultSubjectTokenType)
-	}
-
-	return &cfg, nil
+	return nil
 }

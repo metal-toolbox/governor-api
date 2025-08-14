@@ -9,7 +9,6 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
 )
 
@@ -65,14 +64,7 @@ func (c *IAMRuntimeConfig) ToTokenSource(ctx context.Context, dialOpts ...grpc.D
 	}, nil
 }
 
-// LoadIAMRuntimeConfig loads the configuration for the IAM runtime.
-func LoadIAMRuntimeConfig() (*IAMRuntimeConfig, error) {
-	var cfg IAMRuntimeConfig
-
-	err := viper.UnmarshalKey("iam-runtime", &cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	return &cfg, nil
+// Validate validates the IAM runtime configuration.
+func (c *IAMRuntimeConfig) Validate() error {
+	return nil
 }
