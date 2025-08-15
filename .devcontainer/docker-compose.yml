@@ -62,7 +62,7 @@ services:
 
   # hydra
   hydra:
-    image: oryd/hydra:v1.11.10
+    image: oryd/hydra:v2.3.0
     ports:
       - "4444:4444" # Public Port
       - "4445:4445" # Admin Port
@@ -79,7 +79,7 @@ services:
       - governor
 
   hydra-migrate:
-    image: oryd/hydra:v1.11.10
+    image: oryd/hydra:v2.3.0
     environment:
       - DSN=postgres://postgres:postgres@pg:5432/hydra_dev?sslmode=disable&max_conns=20&max_idle_conns=4
     command: migrate -c /etc/config/hydra/hydra.yml sql -e --yes
