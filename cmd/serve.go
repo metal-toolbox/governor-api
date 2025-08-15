@@ -14,6 +14,7 @@ import (
 	"github.com/metal-toolbox/governor-api/internal/api"
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	"github.com/metal-toolbox/governor-api/internal/eventbus"
+	"github.com/metal-toolbox/governor-api/pkg/configs"
 )
 
 // serveCmd invokes the governor api
@@ -125,7 +126,7 @@ func startAPI(ctx context.Context) error {
 		"nats.subject-prefix", viper.GetString("nats.subject-prefix"),
 	)
 
-	nc, err := appConfig.NATSConn(ctx, appName, logger.Desugar())
+	nc, err := appConfig.NATSConn(ctx, appName, configs.WithLogger(logger.Desugar()))
 	if err != nil {
 		return err
 	}

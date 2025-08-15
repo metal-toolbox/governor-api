@@ -6,7 +6,6 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/spf13/pflag"
 	"go.uber.org/zap"
-	"golang.org/x/oauth2"
 )
 
 // NATSAuthMode represents the authentication modes for NATS
@@ -42,16 +41,21 @@ type NATSConfig struct {
 }
 
 // ToNATSConnection creates a NATS connection based on a config
-func (c *NATSConfig) ToNATSConnection(
-	name string,
-	ts oauth2.TokenSource,
-	logger *zap.Logger,
-) (*nats.Conn, error) {
+func (c *NATSConfig) ToNATSConnection(name string, opts ...Opt) (*nats.Conn, error) {
 	if c.CredsFile == "" {
 		return nil, fmt.Errorf("%w: NATS credentials file is required", ErrMissingNATSCreds)
 	}
 
-	opts := []nats.Option{
+	o := newOptionals()
+
+	for _, opt := range opts {
+		opt(o)
+	}
+
+	logger := o.logger
+	ts := o.ts
+
+	natsopts := []nats.Option{
 		nats.Name(name),
 		nats.UserCredentials(c.CredsFile),
 	}
@@ -61,7 +65,7 @@ func (c *NATSConfig) ToNATSConnection(
 			return nil, fmt.Errorf("%w: token source is required", ErrMissingNATSCreds)
 		}
 
-		opts = append(opts, nats.UserInfoHandler(func() (string, string) {
+		natsopts = append(natsopts, nats.UserInfoHandler(func() (string, string) {
 			token, err := ts.Token()
 			if err != nil {
 				logger.Error("failed to get an access token from workload identity", zap.Error(err))
@@ -72,7 +76,7 @@ func (c *NATSConfig) ToNATSConnection(
 		}))
 	}
 
-	return nats.Connect(c.URL, opts...)
+	return nats.Connect(c.URL, natsopts...)
 }
 
 // Validate validates the NATS configuration.

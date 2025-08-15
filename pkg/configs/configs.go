@@ -49,17 +49,39 @@ func (cfg *Configs) Validate() error {
 	return nil
 }
 
+type optionals struct {
+	logger *zap.Logger
+	ts     oauth2.TokenSource
+}
+
+func newOptionals() *optionals {
+	return &optionals{logger: zap.NewNop()}
+}
+
+// Opt is a functional option type for configuring optional parameters.
+type Opt func(*optionals)
+
+// WithLogger sets the logger in the options.
+func WithLogger(l *zap.Logger) Opt {
+	return func(o *optionals) {
+		o.logger = l
+	}
+}
+
+// WithTokenSource sets the token source in the options.
+func WithTokenSource(ts oauth2.TokenSource) Opt {
+	return func(o *optionals) {
+		o.ts = ts
+	}
+}
+
 // NATSConn is a shorthand that checks the NATS auth mode and creates a NATS connection
 // based on all the configs available
-func (cfg *Configs) NATSConn(ctx context.Context, name string, logger *zap.Logger) (*nats.Conn, error) {
+func (cfg *Configs) NATSConn(ctx context.Context, name string, opts ...Opt) (*nats.Conn, error) {
 	var (
 		ts  oauth2.TokenSource
 		err error
 	)
-
-	if logger == nil {
-		logger = zap.NewNop()
-	}
 
 	switch cfg.NATS.AuthMode {
 	case AuthModeWorkloadIdentity:
@@ -72,5 +94,9 @@ func (cfg *Configs) NATSConn(ctx context.Context, name string, logger *zap.Logge
 		return nil, err
 	}
 
-	return cfg.NATS.ToNATSConnection(name, ts, logger)
+	if ts != nil {
+		opts = append(opts, WithTokenSource(ts))
+	}
+
+	return cfg.NATS.ToNATSConnection(name, opts...)
 }
