@@ -13,7 +13,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// SubjectTokenType is identifier that describes the token
+// SubjectTokenType is an identifier that describes the token
 // https://datatracker.ietf.org/doc/html/rfc8693#section-3
 type SubjectTokenType string
 
