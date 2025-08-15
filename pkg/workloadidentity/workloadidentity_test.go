@@ -452,6 +452,61 @@ func (s *WorkloadIdentityTestSuite) TestSubjectTokenReuse() {
 	assert.Equal(s.T(), 1, callCount)             // Access token reused
 }
 
+func (s *WorkloadIdentityTestSuite) TestTokenExpirationHandling() {
+	ctx := context.Background()
+
+	callCount := 0
+
+	s.createMockServer(func(w http.ResponseWriter, _ *http.Request) {
+		callCount++
+		// Create token that expires in different times based on call count
+		var expiry time.Time
+		if callCount == 1 {
+			// First token expires very soon (within token reuse expiry)
+			expiry = time.Now().Add(time.Second * 10)
+		} else {
+			// Second token has longer expiry
+			expiry = time.Now().Add(time.Hour)
+		}
+
+		responseJWT := s.createTestJWT(expiry)
+		response := TokenExchangeSuccessfulResponse{
+			AccessToken:     responseJWT,
+			IssuedTokenType: "urn:ietf:params:oauth:token-type:access_token",
+			TokenType:       "Bearer",
+			ExpiresIn:       int(time.Until(expiry).Seconds()),
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(response)
+	})
+
+	ts := NewWorkloadTokenSource(ctx, s.server.URL,
+		WithKubeSubjectToken(s.tokenPath, SubjectTokenTypeIDToken),
+		WithTokenReuseExpiry(time.Second*30), // Token reuse expiry is 30 seconds
+	)
+
+	// First call should make HTTP request and get a token that expires soon
+	token1, err := ts.Token()
+	assert.NoError(s.T(), err)
+	assert.NotNil(s.T(), token1)
+	assert.Equal(s.T(), 1, callCount)
+
+	// Second call should detect the token is close to expiry and request a new one
+	token2, err := ts.Token()
+	assert.NoError(s.T(), err)
+	assert.NotNil(s.T(), token2)
+	assert.Equal(s.T(), 2, callCount)                              // New HTTP call made because token was close to expiry
+	assert.NotEqual(s.T(), token1.AccessToken, token2.AccessToken) // Should be different tokens
+
+	// Third call should reuse the second token since it has longer expiry
+	token3, err := ts.Token()
+	assert.NoError(s.T(), err)
+	assert.NotNil(s.T(), token3)
+	assert.Equal(s.T(), 2, callCount)                           // No new HTTP call
+	assert.Equal(s.T(), token2.AccessToken, token3.AccessToken) // Should be same token
+}
+
 func (s *WorkloadIdentityTestSuite) TestSubjectTokenError() {
 	ctx := context.Background()
 
@@ -579,6 +634,62 @@ func (s *WorkloadIdentityTestSuite) TestConstants() {
 	assert.Equal(s.T(), 30*time.Second, defaultReuseExpiry)
 	assert.Equal(s.T(), 15*time.Second, defaultRequestTimeout)
 	assert.Equal(s.T(), "/var/run/secrets/kubernetes.io/serviceaccount/token", defaultKubeServiceAccountPath)
+}
+
+func (s *WorkloadIdentityTestSuite) TestValidateSubjectTokenType() {
+	tests := []struct {
+		name          string
+		tokenType     string
+		expectedError bool
+	}{
+		{
+			name:          "valid access token type",
+			tokenType:     string(SubjectTokenTypeAccessToken),
+			expectedError: false,
+		},
+		{
+			name:          "valid id token type",
+			tokenType:     string(SubjectTokenTypeIDToken),
+			expectedError: false,
+		},
+		{
+			name:          "valid refresh token type",
+			tokenType:     string(SubjectTokenTypeRefreshToken),
+			expectedError: false,
+		},
+		{
+			name:          "valid saml1 token type",
+			tokenType:     string(SubjectTokenTypeSAML1),
+			expectedError: false,
+		},
+		{
+			name:          "valid saml2 token type",
+			tokenType:     string(SubjectTokenTypeSAML2),
+			expectedError: false,
+		},
+		{
+			name:          "invalid token type",
+			tokenType:     "invalid-token-type",
+			expectedError: true,
+		},
+		{
+			name:          "empty token type",
+			tokenType:     "",
+			expectedError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		s.T().Run(tt.name, func(t *testing.T) {
+			_, err := NewSubjectTokenTypeFromString(tt.tokenType)
+			if tt.expectedError {
+				assert.Error(t, err)
+				assert.ErrorIs(t, err, ErrInvalidSubjectTokenType)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
 }
 
 func TestWorkloadIdentityTestSuite(t *testing.T) {

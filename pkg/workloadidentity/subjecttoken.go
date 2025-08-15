@@ -13,6 +13,47 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// SubjectTokenType is an identifier that describes the token
+// https://datatracker.ietf.org/doc/html/rfc8693#section-3
+type SubjectTokenType string
+
+const (
+	// SubjectTokenTypeAccessToken indicates that the token is an OAuth 2.0
+	// access token issued by the given authorization server.
+	SubjectTokenTypeAccessToken SubjectTokenType = "urn:ietf:params:oauth:token-type:access_token"
+	// SubjectTokenTypeIDToken indicates that the token is an ID Token as
+	// defined in Section 2 of [OpenID.Core](https://openid.net/specs/openid-connect-core-1_0.html).
+	SubjectTokenTypeIDToken SubjectTokenType = "urn:ietf:params:oauth:token-type:id_token"
+	// SubjectTokenTypeRefreshToken indicates that the token is an OAuth 2.0
+	// refresh token issued by the given authorization server.
+	SubjectTokenTypeRefreshToken SubjectTokenType = "urn:ietf:params:oauth:token-type:refresh_token"
+	// SubjectTokenTypeSAML1 indicates that the token is a base64url-encoded
+	// SAML 1.1 [OASIS.saml-core-1.1] assertion.
+	SubjectTokenTypeSAML1 SubjectTokenType = "urn:ietf:params:oauth:token-type:saml1"
+	// SubjectTokenTypeSAML2 indicates that the token is a base64url-encoded
+	// SAML 2.0 [OASIS.saml-core-2.0-os](https://docs.oasis-open.org/security/saml/v2.0/saml-core-2.0-os.pdf)
+	// assertion.
+	SubjectTokenTypeSAML2 SubjectTokenType = "urn:ietf:params:oauth:token-type:saml2"
+)
+
+// NewSubjectTokenTypeFromString creates a new SubjectTokenType from a string.
+func NewSubjectTokenTypeFromString(in string) (SubjectTokenType, error) {
+	switch in {
+	case string(SubjectTokenTypeAccessToken):
+		return SubjectTokenTypeAccessToken, nil
+	case string(SubjectTokenTypeIDToken):
+		return SubjectTokenTypeIDToken, nil
+	case string(SubjectTokenTypeRefreshToken):
+		return SubjectTokenTypeRefreshToken, nil
+	case string(SubjectTokenTypeSAML1):
+		return SubjectTokenTypeSAML1, nil
+	case string(SubjectTokenTypeSAML2):
+		return SubjectTokenTypeSAML2, nil
+	default:
+		return "", fmt.Errorf("%w: %s", ErrInvalidSubjectTokenType, in)
+	}
+}
+
 const defaultKubeServiceAccountPath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 
 // kubeServiceAccountTokenFn returns a function that retrieves the Kubernetes service account token.

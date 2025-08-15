@@ -23,7 +23,7 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 )
 
-func initTracingAndDB() *sqlx.DB {
+func initTracingAndDB(ctx context.Context) *sqlx.DB {
 	dbDriverName := "postgres"
 
 	connector, err := pq.NewConnector(viper.GetString("db.uri"))
@@ -61,7 +61,7 @@ func initTracingAndDB() *sqlx.DB {
 
 	db := sqlx.NewDb(innerDB, dbDriverName)
 
-	if err := db.Ping(); err != nil {
+	if err := db.PingContext(ctx); err != nil {
 		logger.Fatalw("failed verifying database connection", "error", err)
 	}
 
