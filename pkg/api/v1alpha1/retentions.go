@@ -107,7 +107,7 @@ func (r *Router) deleteUserRecord(c *gin.Context) {
 	}
 
 	if _, err = updated.Update(ctx, tx, boil.Infer()); err != nil {
-		msg := "error updating user record" + err.Error()
+		msg := "error updating user record: " + err.Error()
 		if err := tx.Rollback(); err != nil {
 			msg += " | error rolling back transaction: " + err.Error()
 		}
@@ -121,7 +121,7 @@ func (r *Router) deleteUserRecord(c *gin.Context) {
 		ctx, tx, getCtxAuditID(c), getCtxUser(c), user, &updated,
 	)
 	if err != nil {
-		msg := "error creating audit event for user update" + err.Error()
+		msg := "error creating audit event for user update: " + err.Error()
 		if err := tx.Rollback(); err != nil {
 			msg += " | error rolling back transaction: " + err.Error()
 		}
@@ -132,7 +132,7 @@ func (r *Router) deleteUserRecord(c *gin.Context) {
 	}
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
-		msg := "error updating context with audit event data" + err.Error()
+		msg := "error updating context with audit event data: " + err.Error()
 		if err := tx.Rollback(); err != nil {
 			msg += " | error rolling back transaction: " + err.Error()
 		}
@@ -143,7 +143,7 @@ func (r *Router) deleteUserRecord(c *gin.Context) {
 	}
 
 	if err := tx.Commit(); err != nil {
-		msg := "error committing transaction" + err.Error()
+		msg := "error committing transaction: " + err.Error()
 		if err := tx.Rollback(); err != nil {
 			msg += " | error rolling back transaction: " + err.Error()
 		}
