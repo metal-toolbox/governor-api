@@ -263,7 +263,6 @@ func (r *Router) createExtensionResourceDefinition(c *gin.Context) {
 
 	if err := extension.AddExtensionResourceDefinitions(c.Request.Context(), tx, true, erd); err != nil {
 		msg := fmt.Sprintf("error creating ERD: %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -282,7 +281,6 @@ func (r *Router) createExtensionResourceDefinition(c *gin.Context) {
 	)
 	if err != nil {
 		msg := fmt.Sprintf("error creating ERD (audit): %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -294,7 +292,6 @@ func (r *Router) createExtensionResourceDefinition(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := fmt.Sprintf("error creating ERD: %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -306,7 +303,6 @@ func (r *Router) createExtensionResourceDefinition(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := fmt.Sprintf("error committing ERD create: %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -399,7 +395,6 @@ func (r *Router) deleteExtensionResourceDefinition(c *gin.Context) {
 
 	if _, err := erd.Delete(c.Request.Context(), tx, false); err != nil {
 		msg := fmt.Sprintf("error deleting ERD: %s. rolling back\n", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -418,7 +413,6 @@ func (r *Router) deleteExtensionResourceDefinition(c *gin.Context) {
 	)
 	if err != nil {
 		msg := fmt.Sprintf("error deleting ERD (audit): %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -430,7 +424,6 @@ func (r *Router) deleteExtensionResourceDefinition(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := fmt.Sprintf("error deleting ERD: %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -442,7 +435,6 @@ func (r *Router) deleteExtensionResourceDefinition(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := fmt.Sprintf("error committing ERD delete: %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -553,7 +545,6 @@ func (r *Router) updateExtensionResourceDefinition(c *gin.Context) {
 
 	if _, err := erd.Update(c.Request.Context(), tx, boil.Infer()); err != nil {
 		msg := fmt.Sprintf("error updating erd: %s. rolling back\n", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -573,7 +564,6 @@ func (r *Router) updateExtensionResourceDefinition(c *gin.Context) {
 	)
 	if err != nil {
 		msg := fmt.Sprintf("error updating ERD (audit): %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -585,7 +575,6 @@ func (r *Router) updateExtensionResourceDefinition(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := fmt.Sprintf("error updating ERD: %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -597,7 +586,6 @@ func (r *Router) updateExtensionResourceDefinition(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := fmt.Sprintf("error committing ERD update: %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}

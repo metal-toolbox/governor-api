@@ -218,7 +218,6 @@ func (r *Router) createApplication(c *gin.Context) {
 
 	if err := app.Insert(c.Request.Context(), tx, boil.Infer()); err != nil {
 		msg := "error creating application: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -231,7 +230,6 @@ func (r *Router) createApplication(c *gin.Context) {
 	event, err := dbtools.AuditApplicationCreated(c.Request.Context(), tx, getCtxAuditID(c), getCtxUser(c), app)
 	if err != nil {
 		msg := "error creating application (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -243,7 +241,6 @@ func (r *Router) createApplication(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := "error creating application (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -255,7 +252,6 @@ func (r *Router) createApplication(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := "error committing application create, rolling back: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg = msg + "error rolling back transaction: " + err.Error()
 		}
@@ -321,7 +317,6 @@ func (r *Router) deleteApplication(c *gin.Context) {
 	// delete all app links
 	if _, err := app.R.GroupApplications.DeleteAll(c.Request.Context(), tx, false); err != nil {
 		msg := "error deleting group app link, rolling back: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg = msg + "error rolling back transaction: " + err.Error()
 		}
@@ -333,7 +328,6 @@ func (r *Router) deleteApplication(c *gin.Context) {
 
 	if _, err := app.Delete(c.Request.Context(), tx, false); err != nil {
 		msg := "error deleting application, rolling back: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg = msg + "error rolling back transaction: " + err.Error()
 		}
@@ -346,7 +340,6 @@ func (r *Router) deleteApplication(c *gin.Context) {
 	event, err := dbtools.AuditApplicationDeleted(c.Request.Context(), tx, getCtxAuditID(c), getCtxUser(c), app)
 	if err != nil {
 		msg := "error deleting application (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -358,7 +351,6 @@ func (r *Router) deleteApplication(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := "error deleting application (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -370,7 +362,6 @@ func (r *Router) deleteApplication(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := "error committing application delete, rolling back: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg = msg + "error rolling back transaction: " + err.Error()
 		}
@@ -461,7 +452,6 @@ func (r *Router) updateApplication(c *gin.Context) {
 
 	if _, err := app.Update(c.Request.Context(), tx, boil.Infer()); err != nil {
 		msg := "error updating application: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -474,7 +464,6 @@ func (r *Router) updateApplication(c *gin.Context) {
 	event, err := dbtools.AuditApplicationUpdated(c.Request.Context(), tx, getCtxAuditID(c), getCtxUser(c), &original, app)
 	if err != nil {
 		msg := "error updating application (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -486,7 +475,6 @@ func (r *Router) updateApplication(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := "error updating application (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -498,7 +486,6 @@ func (r *Router) updateApplication(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := "error committing application update, rolling back: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg = msg + "error rolling back transaction: " + err.Error()
 		}

@@ -434,7 +434,6 @@ func (r *Router) getGroupHierarchiesAll(c *gin.Context) {
 
 func rollbackWithError(c *gin.Context, tx *sql.Tx, err error, code int, initialMsg string) {
 	msg := initialMsg + err.Error()
-
 	if err := tx.Rollback(); err != nil {
 		msg = msg + "error rolling back transaction: " + err.Error()
 	}

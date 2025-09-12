@@ -89,7 +89,6 @@ func (r *Router) createUserExtensionResource(c *gin.Context) {
 	}
 
 	user, extension, erd, findUserErr, findERDErr := fetchUserAndERD(c, r.DB)
-
 	if findUserErr != nil {
 		if errors.Is(findUserErr, sql.ErrNoRows) {
 			sendError(c, http.StatusNotFound, ErrUserNotFound.Error())
@@ -159,7 +158,6 @@ func (r *Router) createUserExtensionResource(c *gin.Context) {
 
 	if err := erd.AddUserExtensionResources(c.Request.Context(), tx, true, er); err != nil {
 		msg := fmt.Sprintf("error creating %s: %s", erd.Name, err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -178,7 +176,6 @@ func (r *Router) createUserExtensionResource(c *gin.Context) {
 	)
 	if err != nil {
 		msg := fmt.Sprintf("error creating extension resource (audit): %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -190,7 +187,6 @@ func (r *Router) createUserExtensionResource(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := fmt.Sprintf("error creating extension resource: %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -202,7 +198,6 @@ func (r *Router) createUserExtensionResource(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := fmt.Sprintf("error committing extension resource create: %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -252,7 +247,6 @@ func (r *Router) createUserExtensionResource(c *gin.Context) {
 // listUserExtensionResources lists user extension resources from a given user
 func (r *Router) listUserExtensionResources(c *gin.Context) {
 	user, _, erd, findUserErr, findERDErr := fetchUserAndERD(c, r.DB)
-
 	if findUserErr != nil {
 		if errors.Is(findUserErr, sql.ErrNoRows) {
 			sendError(c, http.StatusNotFound, ErrUserNotFound.Error())
@@ -336,7 +330,6 @@ func (r *Router) listUserExtensionResources(c *gin.Context) {
 // getUserExtensionResource fetches a user extension resources from a given user
 func (r *Router) getUserExtensionResource(c *gin.Context) {
 	user, _, erd, findUserErr, findERDErr := fetchUserAndERD(c, r.DB)
-
 	if findUserErr != nil {
 		if errors.Is(findUserErr, sql.ErrNoRows) {
 			sendError(c, http.StatusNotFound, ErrUserNotFound.Error())
@@ -419,7 +412,6 @@ func (r *Router) updateUserExtensionResource(c *gin.Context) {
 	}
 
 	user, extension, erd, findUserErr, findERDErr := fetchUserAndERD(c, r.DB)
-
 	if findUserErr != nil {
 		if errors.Is(findUserErr, sql.ErrNoRows) {
 			sendError(c, http.StatusNotFound, ErrUserNotFound.Error())
@@ -513,7 +505,6 @@ func (r *Router) updateUserExtensionResource(c *gin.Context) {
 
 	if _, err := er.Update(c.Request.Context(), tx, boil.Infer()); err != nil {
 		msg := fmt.Sprintf("error updating %s: %s", erd.Name, err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -533,7 +524,6 @@ func (r *Router) updateUserExtensionResource(c *gin.Context) {
 	)
 	if err != nil {
 		msg := fmt.Sprintf("error updating extension resource (audit): %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -545,7 +535,6 @@ func (r *Router) updateUserExtensionResource(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := fmt.Sprintf("error updating extension resource: %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -557,7 +546,6 @@ func (r *Router) updateUserExtensionResource(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := fmt.Sprintf("error committing extension resource update: %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -607,7 +595,6 @@ func (r *Router) updateUserExtensionResource(c *gin.Context) {
 // deleteUserExtensionResource fetches a user extension resources from a given user
 func (r *Router) deleteUserExtensionResource(c *gin.Context) {
 	user, extension, erd, findUserErr, findERDErr := fetchUserAndERD(c, r.DB)
-
 	if findUserErr != nil {
 		if errors.Is(findUserErr, sql.ErrNoRows) {
 			sendError(c, http.StatusNotFound, ErrUserNotFound.Error())
@@ -673,7 +660,6 @@ func (r *Router) deleteUserExtensionResource(c *gin.Context) {
 
 	if _, err := er.Delete(c.Request.Context(), tx, false); err != nil {
 		msg := fmt.Sprintf("error deleting %s: %s", erd.Name, err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -692,7 +678,6 @@ func (r *Router) deleteUserExtensionResource(c *gin.Context) {
 	)
 	if err != nil {
 		msg := fmt.Sprintf("error deleting extension resource (audit): %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -704,7 +689,6 @@ func (r *Router) deleteUserExtensionResource(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := fmt.Sprintf("error deleting extension resource: %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -716,7 +700,6 @@ func (r *Router) deleteUserExtensionResource(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := fmt.Sprintf("error committing extension resource delete: %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}

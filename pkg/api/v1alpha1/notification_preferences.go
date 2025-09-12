@@ -91,7 +91,6 @@ func (r *Router) updateAuthenticatedUserNotificationPreferences(c *gin.Context) 
 	np, status, err := handleUpdateNotificationPreferencesRequests(c, tx, ctxUser, req)
 	if err != nil {
 		msg := err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -103,7 +102,6 @@ func (r *Router) updateAuthenticatedUserNotificationPreferences(c *gin.Context) 
 
 	if err := tx.Commit(); err != nil {
 		msg := "error committing notification preferences update, rolling back: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += ("error rolling back transaction: " + err.Error())
 		}

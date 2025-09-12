@@ -607,6 +607,7 @@ func (s *WorkloadIdentityTestSuite) TestTokenExchangeResponses() {
 		assert.NoError(t, err)
 
 		var unmarshaled TokenExchangeSuccessfulResponse
+
 		err = json.Unmarshal(data, &unmarshaled)
 		assert.NoError(t, err)
 		assert.Equal(t, response, unmarshaled)
@@ -623,6 +624,7 @@ func (s *WorkloadIdentityTestSuite) TestTokenExchangeResponses() {
 		assert.NoError(t, err)
 
 		var unmarshaled TokenExchangeErrorResponse
+
 		err = json.Unmarshal(data, &unmarshaled)
 		assert.NoError(t, err)
 		assert.Equal(t, response, unmarshaled)

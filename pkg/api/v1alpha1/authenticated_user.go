@@ -447,7 +447,6 @@ func (r *Router) removeAuthenticatedUserGroup(c *gin.Context) {
 
 	if _, err := membership.Delete(c.Request.Context(), tx); err != nil {
 		msg := "error removing membership: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -460,7 +459,6 @@ func (r *Router) removeAuthenticatedUserGroup(c *gin.Context) {
 	event, err := dbtools.AuditGroupMembershipDeleted(c.Request.Context(), tx, getCtxAuditID(c), ctxUser, membership)
 	if err != nil {
 		msg := "error removing membership (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -472,7 +470,6 @@ func (r *Router) removeAuthenticatedUserGroup(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := "error removing membership (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -484,7 +481,6 @@ func (r *Router) removeAuthenticatedUserGroup(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := "error committing remove membership, rolling back: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg = msg + "error rolling back transaction: " + err.Error()
 		}
@@ -547,7 +543,6 @@ func (r *Router) updateAuthenticatedUser(c *gin.Context) {
 
 	if _, err := ctxUser.Update(c.Request.Context(), tx, boil.Infer()); err != nil {
 		msg := "error updating user: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -560,7 +555,6 @@ func (r *Router) updateAuthenticatedUser(c *gin.Context) {
 	event, err := dbtools.AuditUserUpdated(c.Request.Context(), tx, getCtxAuditID(c), ctxUser, &original, ctxUser)
 	if err != nil {
 		msg := "error updating user (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -572,7 +566,6 @@ func (r *Router) updateAuthenticatedUser(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := "error updating user (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -587,7 +580,6 @@ func (r *Router) updateAuthenticatedUser(c *gin.Context) {
 			c, tx, ctxUser, req.NotificationPreferences,
 		); err != nil {
 			msg := err.Error()
-
 			if err := tx.Rollback(); err != nil {
 				msg += "error rolling back transaction: " + err.Error()
 			}
@@ -600,7 +592,6 @@ func (r *Router) updateAuthenticatedUser(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := "error committing user update, rolling back: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg = msg + "error rolling back transaction: " + err.Error()
 		}

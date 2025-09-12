@@ -2,8 +2,12 @@ package v1alpha1
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/zap"
 )
 
 var (
@@ -28,6 +32,8 @@ var (
 	ErrUserNotFound = errors.New("user does not exist")
 	// ErrBadRequest is returned when an invalid request is made
 	ErrBadRequest = errors.New("bad request")
+	// ErrRemoveActiveRecord is returned when trying to remove an active record
+	ErrRemoveActiveRecord = fmt.Errorf("%w: cannot remove active record", ErrBadRequest)
 )
 
 func sendError(c *gin.Context, code int, msg string) {
@@ -45,4 +51,17 @@ func sendErrorWithDisplayMessage(c *gin.Context, code int, errorMessage, display
 	}{errorMessage, displayMessage}
 
 	c.AbortWithStatusJSON(code, payload)
+}
+
+func recordAndSendError(
+	c *gin.Context, span trace.Span, logger *zap.Logger,
+	httpcode int, msg string, err error,
+) {
+	if logger != nil {
+		logger.Error(msg, zap.Error(err))
+	}
+
+	span.RecordError(err)
+	span.SetStatus(codes.Error, msg)
+	sendError(c, httpcode, fmt.Sprintf("%s: %s", msg, err.Error()))
 }

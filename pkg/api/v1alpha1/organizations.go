@@ -169,7 +169,6 @@ func (r *Router) createOrganization(c *gin.Context) {
 
 	if err := org.Insert(c.Request.Context(), tx, boil.Infer()); err != nil {
 		msg := "error creating organization: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -182,7 +181,6 @@ func (r *Router) createOrganization(c *gin.Context) {
 	event, err := dbtools.AuditOrganizationCreated(c.Request.Context(), tx, getCtxAuditID(c), getCtxUser(c), org)
 	if err != nil {
 		msg := "error creating organization (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -194,7 +192,6 @@ func (r *Router) createOrganization(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := "error creating organization (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -206,7 +203,6 @@ func (r *Router) createOrganization(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := "error committing organization create, rolling back: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg = msg + "error rolling back transaction: " + err.Error()
 		}
@@ -255,7 +251,6 @@ func (r *Router) deleteOrganization(c *gin.Context) {
 	// delete all org links
 	if _, err := org.R.GroupOrganizations.DeleteAll(c.Request.Context(), tx); err != nil {
 		msg := "error deleting group org link, rolling back: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg = msg + "error rolling back transaction: " + err.Error()
 		}
@@ -269,7 +264,6 @@ func (r *Router) deleteOrganization(c *gin.Context) {
 
 	if _, err := org.Delete(c.Request.Context(), tx, false); err != nil {
 		msg := "error deleting organization, rolling back: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg = msg + "error rolling back transaction: " + err.Error()
 		}
@@ -284,7 +278,6 @@ func (r *Router) deleteOrganization(c *gin.Context) {
 	event, err := dbtools.AuditOrganizationDeleted(c.Request.Context(), tx, getCtxAuditID(c), getCtxUser(c), org)
 	if err != nil {
 		msg := "error deleting organization (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -296,7 +289,6 @@ func (r *Router) deleteOrganization(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := "error deleting organization (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -310,7 +302,6 @@ func (r *Router) deleteOrganization(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := "error committing organization delete, rolling back: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg = msg + "error rolling back transaction: " + err.Error()
 		}

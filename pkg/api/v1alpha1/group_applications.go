@@ -117,7 +117,6 @@ func (r *Router) addGroupApplication(c *gin.Context) {
 	event, err := dbtools.AuditGroupApplicationCreated(c.Request.Context(), tx, getCtxAuditID(c), getCtxUser(c), groupApp)
 	if err != nil {
 		msg := "error updating group applications (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -129,7 +128,6 @@ func (r *Router) addGroupApplication(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := "error updating group applications (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -141,7 +139,6 @@ func (r *Router) addGroupApplication(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := "error committing group application update, rolling back: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg = msg + "error rolling back transaction: " + err.Error()
 		}
@@ -230,7 +227,6 @@ func (r *Router) removeGroupApplication(c *gin.Context) {
 
 	if _, err := groupApp.Delete(c.Request.Context(), tx, false); err != nil {
 		msg := "failed to delete group application link: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -243,7 +239,6 @@ func (r *Router) removeGroupApplication(c *gin.Context) {
 	event, err := dbtools.AuditGroupApplicationDeleted(c.Request.Context(), tx, getCtxAuditID(c), getCtxUser(c), groupApp)
 	if err != nil {
 		msg := "error deleting group application (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -255,7 +250,6 @@ func (r *Router) removeGroupApplication(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := "error deleting group applications (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -267,7 +261,6 @@ func (r *Router) removeGroupApplication(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := "error committing group application delete, rolling back: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg = msg + "error rolling back transaction: " + err.Error()
 		}
@@ -394,7 +387,6 @@ func (r *Router) createGroupAppRequest(c *gin.Context) {
 
 	if err := group.AddGroupApplicationRequests(c.Request.Context(), tx, true, groupAppReq); err != nil {
 		msg := "failed to create group application request: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -407,7 +399,6 @@ func (r *Router) createGroupAppRequest(c *gin.Context) {
 	event, err := dbtools.AuditGroupApplicationRequestCreated(c.Request.Context(), tx, getCtxAuditID(c), ctxUser, groupAppReq)
 	if err != nil {
 		msg := "error creating group application request (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -419,7 +410,6 @@ func (r *Router) createGroupAppRequest(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := "error group application request (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -431,7 +421,6 @@ func (r *Router) createGroupAppRequest(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := "error committing group application request, rolling back: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg = msg + "error rolling back transaction: " + err.Error()
 		}
@@ -517,7 +506,6 @@ func (r *Router) deleteGroupAppRequest(c *gin.Context) {
 
 	if _, err := request.Delete(c.Request.Context(), tx); err != nil {
 		msg := "failed to delete group application request: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -530,7 +518,6 @@ func (r *Router) deleteGroupAppRequest(c *gin.Context) {
 	event, err := dbtools.AuditGroupApplicationRequestRevoked(c.Request.Context(), tx, getCtxAuditID(c), ctxUser, request)
 	if err != nil {
 		msg := "error revoking group application request (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -542,7 +529,6 @@ func (r *Router) deleteGroupAppRequest(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := "error revoking group application request (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -554,7 +540,6 @@ func (r *Router) deleteGroupAppRequest(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := "error committing group application request delete, rolling back: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -799,7 +784,6 @@ func (r *Router) processGroupAppRequest(c *gin.Context) {
 
 		if err := groupApp.Insert(c.Request.Context(), tx, boil.Infer()); err != nil {
 			msg := "error approving group application request, rolling back: " + err.Error()
-
 			if err := tx.Rollback(); err != nil {
 				msg += "error rolling back transaction: " + err.Error()
 			}
@@ -811,7 +795,6 @@ func (r *Router) processGroupAppRequest(c *gin.Context) {
 
 		if _, err := request.Delete(c.Request.Context(), tx); err != nil {
 			msg := "error deleting group application request on approval, rolling back: " + err.Error()
-
 			if err := tx.Rollback(); err != nil {
 				msg += "error rolling back transaction: " + err.Error()
 			}
@@ -824,7 +807,6 @@ func (r *Router) processGroupAppRequest(c *gin.Context) {
 		event, err := dbtools.AuditGroupApplicationApproved(c.Request.Context(), tx, getCtxAuditID(c), ctxUser, groupApp)
 		if err != nil {
 			msg := "error approving group application request (audit): " + err.Error()
-
 			if err := tx.Rollback(); err != nil {
 				msg += "error rolling back transaction: " + err.Error()
 			}
@@ -836,7 +818,6 @@ func (r *Router) processGroupAppRequest(c *gin.Context) {
 
 		if err := updateContextWithAuditEventData(c, event); err != nil {
 			msg := "error approving group application request (audit): " + err.Error()
-
 			if err := tx.Rollback(); err != nil {
 				msg += "error rolling back transaction: " + err.Error()
 			}
@@ -848,7 +829,6 @@ func (r *Router) processGroupAppRequest(c *gin.Context) {
 
 		if err := tx.Commit(); err != nil {
 			msg := "error committing group application approval, rolling back: " + err.Error()
-
 			if err := tx.Rollback(); err != nil {
 				msg += "error rolling back transaction: " + err.Error()
 			}
@@ -902,7 +882,6 @@ func (r *Router) processGroupAppRequest(c *gin.Context) {
 		event, err := dbtools.AuditGroupApplicationDenied(c.Request.Context(), tx, getCtxAuditID(c), ctxUser, request)
 		if err != nil {
 			msg := "error denying group application request (audit): " + err.Error()
-
 			if err := tx.Rollback(); err != nil {
 				msg += "error rolling back transaction: " + err.Error()
 			}
@@ -914,7 +893,6 @@ func (r *Router) processGroupAppRequest(c *gin.Context) {
 
 		if err := tx.Commit(); err != nil {
 			msg := "error committing group application deny, rolling back: " + err.Error()
-
 			if err := tx.Rollback(); err != nil {
 				msg += "error rolling back transaction: " + err.Error()
 			}
@@ -926,7 +904,6 @@ func (r *Router) processGroupAppRequest(c *gin.Context) {
 
 		if err := updateContextWithAuditEventData(c, event); err != nil {
 			msg := "error denying group application request (audit): " + err.Error()
-
 			if err := tx.Rollback(); err != nil {
 				msg += "error rolling back transaction: " + err.Error()
 			}

@@ -1,3 +1,4 @@
+//nolint:noctx
 package dbtools
 
 import (

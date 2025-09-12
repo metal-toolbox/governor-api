@@ -189,7 +189,6 @@ func (r *Router) createApplicationType(c *gin.Context) {
 
 	if err := app.Insert(c.Request.Context(), tx, boil.Infer()); err != nil {
 		msg := "error creating application type: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -202,7 +201,6 @@ func (r *Router) createApplicationType(c *gin.Context) {
 	event, err := dbtools.AuditApplicationTypeCreated(c.Request.Context(), tx, getCtxAuditID(c), getCtxUser(c), app)
 	if err != nil {
 		msg := "error creating application type (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -214,7 +212,6 @@ func (r *Router) createApplicationType(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := "error creating application type (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -226,7 +223,6 @@ func (r *Router) createApplicationType(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := "error committing application type create, rolling back: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg = msg + "error rolling back transaction: " + err.Error()
 		}
@@ -280,7 +276,6 @@ func (r *Router) deleteApplicationType(c *gin.Context) {
 
 	if _, err := app.Delete(c.Request.Context(), tx, false); err != nil {
 		msg := "error deleting application type, rolling back: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg = msg + "error rolling back transaction: " + err.Error()
 		}
@@ -293,7 +288,6 @@ func (r *Router) deleteApplicationType(c *gin.Context) {
 	event, err := dbtools.AuditApplicationTypeDeleted(c.Request.Context(), tx, getCtxAuditID(c), getCtxUser(c), app)
 	if err != nil {
 		msg := "error deleting application type (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -305,7 +299,6 @@ func (r *Router) deleteApplicationType(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := "error deleting application type (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -317,7 +310,6 @@ func (r *Router) deleteApplicationType(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := "error committing application type delete, rolling back: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg = msg + "error rolling back transaction: " + err.Error()
 		}
@@ -389,7 +381,6 @@ func (r *Router) updateApplicationType(c *gin.Context) {
 
 	if _, err := app.Update(c.Request.Context(), tx, boil.Infer()); err != nil {
 		msg := "error updating application type: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -402,7 +393,6 @@ func (r *Router) updateApplicationType(c *gin.Context) {
 	event, err := dbtools.AuditApplicationTypeUpdated(c.Request.Context(), tx, getCtxAuditID(c), getCtxUser(c), &original, app)
 	if err != nil {
 		msg := "error updating application type (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -414,7 +404,6 @@ func (r *Router) updateApplicationType(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := "error updating application type (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -426,7 +415,6 @@ func (r *Router) updateApplicationType(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := "error committing application type update, rolling back: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg = msg + "error rolling back transaction: " + err.Error()
 		}

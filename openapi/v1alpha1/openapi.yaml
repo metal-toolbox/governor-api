@@ -26,6 +26,8 @@ tags:
     description: Operations for managing notifications, notification types, and notification targets
   - name: Extensions
     description: Operations for managing extensions, extension resource definitions, and extension resources
+  - name: Retentions
+    description: Operations for managing data retention and deletion
 
 paths:
   # Authenticated User endpoints
@@ -141,6 +143,10 @@ paths:
   # Event endpoints
   /events:
     $ref: './paths/events.yaml#/events'
+
+  # Retention endpoints
+  /retentions/users/{id}:
+    $ref: './paths/retentions.yaml#/user-retentions'
 
 components:
   schemas:
