@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
+	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 
 	"github.com/metal-toolbox/auditevent/ginaudit"
@@ -18,6 +19,8 @@ const (
 	// Version is the API version constant
 	Version = "v1alpha1"
 )
+
+var tracer = otel.GetTracerProvider().Tracer("governor-api/v1alpha1")
 
 // Router is the API router
 type Router struct {
@@ -802,6 +805,16 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		r.mwUserAuthRequired(AuthRoleUser),
 		r.mwExtensionResourcesEnabledCheck,
 		r.deleteUserExtensionResource,
+	)
+
+	// retention endpoints are used to permanently delete records from the system
+	// that has been soft deleted previously and passed the retention period
+	rg.DELETE(
+		"/retentions/users/:id",
+		r.AuditMW.AuditWithType("PermanentlyDeleteUserRecord"),
+		r.AuthMW.AuthRequired(deleteScopesWithOpenID("governor:users")),
+		r.mwUserAuthRequired(AuthRoleAdmin),
+		r.deleteUserRecord,
 	)
 }
 

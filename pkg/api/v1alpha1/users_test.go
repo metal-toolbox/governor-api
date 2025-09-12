@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aarondl/sqlboiler/v4/queries/qm"
 	"github.com/aarondl/sqlboiler/v4/types"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -42,6 +43,8 @@ func (s *UserTestSuite) seedTestDB() error {
 		VALUES ('00000001-0000-0000-0000-000000000002', 'Deleted User', 'deleted@example.com', 'active', '{"department":"engineering"}', NOW(), NOW(), '2023-07-12 12:00:00.000000+00');`,
 		`INSERT INTO users (id, name, email, status, metadata, created_at, updated_at) 
 		VALUES ('00000001-0000-0000-0000-000000000003', 'Metadata User', 'metadata@example.com', 'active', '{"department":"marketing","location":"remote","details":{"level":3,"team":"growth"}, "annotations": {"test/hello": "world"}}', NOW(), NOW());`,
+		`INSERT INTO users (id, name, email, status, metadata, created_at, updated_at) 
+		VALUES ('00000001-0000-0000-0000-000000000004', 'Deleted User abcde', 'deleted-user@abcde.com', 'active', '{"annotations": {"retention-ctl": "expired"}}', NOW(), NOW());`,
 	}
 
 	for _, q := range testData {
@@ -345,13 +348,13 @@ func (s *UserTestSuite) TestListUsersWithMetadataFilter() {
 			name:           "list all users",
 			url:            "/api/v1alpha1/users",
 			expectedStatus: http.StatusOK,
-			expectedCount:  2, // All non-deleted users
+			expectedCount:  3, // All non-deleted users
 		},
 		{
 			name:           "include deleted users",
 			url:            "/api/v1alpha1/users?deleted",
 			expectedStatus: http.StatusOK,
-			expectedCount:  3, // All users
+			expectedCount:  4, // All users
 		},
 		{
 			name:           "filter by department=marketing",
@@ -506,6 +509,188 @@ func (s *UserTestSuite) TestListUsersWithMetadataFilter() {
 
 			assert.Equal(t, tt.expectedCount, len(users),
 				"Expected %d users, got %d", tt.expectedCount, len(users))
+		})
+	}
+}
+
+func (s *UserTestSuite) TestDeleteUser() {
+	r := s.v1alpha1()
+
+	tests := []struct {
+		name           string
+		url            string
+		params         gin.Params
+		expectedStatus int
+		expectedErrMsg string
+	}{
+		{
+			name:           "delete existing user",
+			url:            "/api/v1alpha1/users/00000001-0000-0000-0000-000000000001",
+			expectedStatus: http.StatusAccepted,
+			params: gin.Params{
+				gin.Param{Key: "id", Value: "00000001-0000-0000-0000-000000000001"},
+			},
+		},
+		{
+			name:           "delete non-existent user",
+			url:            "/api/v1alpha1/users/00000001-0000-0000-0000-000000000099",
+			expectedStatus: http.StatusNotFound,
+			expectedErrMsg: "user not found",
+			params: gin.Params{
+				gin.Param{Key: "id", Value: "00000001-0000-0000-0000-000000000099"},
+			},
+		},
+		{
+			name:           "delete already deleted user",
+			url:            "/api/v1alpha1/users/00000001-0000-0000-0000-000000000002",
+			expectedStatus: http.StatusNotFound,
+			expectedErrMsg: "user not found",
+			params: gin.Params{
+				gin.Param{Key: "id", Value: "00000001-0000-0000-0000-000000000002"},
+			},
+		},
+	}
+
+	ctx := s.T().Context()
+
+	for _, tt := range tests {
+		s.T().Run(tt.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			auditID := uuid.New().String()
+
+			req, _ := http.NewRequestWithContext(ctx, "DELETE", tt.url, nil)
+			c.Request = req
+			c.Params = tt.params
+			c.Set(ginaudit.AuditIDContextKey, auditID)
+
+			r.deleteUser(c)
+
+			assert.Equal(t, tt.expectedStatus, w.Code, "Expected status %d, got %d", tt.expectedStatus, w.Code)
+
+			if tt.expectedErrMsg != "" {
+				body := w.Body.String()
+				assert.Contains(
+					t, body, tt.expectedErrMsg,
+					"Expected error message to contain %q, got %s", tt.expectedErrMsg, body,
+				)
+
+				return
+			}
+
+			// If delete was successful, verify the user is actually deleted in the DB
+			userID := tt.params.ByName("id")
+
+			var deletedAt sql.NullTime
+
+			err := s.db.QueryRowContext(
+				ctx, "SELECT deleted_at FROM users WHERE id=$1", userID,
+			).Scan(&deletedAt)
+			if err != nil {
+				t.Fatalf("Failed to query user after deletion: %v", err)
+			}
+
+			if !deletedAt.Valid {
+				t.Fatalf("Expected deleted_at to be set, but it was NULL")
+			}
+		})
+	}
+}
+
+func (s *UserTestSuite) TestDeleteUserRecords() {
+	r := s.v1alpha1()
+
+	tests := []struct {
+		name           string
+		url            string
+		params         gin.Params
+		expectedStatus int
+		expectedErrMsg string
+	}{
+		{
+			name:           "delete records of user that's already had records deleted",
+			url:            "/api/v1alpha1/retentions/users/00000001-0000-0000-0000-000000000004",
+			expectedStatus: http.StatusNotFound,
+			expectedErrMsg: "user not found",
+			params: gin.Params{
+				gin.Param{Key: "id", Value: "00000001-0000-0000-0000-000000000004"},
+			},
+		},
+		{
+			name:           "delete records of non-existent user",
+			url:            "/api/v1alpha1/retentions/users/00000001-0000-0000-0000-000000000099",
+			expectedStatus: http.StatusNotFound,
+			expectedErrMsg: "user not found",
+			params: gin.Params{
+				gin.Param{Key: "id", Value: "00000001-0000-0000-0000-000000000099"},
+			},
+		},
+		{
+			name:           "delete records of active user",
+			url:            "/api/v1alpha1/retentions/users/00000001-0000-0000-0000-000000000001",
+			expectedStatus: http.StatusBadRequest,
+			expectedErrMsg: ErrRemoveActiveRecord.Error(),
+			params: gin.Params{
+				gin.Param{Key: "id", Value: "00000001-0000-0000-0000-000000000001"},
+			},
+		},
+		{
+			name:           "delete records of soft-deleted user",
+			url:            "/api/v1alpha1/retentions/users/00000001-0000-0000-0000-000000000002",
+			expectedStatus: http.StatusAccepted,
+			params: gin.Params{
+				gin.Param{Key: "id", Value: "00000001-0000-0000-0000-000000000002"},
+			},
+		},
+	}
+
+	ctx := s.T().Context()
+
+	for _, tt := range tests {
+		s.T().Run(tt.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			auditID := uuid.New().String()
+
+			req, _ := http.NewRequestWithContext(ctx, "DELETE", tt.url, nil)
+			c.Request = req
+			c.Params = tt.params
+			c.Set(ginaudit.AuditIDContextKey, auditID)
+
+			r.deleteUserRecord(c)
+
+			assert.Equal(t, tt.expectedStatus, w.Code, "Expected status %d, got %d", tt.expectedStatus, w.Code)
+
+			if tt.expectedErrMsg != "" {
+				body := w.Body.String()
+				assert.Contains(
+					t, body, tt.expectedErrMsg,
+					"Expected error message to contain %q, got %s", tt.expectedErrMsg, body,
+				)
+
+				return
+			}
+
+			// If delete was successful, verify the user is actually removed from the DB
+			id := tt.params.ByName("id")
+
+			user, err := models.Users(qm.Where("id=?", id), qm.WithDeleted()).One(ctx, s.db)
+			assert.Nil(t, err, "Expected no error querying for user")
+
+			assert.Contains(t, user.Name, "Deleted User")
+			assert.Contains(t, user.Email, "deleted-user")
+			assert.Equal(t, user.AvatarURL.Valid, false, "Expected avatar_url to be NULL after deletion")
+			assert.Equal(t, user.GithubID.Valid, false, "Expected github_id to be NULL after deletion")
+			assert.Equal(t, user.GithubUsername.Valid, false, "Expected github_username to be NULL after deletion")
+
+			metadata, err := json.Marshal(map[string]interface{}{
+				"annotations": map[string]string{
+					inactiveUserMetadataKey: inactiveUserMetadataVal,
+				},
+			})
+
+			assert.Nil(t, err, "Expected no error unmarshaling metadata")
+			assert.JSONEq(t, user.Metadata.String(), string(metadata), "Expected metadata to be updated correctly")
 		})
 	}
 }
