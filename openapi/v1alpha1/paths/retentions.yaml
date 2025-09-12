@@ -1,0 +1,50 @@
+user-retentions:
+  delete:
+    summary: Permanently delete user records by ID
+    operationId: deleteUserRecord
+    tags:
+      - Retentions
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:users:delete']
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: User ID (UUID) or email
+    responses:
+      '202':  # Verified that 202 is correct (StatusAccepted)
+        description: User successfully deleted
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/users.yaml#/User'
+            examples:
+              deleted:
+                value:
+                  id: "13ce6459-8b34-41e3-89c9-e288e982baec"
+                  external_id: null
+                  name: "Deleted User e58cbde501"
+                  email: "deleted-user@e58cbde501.com"
+                  login_count: 0
+                  avatar_url: null
+                  last_login_at: null
+                  created_at: "2025-09-11T20:54:25.612562Z"
+                  updated_at: "2025-09-12T18:19:29.926475Z"
+                  github_id: null
+                  github_username: null
+                  deleted_at: "2025-09-11T20:55:11.105054Z"
+                  status: "active"
+                  metadata:
+                    annotations:
+                      retention-ctl: "expired"
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
