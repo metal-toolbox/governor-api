@@ -1,3 +1,4 @@
+//nolint:noctx
 package jsonschema
 
 import (
@@ -40,7 +41,7 @@ func (s *UniqueConstrainTestSuite) seedTestDB() error {
 	}
 
 	for _, q := range testData {
-		_, err := s.db.Query(q) //nolint:noctx
+		_, err := s.db.Query(q)
 		if err != nil {
 			return err
 		}

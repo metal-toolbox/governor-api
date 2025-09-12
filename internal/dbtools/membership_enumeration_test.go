@@ -1,3 +1,4 @@
+//nolint:noctx
 package dbtools
 
 import (
@@ -39,7 +40,7 @@ func (s *MembershipEnumerationTestSuite) SetupSuite() {
 func (s *MembershipEnumerationTestSuite) TestServerRunning() {
 	var c int
 
-	r, err := s.db.Query("SELECT COUNT(*) AS c FROM users;") //nolint:noctx
+	r, err := s.db.Query("SELECT COUNT(*) AS c FROM users;")
 	if err != nil {
 		s.T().Fatal("could not query test database", err)
 	}
@@ -417,7 +418,7 @@ func (s *MembershipEnumerationTestSuite) seedTestDB() error {
 		('00000004-0000-0000-0000-000000000004', '00000002-0000-0000-0000-000000000004', '00000002-0000-0000-0000-000000000005', '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL);`,
 	}
 	for _, q := range testData {
-		_, err := s.db.Query(q) //nolint:noctx
+		_, err := s.db.Query(q)
 		if err != nil {
 			return err
 		}

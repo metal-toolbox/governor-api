@@ -1,3 +1,4 @@
+//nolint:noctx
 package v1alpha1
 
 import (
@@ -48,7 +49,7 @@ func (s *UserTestSuite) seedTestDB() error {
 	}
 
 	for _, q := range testData {
-		_, err := s.db.Query(q) //nolint:noctx
+		_, err := s.db.Query(q)
 		if err != nil {
 			return err
 		}
@@ -80,11 +81,11 @@ func (s *UserTestSuite) SetupSuite() {
 }
 
 func (s *UserTestSuite) SetupTest() {
-	if _, err := s.db.Exec("DELETE FROM audit_events"); err != nil { //nolint:noctx
+	if _, err := s.db.Exec("DELETE FROM audit_events"); err != nil {
 		s.T().Fatalf("Failed to reset audit_events table: %v", err)
 	}
 
-	if _, err := s.db.Exec("DELETE FROM users"); err != nil { //nolint:noctx
+	if _, err := s.db.Exec("DELETE FROM users"); err != nil {
 		s.T().Fatalf("Failed to reset users table: %v", err)
 	}
 
@@ -170,7 +171,7 @@ func (s *UserTestSuite) TestCreateUser() {
 			c, _ := gin.CreateTestContext(w)
 			auditID := uuid.New().String()
 
-			req, _ := http.NewRequest("POST", tt.url, nil) //nolint:noctx
+			req, _ := http.NewRequest("POST", tt.url, nil)
 			req.Body = io.NopCloser(bytes.NewBufferString(tt.payload))
 			c.Request = req
 			c.Set(ginaudit.AuditIDContextKey, auditID)
@@ -296,7 +297,7 @@ func (s *UserTestSuite) TestUpdateUserMetadata() {
 			c, _ := gin.CreateTestContext(w)
 			auditID := uuid.New().String()
 
-			req, _ := http.NewRequest("PATCH", tt.url, nil) //nolint:noctx
+			req, _ := http.NewRequest("PATCH", tt.url, nil)
 			req.Body = io.NopCloser(bytes.NewBufferString(tt.payload))
 			c.Request = req
 			c.Params = tt.params
@@ -469,7 +470,7 @@ func (s *UserTestSuite) TestListUsersWithMetadataFilter() {
 			c, _ := gin.CreateTestContext(w)
 			auditID := uuid.New().String()
 
-			req, _ := http.NewRequest("GET", tt.url, nil) //nolint:noctx
+			req, _ := http.NewRequest("GET", tt.url, nil)
 
 			// Add query parameters
 			if len(tt.queryParams) > 0 {

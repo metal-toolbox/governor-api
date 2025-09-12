@@ -43,11 +43,11 @@ func (c *Client) PermanentlyDeleteUserRecords(ctx context.Context, userID string
 		return ErrUserNotFound
 	case http.StatusOK, http.StatusAccepted:
 		return nil
-	}
+	default:
+		if strings.Contains(string(respbody), v1alpha1.ErrRemoveActiveRecord.Error()) {
+			return v1alpha1.ErrRemoveActiveRecord
+		}
 
-	if strings.Contains(string(respbody), v1alpha1.ErrRemoveActiveRecord.Error()) {
-		return v1alpha1.ErrRemoveActiveRecord
+		return ErrRequestNonSuccess
 	}
-
-	return ErrRequestNonSuccess
 }
