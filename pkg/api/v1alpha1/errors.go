@@ -63,5 +63,5 @@ func recordAndSendError(
 
 	span.RecordError(err)
 	span.SetStatus(codes.Error, msg)
-	sendError(c, httpcode, fmt.Sprintf("%s: %s", err.Error(), msg))
+	sendError(c, httpcode, fmt.Sprintf("%s: %s", msg, err.Error()))
 }
