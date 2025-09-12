@@ -82,7 +82,7 @@ func (s *UserExtensionResourceTestSuite) seedTestDB() error {
 	}
 
 	for _, q := range testData {
-		_, err := s.db.Query(q)
+		_, err := s.db.Query(q) //nolint:noctx
 		if err != nil {
 			return err
 		}
@@ -214,7 +214,7 @@ func (s *UserExtensionResourceTestSuite) TestFetchUserAndERD() {
 			c, _ := gin.CreateTestContext(w)
 			auditID := uuid.New().String()
 
-			req, _ := http.NewRequest("GET", url, nil)
+			req, _ := http.NewRequest("GET", url, nil) //nolint:noctx
 			c.Request = req
 			c.Params = tt.params
 			c.Set(ginaudit.AuditIDContextKey, auditID)
@@ -389,7 +389,7 @@ func (s *UserExtensionResourceTestSuite) TestListUserExtensionResources() {
 			c, _ := gin.CreateTestContext(w)
 			auditID := uuid.New().String()
 
-			req, _ := http.NewRequest("GET", fmt.Sprintf("%s?%s", url, tt.query), nil)
+			req, _ := http.NewRequest("GET", fmt.Sprintf("%s?%s", url, tt.query), nil) //nolint:noctx
 			c.Request = req
 			c.Params = tt.params
 			c.Set(ginaudit.AuditIDContextKey, auditID)
@@ -547,7 +547,7 @@ func (s *UserExtensionResourceTestSuite) TestGetUserExtensionResource() {
 			c, _ := gin.CreateTestContext(w)
 			auditID := uuid.New().String()
 
-			req, _ := http.NewRequest("GET", fmt.Sprintf("?%s", tt.query), nil)
+			req, _ := http.NewRequest("GET", fmt.Sprintf("?%s", tt.query), nil) //nolint:noctx
 			c.Request = req
 			c.Params = tt.params
 			c.Set(ginaudit.AuditIDContextKey, auditID)
@@ -728,7 +728,7 @@ func (s *UserExtensionResourceTestSuite) TestCreateUserExtensionResource() {
 			c, _ := gin.CreateTestContext(w)
 			auditID := uuid.New().String()
 
-			req, _ := http.NewRequest("POST", url, nil)
+			req, _ := http.NewRequest("POST", url, nil) //nolint:noctx
 			req.Body = io.NopCloser(bytes.NewBufferString(tt.payload))
 			c.Request = req
 			c.Params = tt.params
@@ -932,7 +932,7 @@ func (s *UserExtensionResourceTestSuite) TestUpdateUserExtensionResource() {
 			c, _ := gin.CreateTestContext(w)
 			auditID := uuid.New().String()
 
-			req, _ := http.NewRequest("PATCH", url, nil)
+			req, _ := http.NewRequest("PATCH", url, nil) //nolint:noctx
 			req.Body = io.NopCloser(bytes.NewBufferString(tt.payload))
 			c.Request = req
 			c.Params = tt.params
@@ -1100,7 +1100,7 @@ func (s *UserExtensionResourceTestSuite) TestDeleteUserExtensionResource() {
 			c, _ := gin.CreateTestContext(w)
 			auditID := uuid.New().String()
 
-			req, _ := http.NewRequest("DELETE", "", nil)
+			req, _ := http.NewRequest("DELETE", "", nil) //nolint:noctx
 			c.Request = req
 			c.Params = tt.params
 			c.Set(ginaudit.AuditIDContextKey, auditID)

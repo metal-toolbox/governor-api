@@ -164,7 +164,6 @@ func (r *Router) mwUserAuthRequired(authRole mwAuthRole) gin.HandlerFunc {
 			event, err := dbtools.AuditUserCreatedWithActor(c.Request.Context(), tx, getCtxAuditID(c), newUser, newUser)
 			if err != nil {
 				msg := "error creating user (audit): " + err.Error()
-
 				if err := tx.Rollback(); err != nil {
 					msg += "error rolling back transaction: " + err.Error()
 				}
@@ -176,7 +175,6 @@ func (r *Router) mwUserAuthRequired(authRole mwAuthRole) gin.HandlerFunc {
 
 			if err := updateContextWithAuditEventData(c, event); err != nil {
 				msg := "error creating user (audit): " + err.Error()
-
 				if err := tx.Rollback(); err != nil {
 					msg += "error rolling back transaction: " + err.Error()
 				}
@@ -188,7 +186,6 @@ func (r *Router) mwUserAuthRequired(authRole mwAuthRole) gin.HandlerFunc {
 
 			if err := tx.Commit(); err != nil {
 				msg := "error committing user create, rolling back: " + err.Error()
-
 				if err := tx.Rollback(); err != nil {
 					msg = msg + "error rolling back transaction: " + err.Error()
 				}

@@ -90,7 +90,6 @@ func (r *Router) createNotificationType(c *gin.Context) {
 
 	if err := notificationType.Insert(c.Request.Context(), tx, boil.Infer()); err != nil {
 		msg := fmt.Sprintf("error creating notification type: %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -109,7 +108,6 @@ func (r *Router) createNotificationType(c *gin.Context) {
 	)
 	if err != nil {
 		msg := fmt.Sprintf("error creating notification type (audit): %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -121,7 +119,6 @@ func (r *Router) createNotificationType(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := fmt.Sprintf("error creating notification type: %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -133,7 +130,6 @@ func (r *Router) createNotificationType(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := fmt.Sprintf("error committing notification type create: %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -245,7 +241,6 @@ func (r *Router) deleteNotificationType(c *gin.Context) {
 
 	if _, err := n.Delete(c.Request.Context(), tx, false); err != nil {
 		msg := fmt.Sprintf("error deleting notification type: %s. rolling back\n", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -264,7 +259,6 @@ func (r *Router) deleteNotificationType(c *gin.Context) {
 	)
 	if err != nil {
 		msg := fmt.Sprintf("error deleting notification type (audit): %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -276,7 +270,6 @@ func (r *Router) deleteNotificationType(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := fmt.Sprintf("error deleting notification type: %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -288,7 +281,6 @@ func (r *Router) deleteNotificationType(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := fmt.Sprintf("error committing notification type delete: %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -384,7 +376,6 @@ func (r *Router) updateNotificationType(c *gin.Context) {
 
 	if _, err := n.Update(c.Request.Context(), tx, boil.Infer()); err != nil {
 		msg := fmt.Sprintf("error updating notification type: %s. rolling back\n", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -404,7 +395,6 @@ func (r *Router) updateNotificationType(c *gin.Context) {
 	)
 	if err != nil {
 		msg := fmt.Sprintf("error updating notification type (audit): %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -416,7 +406,6 @@ func (r *Router) updateNotificationType(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := fmt.Sprintf("error updating notification type: %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -428,7 +417,6 @@ func (r *Router) updateNotificationType(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := fmt.Sprintf("error committing notification type update: %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}

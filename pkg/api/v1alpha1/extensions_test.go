@@ -44,7 +44,7 @@ func (s *ExtensionsTestSuite) seedTestDB() error {
 	}
 
 	for _, q := range testData {
-		_, err := s.db.Query(q)
+		_, err := s.db.Query(q) //nolint:noctx
 		if err != nil {
 			return err
 		}
@@ -143,7 +143,7 @@ func (s *ExtensionsTestSuite) TestCreateExtension() {
 			c, _ := gin.CreateTestContext(w)
 			auditID := uuid.New().String()
 
-			req, _ := http.NewRequest("POST", tt.url, nil)
+			req, _ := http.NewRequest("POST", tt.url, nil) //nolint:noctx
 			req.Body = io.NopCloser(bytes.NewBufferString(tt.payload))
 			c.Request = req
 			c.Set(ginaudit.AuditIDContextKey, auditID)
@@ -238,7 +238,7 @@ func (s *ExtensionsTestSuite) TestListExtensions() {
 			c, _ := gin.CreateTestContext(w)
 			auditID := uuid.New().String()
 
-			req, _ := http.NewRequest("GET", tt.url, nil)
+			req, _ := http.NewRequest("GET", tt.url, nil) //nolint:noctx
 			req = req.WithContext(context.Background())
 			c.Request = req
 			c.Set(ginaudit.AuditIDContextKey, auditID)
@@ -335,7 +335,7 @@ func (s *ExtensionsTestSuite) TestGetExtension() {
 			c, _ := gin.CreateTestContext(w)
 			auditID := uuid.New().String()
 
-			req, _ := http.NewRequest("GET", tt.url, nil)
+			req, _ := http.NewRequest("GET", tt.url, nil) //nolint:noctx
 			req = req.WithContext(context.Background())
 			c.Request = req
 			c.Params = tt.params
@@ -440,7 +440,7 @@ func (s *ExtensionsTestSuite) TestUpdateExtension() {
 			c, _ := gin.CreateTestContext(w)
 			auditID := uuid.New().String()
 
-			req, _ := http.NewRequest("PATCH", tt.url, nil)
+			req, _ := http.NewRequest("PATCH", tt.url, nil) //nolint:noctx
 			req = req.WithContext(context.Background())
 			req.Body = io.NopCloser(bytes.NewBufferString(tt.payload))
 			c.Request = req
@@ -560,7 +560,7 @@ func (s *ExtensionsTestSuite) TestDeleteExtension() {
 			c, _ := gin.CreateTestContext(w)
 			auditID := uuid.New().String()
 
-			req, _ := http.NewRequest("GET", tt.url, nil)
+			req, _ := http.NewRequest("GET", tt.url, nil) //nolint:noctx
 			req = req.WithContext(context.Background())
 			c.Request = req
 			c.Params = tt.params

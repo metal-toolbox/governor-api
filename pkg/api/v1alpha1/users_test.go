@@ -45,7 +45,7 @@ func (s *UserTestSuite) seedTestDB() error {
 	}
 
 	for _, q := range testData {
-		_, err := s.db.Query(q)
+		_, err := s.db.Query(q) //nolint:noctx
 		if err != nil {
 			return err
 		}
@@ -77,11 +77,11 @@ func (s *UserTestSuite) SetupSuite() {
 }
 
 func (s *UserTestSuite) SetupTest() {
-	if _, err := s.db.Exec("DELETE FROM audit_events"); err != nil {
+	if _, err := s.db.Exec("DELETE FROM audit_events"); err != nil { //nolint:noctx
 		s.T().Fatalf("Failed to reset audit_events table: %v", err)
 	}
 
-	if _, err := s.db.Exec("DELETE FROM users"); err != nil {
+	if _, err := s.db.Exec("DELETE FROM users"); err != nil { //nolint:noctx
 		s.T().Fatalf("Failed to reset users table: %v", err)
 	}
 
@@ -167,7 +167,7 @@ func (s *UserTestSuite) TestCreateUser() {
 			c, _ := gin.CreateTestContext(w)
 			auditID := uuid.New().String()
 
-			req, _ := http.NewRequest("POST", tt.url, nil)
+			req, _ := http.NewRequest("POST", tt.url, nil) //nolint:noctx
 			req.Body = io.NopCloser(bytes.NewBufferString(tt.payload))
 			c.Request = req
 			c.Set(ginaudit.AuditIDContextKey, auditID)
@@ -293,7 +293,7 @@ func (s *UserTestSuite) TestUpdateUserMetadata() {
 			c, _ := gin.CreateTestContext(w)
 			auditID := uuid.New().String()
 
-			req, _ := http.NewRequest("PATCH", tt.url, nil)
+			req, _ := http.NewRequest("PATCH", tt.url, nil) //nolint:noctx
 			req.Body = io.NopCloser(bytes.NewBufferString(tt.payload))
 			c.Request = req
 			c.Params = tt.params
@@ -320,6 +320,7 @@ func (s *UserTestSuite) TestUpdateUserMetadata() {
 
 			// Extract and verify metadata
 			var actualMetadata map[string]interface{}
+
 			err = user.Metadata.Unmarshal(&actualMetadata)
 			assert.Nil(t, err)
 
@@ -465,7 +466,7 @@ func (s *UserTestSuite) TestListUsersWithMetadataFilter() {
 			c, _ := gin.CreateTestContext(w)
 			auditID := uuid.New().String()
 
-			req, _ := http.NewRequest("GET", tt.url, nil)
+			req, _ := http.NewRequest("GET", tt.url, nil) //nolint:noctx
 
 			// Add query parameters
 			if len(tt.queryParams) > 0 {

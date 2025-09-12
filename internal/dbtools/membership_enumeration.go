@@ -284,6 +284,7 @@ func HierarchyWouldCreateCycle(ctx context.Context, db boil.ContextExecutor, par
 	hierarchies[parentGroupID] = append(hierarchies[parentGroupID], memberGroupID)
 
 	var walkNode func(startingID string, hierarchies map[string][]string, visited []string) bool
+
 	walkNode = func(startingID string, hierarchies map[string][]string, visited []string) bool {
 		if _, exists := hierarchies[startingID]; !exists {
 			return false

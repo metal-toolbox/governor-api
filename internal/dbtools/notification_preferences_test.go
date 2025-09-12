@@ -38,7 +38,7 @@ func (s *NotificationPreferencesTestSuite) seedTestDB() error {
 		('00000001-0000-0000-0000-000000000004', NULL, 'User4', 'user4@email.com', 0, NULL, NULL, '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL, NULL, NULL, 'active');`,
 	}
 	for _, q := range testData {
-		_, err := s.db.Query(q)
+		_, err := s.db.Query(q) //nolint:noctx
 		if err != nil {
 			return err
 		}
@@ -145,7 +145,7 @@ func (s *NotificationPreferencesTestSuite) TestNotificationDefaults() {
 
 	for _, tc := range tests {
 		s.T().Run(tc.name, func(_ *testing.T) {
-			_, err := s.db.Query(tc.q)
+			_, err := s.db.Query(tc.q) //nolint:noctx
 
 			if tc.wantQueryErr {
 				s.Assert().Error(err)
@@ -353,7 +353,7 @@ func (s *NotificationPreferencesTestSuite) TestNotificationPreferences() {
 		{
 			name: "notification type deleted after user updates",
 			action: func() error {
-				_, err := s.db.Query(`INSERT INTO notification_types (id, name, slug, description, default_enabled) VALUES ('00000000-0000-0000-0000-000000000002', 'Notice', 'notice', 'notice', 'false')`)
+				_, err := s.db.Query(`INSERT INTO notification_types (id, name, slug, description, default_enabled) VALUES ('00000000-0000-0000-0000-000000000002', 'Notice', 'notice', 'notice', 'false')`) //nolint:noctx
 				if err != nil {
 					return err
 				}

@@ -86,7 +86,7 @@ func (s *ExtensionResourcesGroupAuthTestSuite) seedTestDB() error {
 	}
 
 	for _, q := range testData {
-		_, err := s.db.Query(q)
+		_, err := s.db.Query(q) //nolint:noctx
 		if err != nil {
 			return err
 		}

@@ -69,7 +69,7 @@ func (s *SystemExtensionResourceTestSuite) seedTestDB() error {
 	}
 
 	for _, q := range testData {
-		_, err := s.db.Query(q)
+		_, err := s.db.Query(q) //nolint:noctx
 		if err != nil {
 			return err
 		}
@@ -305,7 +305,7 @@ func (s *SystemExtensionResourceTestSuite) TestListSystemExtensionResources() {
 			c, _ := gin.CreateTestContext(w)
 			auditID := uuid.New().String()
 
-			req, _ := http.NewRequest("GET", tt.url, nil)
+			req, _ := http.NewRequest("GET", tt.url, nil) //nolint:noctx
 			req = req.WithContext(context.Background())
 			c.Request = req
 			c.Params = tt.params
@@ -412,7 +412,7 @@ func (s *SystemExtensionResourceTestSuite) TestGetSystemExtensionResource() {
 			c, _ := gin.CreateTestContext(w)
 			auditID := uuid.New().String()
 
-			req, _ := http.NewRequest("GET", tt.url, nil)
+			req, _ := http.NewRequest("GET", tt.url, nil) //nolint:noctx
 			req = req.WithContext(context.Background())
 			c.Request = req
 			c.Params = tt.params
@@ -550,7 +550,7 @@ func (s *SystemExtensionResourceTestSuite) TestCreateSystemExtensionResource() {
 			c, _ := gin.CreateTestContext(w)
 			auditID := uuid.New().String()
 
-			req, _ := http.NewRequest("POST", tt.url, nil)
+			req, _ := http.NewRequest("POST", tt.url, nil) //nolint:noctx
 			req = req.WithContext(context.Background())
 			req.Body = io.NopCloser(bytes.NewBufferString(tt.payload))
 			c.Request = req
@@ -716,7 +716,7 @@ func (s *SystemExtensionResourceTestSuite) TestUpdateSystemExtensionResource() {
 			c, _ := gin.CreateTestContext(w)
 			auditID := uuid.New().String()
 
-			req, _ := http.NewRequest("PATCH", tt.url, nil)
+			req, _ := http.NewRequest("PATCH", tt.url, nil) //nolint:noctx
 			req = req.WithContext(context.Background())
 			req.Body = io.NopCloser(bytes.NewBufferString(tt.payload))
 			c.Request = req
@@ -865,7 +865,7 @@ func (s *SystemExtensionResourceTestSuite) TestDeleteSystemExtensionResource() {
 			c, _ := gin.CreateTestContext(w)
 			auditID := uuid.New().String()
 
-			req, _ := http.NewRequest("DELETE", tt.url, nil)
+			req, _ := http.NewRequest("DELETE", tt.url, nil) //nolint:noctx
 			req = req.WithContext(context.Background())
 			c.Request = req
 			c.Params = tt.params

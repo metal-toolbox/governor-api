@@ -90,7 +90,6 @@ func (r *Router) createExtension(c *gin.Context) {
 
 	if err := extension.Insert(c.Request.Context(), tx, boil.Infer()); err != nil {
 		msg := fmt.Sprintf("error creating extension: %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -109,7 +108,6 @@ func (r *Router) createExtension(c *gin.Context) {
 	)
 	if err != nil {
 		msg := fmt.Sprintf("error creating extension (audit): %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -121,7 +119,6 @@ func (r *Router) createExtension(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := fmt.Sprintf("error creating extension: %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -133,7 +130,6 @@ func (r *Router) createExtension(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := fmt.Sprintf("error committing extension create: %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -238,7 +234,6 @@ func (r *Router) deleteExtension(c *gin.Context) {
 
 	if _, err := extension.Delete(c.Request.Context(), tx, false); err != nil {
 		msg := fmt.Sprintf("error deleting extension: %s. rolling back\n", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -257,7 +252,6 @@ func (r *Router) deleteExtension(c *gin.Context) {
 	)
 	if err != nil {
 		msg := fmt.Sprintf("error deleting extension (audit): %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -269,7 +263,6 @@ func (r *Router) deleteExtension(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := fmt.Sprintf("error deleting extension: %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -281,7 +274,6 @@ func (r *Router) deleteExtension(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := fmt.Sprintf("error committing extension delete: %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -369,7 +361,6 @@ func (r *Router) updateExtension(c *gin.Context) {
 
 	if _, err := extension.Update(c.Request.Context(), tx, boil.Infer()); err != nil {
 		msg := fmt.Sprintf("error updating extension: %s. rolling back\n", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -389,7 +380,6 @@ func (r *Router) updateExtension(c *gin.Context) {
 	)
 	if err != nil {
 		msg := fmt.Sprintf("error updating extension (audit): %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -401,7 +391,6 @@ func (r *Router) updateExtension(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := fmt.Sprintf("error updating extension: %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
@@ -413,7 +402,6 @@ func (r *Router) updateExtension(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := fmt.Sprintf("error committing extension update: %s", err.Error())
-
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}

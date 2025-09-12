@@ -300,7 +300,7 @@ func (r *Router) createUser(c *gin.Context) {
 	}
 
 	if req.GithubID != "" {
-		ghID, err := strconv.ParseInt(req.GithubID, 10, 64) //nolint:gomnd
+		ghID, err := strconv.ParseInt(req.GithubID, 10, 64)
 		if err != nil {
 			sendError(c, http.StatusBadRequest, "error parsing github id string as int")
 			return
@@ -346,7 +346,6 @@ func (r *Router) createUser(c *gin.Context) {
 
 	if err := user.Insert(c.Request.Context(), tx, boil.Infer()); err != nil {
 		msg := "error creating user: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -359,7 +358,6 @@ func (r *Router) createUser(c *gin.Context) {
 	event, err := dbtools.AuditUserCreatedWithActor(c.Request.Context(), tx, getCtxAuditID(c), getCtxUser(c), user)
 	if err != nil {
 		msg := "error creating user (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -371,7 +369,6 @@ func (r *Router) createUser(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := "error creating user (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -383,7 +380,6 @@ func (r *Router) createUser(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := "error committing user create, rolling back: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg = msg + "error rolling back transaction: " + err.Error()
 		}
@@ -483,7 +479,7 @@ func (r *Router) updateUser(c *gin.Context) {
 	}
 
 	if req.GithubID != "" {
-		ghID, err := strconv.ParseInt(req.GithubID, 10, 64) //nolint:gomnd
+		ghID, err := strconv.ParseInt(req.GithubID, 10, 64)
 		if err != nil {
 			sendError(c, http.StatusBadRequest, "error parsing github id string as int")
 			return
@@ -534,7 +530,6 @@ func (r *Router) updateUser(c *gin.Context) {
 
 	if _, err := user.Update(c.Request.Context(), tx, boil.Infer()); err != nil {
 		msg := "error updating user: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -547,7 +542,6 @@ func (r *Router) updateUser(c *gin.Context) {
 	event, err := dbtools.AuditUserUpdated(c.Request.Context(), tx, getCtxAuditID(c), getCtxUser(c), &original, user)
 	if err != nil {
 		msg := "error updating user (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -559,7 +553,6 @@ func (r *Router) updateUser(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := "error updating user (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -571,7 +564,6 @@ func (r *Router) updateUser(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := "error committing user update, rolling back: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg = msg + "error rolling back transaction: " + err.Error()
 		}
@@ -675,7 +667,6 @@ func (r *Router) deleteUser(c *gin.Context) {
 	// delete all group memberships
 	if _, err := user.R.GroupMemberships.DeleteAll(c.Request.Context(), tx); err != nil {
 		msg := "error deleting group membership, rolling back: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg = msg + "error rolling back transaction: " + err.Error()
 		}
@@ -688,7 +679,6 @@ func (r *Router) deleteUser(c *gin.Context) {
 	// delete all group membership requests
 	if _, err := user.R.GroupMembershipRequests.DeleteAll(c.Request.Context(), tx); err != nil {
 		msg := "error deleting group membership requests, rolling back: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg = msg + "error rolling back transaction: " + err.Error()
 		}
@@ -701,7 +691,6 @@ func (r *Router) deleteUser(c *gin.Context) {
 	// soft delete the user
 	if _, err := user.Delete(c.Request.Context(), tx, false); err != nil {
 		msg := "error deleting user, rolling back: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg = msg + "error rolling back transaction: " + err.Error()
 		}
@@ -714,7 +703,6 @@ func (r *Router) deleteUser(c *gin.Context) {
 	event, err := dbtools.AuditUserDeleted(c.Request.Context(), tx, getCtxAuditID(c), getCtxUser(c), &original, user)
 	if err != nil {
 		msg := "error deleting user (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -726,7 +714,6 @@ func (r *Router) deleteUser(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := "error deleting user (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -738,7 +725,6 @@ func (r *Router) deleteUser(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := "error committing user delete, rolling back: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg = msg + "error rolling back transaction: " + err.Error()
 		}

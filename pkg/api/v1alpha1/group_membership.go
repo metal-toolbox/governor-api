@@ -204,7 +204,6 @@ func (r *Router) addGroupMember(c *gin.Context) {
 	membershipsBefore, err := dbtools.GetMembershipsForUser(c.Request.Context(), tx, user.ID, false)
 	if err != nil {
 		msg := "failed to compute new effective memberships: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -216,7 +215,6 @@ func (r *Router) addGroupMember(c *gin.Context) {
 
 	if err := groupMem.Insert(c.Request.Context(), tx, boil.Infer()); err != nil {
 		msg := "failed to update group membership: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -229,7 +227,6 @@ func (r *Router) addGroupMember(c *gin.Context) {
 	event, err := dbtools.AuditGroupMembershipCreated(c.Request.Context(), tx, getCtxAuditID(c), getCtxUser(c), groupMem)
 	if err != nil {
 		msg := "error creating groups membership (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -241,7 +238,6 @@ func (r *Router) addGroupMember(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := "error creating groups membership (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -254,7 +250,6 @@ func (r *Router) addGroupMember(c *gin.Context) {
 	membershipsAfter, err := dbtools.GetMembershipsForUser(c.Request.Context(), tx, user.ID, false)
 	if err != nil {
 		msg := "failed to compute new effective memberships: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -266,7 +261,6 @@ func (r *Router) addGroupMember(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := "error committing groups membership, rolling back: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg = msg + "error rolling back transaction: " + err.Error()
 		}
@@ -508,7 +502,6 @@ func (r *Router) removeGroupMember(c *gin.Context) {
 	membershipsBefore, err := dbtools.GetMembershipsForUser(c.Request.Context(), tx, user.ID, false)
 	if err != nil {
 		msg := "failed to compute new effective memberships: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -520,7 +513,6 @@ func (r *Router) removeGroupMember(c *gin.Context) {
 
 	if _, err := membership.Delete(c.Request.Context(), tx); err != nil {
 		msg := "error removing membership: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -533,7 +525,6 @@ func (r *Router) removeGroupMember(c *gin.Context) {
 	event, err := dbtools.AuditGroupMembershipDeleted(c.Request.Context(), tx, getCtxAuditID(c), getCtxUser(c), membership)
 	if err != nil {
 		msg := "error deleting groups membership (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -545,7 +536,6 @@ func (r *Router) removeGroupMember(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := "error deleting group membership (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -558,7 +548,6 @@ func (r *Router) removeGroupMember(c *gin.Context) {
 	membershipsAfter, err := dbtools.GetMembershipsForUser(c.Request.Context(), tx, user.ID, false)
 	if err != nil {
 		msg := "failed to compute new effective memberships: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -570,7 +559,6 @@ func (r *Router) removeGroupMember(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := "error committing membership delete, rolling back: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg = msg + "error rolling back transaction: " + err.Error()
 		}
@@ -697,7 +685,6 @@ func (r *Router) createGroupRequest(c *gin.Context) {
 
 	if err := group.AddGroupMembershipRequests(c.Request.Context(), tx, true, groupMembershipRequest); err != nil {
 		msg := "failed to create group request: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -710,7 +697,6 @@ func (r *Router) createGroupRequest(c *gin.Context) {
 	event, err := dbtools.AuditGroupMembershipRequestCreated(c.Request.Context(), tx, getCtxAuditID(c), ctxUser, groupMembershipRequest)
 	if err != nil {
 		msg := "error creating group membership request (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -722,7 +708,6 @@ func (r *Router) createGroupRequest(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := "error group membership request (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -734,7 +719,6 @@ func (r *Router) createGroupRequest(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := "error committing group membership request, rolling back: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg = msg + "error rolling back transaction: " + err.Error()
 		}
@@ -814,7 +798,6 @@ func (r *Router) deleteGroupRequest(c *gin.Context) {
 
 	if _, err := request.Delete(c.Request.Context(), tx); err != nil {
 		msg := "failed to delete group request: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -827,7 +810,6 @@ func (r *Router) deleteGroupRequest(c *gin.Context) {
 	event, err := dbtools.AuditGroupMembershipRevoked(c.Request.Context(), tx, getCtxAuditID(c), ctxUser, request)
 	if err != nil {
 		msg := "error deleting group membership request (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -839,7 +821,6 @@ func (r *Router) deleteGroupRequest(c *gin.Context) {
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := "error group membership request (audit): " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -851,7 +832,6 @@ func (r *Router) deleteGroupRequest(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		msg := "error committing group request delete, rolling back: " + err.Error()
-
 		if err := tx.Rollback(); err != nil {
 			msg += "error rolling back transaction: " + err.Error()
 		}
@@ -1060,7 +1040,6 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 		membershipsBefore, err := dbtools.GetMembershipsForUser(c.Request.Context(), tx, user.ID, false)
 		if err != nil {
 			msg := "failed to compute new effective memberships: " + err.Error()
-
 			if err := tx.Rollback(); err != nil {
 				msg += "error rolling back transaction: " + err.Error()
 			}
@@ -1083,7 +1062,6 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 		case "new_member":
 			if err := groupMem.Insert(c.Request.Context(), tx, boil.Infer()); err != nil {
 				msg := "error approving group membership request , rolling back: " + err.Error()
-
 				if err := tx.Rollback(); err != nil {
 					msg += "error rolling back transaction: " + err.Error()
 				}
@@ -1098,7 +1076,6 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 
 			if _, err := existingMembership.Update(c.Request.Context(), tx, boil.Infer()); err != nil {
 				msg := "error approving admin promotion request , rolling back: " + err.Error()
-
 				if err := tx.Rollback(); err != nil {
 					msg += "error rolling back transaction: " + err.Error()
 				}
@@ -1111,7 +1088,6 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 
 		if _, err := request.Delete(c.Request.Context(), tx); err != nil {
 			msg := "error deleting group request on approval, rolling back: " + err.Error()
-
 			if err := tx.Rollback(); err != nil {
 				msg += "error rolling back transaction: " + err.Error()
 			}
@@ -1124,7 +1100,6 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 		event, err := dbtools.AuditGroupMembershipApproved(c.Request.Context(), tx, getCtxAuditID(c), ctxUser, groupMem, request.Kind)
 		if err != nil {
 			msg := "error approving group request (audit): " + err.Error()
-
 			if err := tx.Rollback(); err != nil {
 				msg += "error rolling back transaction: " + err.Error()
 			}
@@ -1136,7 +1111,6 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 
 		if err := updateContextWithAuditEventData(c, event); err != nil {
 			msg := "error approving group request (audit): " + err.Error()
-
 			if err := tx.Rollback(); err != nil {
 				msg += "error rolling back transaction: " + err.Error()
 			}
@@ -1149,7 +1123,6 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 		membershipsAfter, err := dbtools.GetMembershipsForUser(c.Request.Context(), tx, user.ID, false)
 		if err != nil {
 			msg := "failed to compute new effective memberships: " + err.Error()
-
 			if err := tx.Rollback(); err != nil {
 				msg += "error rolling back transaction: " + err.Error()
 			}
@@ -1161,7 +1134,6 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 
 		if err := tx.Commit(); err != nil {
 			msg := "error committing group request approval, rolling back: " + err.Error()
-
 			if err := tx.Rollback(); err != nil {
 				msg += "error rolling back transaction: " + err.Error()
 			}
@@ -1225,7 +1197,6 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 		event, err := dbtools.AuditGroupMembershipDenied(c.Request.Context(), tx, getCtxAuditID(c), ctxUser, request)
 		if err != nil {
 			msg := "error denying group request (audit): " + err.Error()
-
 			if err := tx.Rollback(); err != nil {
 				msg += "error rolling back transaction: " + err.Error()
 			}
@@ -1237,7 +1208,6 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 
 		if err := tx.Commit(); err != nil {
 			msg := "error committing group request deny, rolling back: " + err.Error()
-
 			if err := tx.Rollback(); err != nil {
 				msg += "error rolling back transaction: " + err.Error()
 			}
@@ -1249,7 +1219,6 @@ func (r *Router) processGroupRequest(c *gin.Context) {
 
 		if err := updateContextWithAuditEventData(c, event); err != nil {
 			msg := "error denying group request (audit): " + err.Error()
-
 			if err := tx.Rollback(); err != nil {
 				msg += "error rolling back transaction: " + err.Error()
 			}
