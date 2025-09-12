@@ -22,7 +22,7 @@ jobs:
           redocly bundle openapi/v1alpha1/openapi.yaml -o _site/openapi-bundle.yaml
           redocly build-docs openapi/v1alpha1/openapi.yaml --title "Governor API" -o _site/index.html
       - name: Upload OpenAPI Bundle
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           retention-days: 1
 
