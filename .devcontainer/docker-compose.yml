@@ -32,7 +32,7 @@ services:
 
   # DB
   pg:
-    image: postgres:17
+    image: postgres:18
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -49,7 +49,7 @@ services:
       retries: 5
 
   create-databases:
-    image: postgres:17
+    image: postgres:18
     restart: on-failure:5
     depends_on:
       pg:
