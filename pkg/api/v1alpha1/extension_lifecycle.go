@@ -37,7 +37,7 @@ func fetchExtension(
 ) (extension *models.Extension, err error) {
 	// skip if extension and ERD are already loaded
 	if extension = extractExtensionFromContext(c); extension != nil {
-		return
+		return extension, err
 	}
 
 	extension, err = models.Extensions(qms...).One(c.Request.Context(), exec)
@@ -46,12 +46,12 @@ func fetchExtension(
 			return nil, ErrExtensionNotFound
 		}
 
-		return
+		return extension, err
 	}
 
 	saveExtensionToContext(c, extension)
 
-	return
+	return extension, err
 }
 
 // findERDForExtensionResource is a function that retrieves the extension and
@@ -82,7 +82,7 @@ func findERDForExtensionResource(
 		),
 	)
 	if err != nil {
-		return
+		return extension, erd, err
 	}
 
 	if len(extension.R.ExtensionResourceDefinitions) < 1 {
@@ -91,7 +91,7 @@ func findERDForExtensionResource(
 
 	erd = extension.R.ExtensionResourceDefinitions[0]
 
-	return
+	return extension, erd, err
 }
 
 func (r *Router) mwExtensionResourcesEnabledCheck(c *gin.Context) {

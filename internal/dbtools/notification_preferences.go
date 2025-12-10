@@ -60,7 +60,7 @@ func RefreshNotificationDefaults(ctx context.Context, ex boil.ContextExecutor) (
 	q := queries.Raw("REFRESH MATERIALIZED VIEW notification_defaults")
 	_, err = q.ExecContext(ctx, ex)
 
-	return
+	return err
 }
 
 // GetNotificationPreferences fetch a user's notification preferences from
@@ -192,12 +192,12 @@ func slugToIDMap(ctx context.Context, table string, db boil.ContextExecutor) (sl
 	)
 
 	if err = q.Bind(ctx, db, rec); err != nil {
-		return
+		return slugIDMap, err
 	}
 
 	err = json.Unmarshal(rec.Map, &slugIDMap)
 
-	return
+	return slugIDMap, err
 }
 
 // CreateOrUpdateNotificationPreferences updates a user's notification

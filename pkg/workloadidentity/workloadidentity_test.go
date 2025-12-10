@@ -278,6 +278,7 @@ func (s *WorkloadIdentityTestSuite) TestTokenExchange() {
 			name: "server error response",
 			serverResponse: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusBadRequest)
+
 				response := TokenExchangeErrorResponse{
 					Error:            "invalid_request",
 					ErrorDescription: "The request is missing a required parameter",
@@ -290,6 +291,7 @@ func (s *WorkloadIdentityTestSuite) TestTokenExchange() {
 			name: "server error without description",
 			serverResponse: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusBadRequest)
+
 				response := TokenExchangeErrorResponse{
 					Error: "invalid_grant",
 				}
@@ -309,6 +311,7 @@ func (s *WorkloadIdentityTestSuite) TestTokenExchange() {
 			name: "server error with empty error response JSON",
 			serverResponse: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusBadRequest)
+
 				response := TokenExchangeErrorResponse{} // Empty error field
 				_ = json.NewEncoder(w).Encode(response)
 			},
@@ -331,6 +334,7 @@ func (s *WorkloadIdentityTestSuite) TestTokenExchange() {
 					TokenType:       "Bearer",
 					ExpiresIn:       3600,
 				}
+
 				w.Header().Set("Content-Type", "application/json")
 				_ = json.NewEncoder(w).Encode(response)
 			},
