@@ -43,7 +43,7 @@ func fetchUserAndERD(c *gin.Context, db boil.ContextExecutor) (
 
 	if userID == "" && ctxUser == nil {
 		findUserErr = ErrNoUserProvided
-		return
+		return user, extension, erd, findUserErr, findERDErr
 	}
 
 	// fetch stuff
@@ -75,7 +75,7 @@ func fetchUserAndERD(c *gin.Context, db boil.ContextExecutor) (
 
 	fetchWg.Wait()
 
-	return
+	return user, extension, erd, findUserErr, findERDErr
 }
 
 // createUserExtensionResource creates a user extension resource for a given user

@@ -99,7 +99,7 @@ func findERD(
 		queryMods...,
 	))
 	if err != nil {
-		return
+		return extension, erd, err
 	}
 
 	if len(extension.R.ExtensionResourceDefinitions) < 1 {
@@ -108,7 +108,7 @@ func findERD(
 
 	erd = extension.R.ExtensionResourceDefinitions[0]
 
-	return
+	return extension, erd, err
 }
 
 // listExtensionResourceDefinitions lists extension resource definitions as JSON
