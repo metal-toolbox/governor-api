@@ -673,15 +673,15 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		r.deleteExtensionResourceDefinition,
 	)
 
-	// system-wise extension resources
+	// system extension resources
 	rg.POST(
 		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version",
 		r.AuditMW.AuditWithType("CreateSystemExtensionResource"),
 		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
 		r.mwUserAuthRequired(AuthRoleUser),
-		r.mwSystemExtensionResourceGroupAuth,
+		r.mwSystemExtensionResourceGroupAuth(extResourceGroupAuthDenyAll),
 		r.mwExtensionResourcesEnabledCheck,
-		r.createSystemExtensionResource,
+		r.createSystemExtensionResourceWithURIParams,
 	)
 
 	rg.GET(
@@ -705,7 +705,7 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		r.AuditMW.AuditWithType("UpdateSystemExtensionResource"),
 		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
 		r.mwUserAuthRequired(AuthRoleUser),
-		r.mwSystemExtensionResourceGroupAuth,
+		r.mwSystemExtensionResourceGroupAuth(extResourceGroupAuthDBFetch),
 		r.mwExtensionResourcesEnabledCheck,
 		r.updateSystemExtensionResource,
 	)
@@ -715,7 +715,7 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		r.AuditMW.AuditWithType("DeleteSystemExtensionResource"),
 		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
 		r.mwUserAuthRequired(AuthRoleUser),
-		r.mwSystemExtensionResourceGroupAuth,
+		r.mwSystemExtensionResourceGroupAuth(extResourceGroupAuthDBFetch),
 		r.mwExtensionResourcesEnabledCheck,
 		r.deleteSystemExtensionResource,
 	)

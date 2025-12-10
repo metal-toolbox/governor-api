@@ -535,7 +535,7 @@ func (s *SystemExtensionResourceTestSuite) TestCreateSystemExtensionResource() {
 			name:           "incorrect ERD scope",
 			url:            "/api/v1alpha1/extension-resources/test-extension/user-resources/v1",
 			expectedStatus: http.StatusBadRequest,
-			expectedErrMsg: "cannot create system resource for user scoped user-resource/v1",
+			expectedErrMsg: "cannot create system extension resource for user scoped user-resource/v1",
 			payload:        `{ "age": 10, "firstName": "test", "lastName": "1" }`,
 			params: gin.Params{
 				gin.Param{Key: "ex-slug", Value: "test-extension"},
@@ -558,7 +558,7 @@ func (s *SystemExtensionResourceTestSuite) TestCreateSystemExtensionResource() {
 			c.Params = tt.params
 			c.Set(ginaudit.AuditIDContextKey, auditID)
 
-			r.createSystemExtensionResource(c)
+			r.createSystemExtensionResourceWithURIParams(c)
 
 			assert.Equal(t, tt.expectedStatus, w.Code, "Expected status %d, got %d", tt.expectedStatus, w.Code)
 

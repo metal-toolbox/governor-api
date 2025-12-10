@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -8,6 +9,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/aarondl/null/v8"
 	"github.com/aarondl/sqlboiler/v4/boil"
 	"github.com/aarondl/sqlboiler/v4/queries/qm"
 	"github.com/gin-gonic/gin"
@@ -25,79 +27,62 @@ type SystemExtensionResource struct {
 	Version string `json:"version"`
 }
 
-// createSystemExtensionResource creates a system extension resource
-func (r *Router) createSystemExtensionResource(c *gin.Context) {
-	defer c.Request.Body.Close()
-
-	extensionSlug := c.Param("ex-slug")
-	erdSlugPlural := c.Param("erd-slug-plural")
-	erdVersion := c.Param("erd-version")
-
-	requestBody, err := io.ReadAll(c.Request.Body)
-	if err != nil {
-		sendError(c, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	// find ERD
-	extension, erd, err := findERDForExtensionResource(
-		c, r.DB,
-		extensionSlug, erdSlugPlural, erdVersion,
-	)
-	if err != nil {
-		if errors.Is(err, ErrExtensionNotFound) || errors.Is(err, ErrERDNotFound) {
-			sendError(c, http.StatusNotFound, err.Error())
-			return
-		}
-
-		sendError(c, http.StatusBadRequest, err.Error())
-
-		return
-	}
-
-	if erd.Scope != ExtensionResourceDefinitionScopeSys.String() {
-		sendError(
-			c, http.StatusBadRequest,
-			fmt.Sprintf(
-				"cannot create system resource for %s scoped %s/%s",
-				erd.Scope, erd.SlugSingular, erd.Version,
-			),
-		)
-
-		return
-	}
-
+func validateSystemExtensionResource(
+	ctx context.Context, extSlug string,
+	erd *models.ExtensionResourceDefinition,
+	db boil.ContextExecutor, requestBody []byte,
+) error {
 	// schema validator
 	compiler := jsonschema.NewCompiler(
-		extension.Slug, erd.SlugPlural, erd.Version,
-		jsonschema.WithUniqueConstraint(c.Request.Context(), erd, nil, r.DB),
+		extSlug, erd.SlugPlural, erd.Version,
+		jsonschema.WithUniqueConstraint(ctx, erd, nil, db),
 	)
 
 	schema, err := compiler.Compile(erd.Schema.String())
 	if err != nil {
-		sendError(c, http.StatusBadRequest, "ERD schema is not valid: "+err.Error())
-		return
+		return err
 	}
 
 	// validate payload
 	var v interface{}
 	if err := json.Unmarshal(requestBody, &v); err != nil {
-		sendError(c, http.StatusBadRequest, "unable to bind request: "+err.Error())
-		return
+		return err
 	}
 
 	if err := schema.Validate(v); err != nil {
-		sendError(c, http.StatusBadRequest, err.Error())
+		return err
+	}
+
+	return nil
+}
+
+// createSystemExtensionResourceCore creates a system extension resource
+func (r *Router) createSystemExtensionResourceCore(
+	c *gin.Context,
+	ext *models.Extension,
+	erd *models.ExtensionResourceDefinition,
+	requestBody []byte,
+	ownerID string,
+) {
+	// schema validation
+	if err := validateSystemExtensionResource(
+		c.Request.Context(), ext.Slug, erd, r.DB, requestBody,
+	); err != nil {
+		sendError(c, http.StatusBadRequest, fmt.Sprintf("validation error: %s", err.Error()))
 		return
 	}
 
 	// insert
-	er := &models.SystemExtensionResource{Resource: requestBody}
-
 	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
 	if err != nil {
 		sendError(c, http.StatusBadRequest, "error starting extension resource create transaction: "+err.Error())
 		return
+	}
+
+	er := &models.SystemExtensionResource{Resource: requestBody}
+
+	if ownerID != "" {
+		er.OwnerID = null.NewString(ownerID, true)
 	}
 
 	if err := erd.AddSystemExtensionResources(c.Request.Context(), tx, true, er); err != nil {
@@ -159,7 +144,7 @@ func (r *Router) createSystemExtensionResource(c *gin.Context) {
 			Action:                        events.GovernorEventCreate,
 			AuditID:                       c.GetString(ginaudit.AuditIDContextKey),
 			ActorID:                       getCtxActorID(c),
-			ExtensionID:                   extension.ID,
+			ExtensionID:                   ext.ID,
 			ExtensionResourceID:           er.ID,
 			ExtensionResourceDefinitionID: erd.ID,
 		},
@@ -185,6 +170,50 @@ func (r *Router) createSystemExtensionResource(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, resp)
+}
+
+func (r *Router) createSystemExtensionResourceWithURIParams(c *gin.Context) {
+	defer c.Request.Body.Close()
+
+	extensionSlug := c.Param("ex-slug")
+	erdSlugPlural := c.Param("erd-slug-plural")
+	erdVersion := c.Param("erd-version")
+
+	requestBody, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		sendError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// find ERD
+	extension, erd, err := findERDForExtensionResource(
+		c, r.DB,
+		extensionSlug, erdSlugPlural, erdVersion,
+	)
+	if err != nil {
+		if errors.Is(err, ErrExtensionNotFound) || errors.Is(err, ErrERDNotFound) {
+			sendError(c, http.StatusNotFound, err.Error())
+			return
+		}
+
+		sendError(c, http.StatusBadRequest, err.Error())
+
+		return
+	}
+
+	if erd.Scope != ExtensionResourceDefinitionScopeSys.String() {
+		sendError(
+			c, http.StatusBadRequest,
+			fmt.Sprintf(
+				"cannot create system extension resource for %s scoped %s/%s",
+				erd.Scope, erd.SlugSingular, erd.Version,
+			),
+		)
+
+		return
+	}
+
+	r.createSystemExtensionResourceCore(c, extension, erd, requestBody, "")
 }
 
 // listSystemExtensionResource lists system extension resources for an ERD
