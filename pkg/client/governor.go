@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/clientcredentials"
@@ -17,6 +18,8 @@ const (
 	governorAPIVersionAlpha = "v1alpha1"
 	governorAPIVersionBeta  = "v1beta1"
 )
+
+var tracer = otel.GetTracerProvider().Tracer("http-client.governor-api/v1alpha1")
 
 // HTTPDoer implements the standard http.Client interface.
 type HTTPDoer interface {

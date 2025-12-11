@@ -56,4 +56,7 @@ var (
 
 	// ErrMissingResourceID is returned when a a missing or bad resource ID is passed to a request
 	ErrMissingResourceID = errors.New("missing resource id in request")
+
+	// ErrNilRequest is returned when a nil body is passed to a request
+	ErrNilRequest = errors.New("nil request")
 )
