@@ -110,13 +110,21 @@ func (r *Router) createExtensionResource(c *gin.Context) {
 		return
 	}
 
-	resp := &ExtensionResource{}
-	*resp = *req
-
-	resp.Metadata.CreatedAt = res.CreatedAt.Format(time.RFC3339)
-	resp.Metadata.ID = res.ID
-	resp.Metadata.ResourceVersion = res.ResourceVersion
-	resp.Status.UpdatedAt = res.UpdatedAt.Format(time.RFC3339)
+	resp := &ExtensionResource{
+		Extension: req.Extension,
+		Kind:      req.Kind,
+		Version:   req.Version,
+		Spec:      req.Spec,
+		Metadata: ExtensionResourceMetadata{
+			OwnerRef:        req.Metadata.OwnerRef,
+			CreatedAt:       res.CreatedAt.Format(time.RFC3339),
+			ID:              res.ID,
+			ResourceVersion: res.ResourceVersion,
+		},
+		Status: ExtensionResourceStatus{
+			UpdatedAt: res.UpdatedAt.Format(time.RFC3339),
+		},
+	}
 
 	resp.Status.Messages = make([]json.RawMessage, len(res.Messages))
 	for i, msg := range res.Messages {

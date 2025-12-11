@@ -223,6 +223,8 @@ func mwFindERDWithRequestBody(
 		if err := json.NewDecoder(requestBody).Decode(res); err != nil {
 			span.SetStatus(codes.Error, err.Error())
 			sendError(c, http.StatusBadRequest, err.Error())
+
+			return
 		}
 
 		setCtxExtensionResource(c, res)
@@ -241,6 +243,8 @@ func mwFindERDWithRequestBody(
 			}
 
 			sendError(c, http.StatusBadRequest, err.Error())
+
+			return
 		}
 
 		span.SetAttributes(

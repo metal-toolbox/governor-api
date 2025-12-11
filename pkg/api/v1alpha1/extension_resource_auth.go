@@ -208,6 +208,7 @@ func extResourceGroupAuthOwnerRef(
 	res := getCtxExtensionResource(c)
 
 	if res == nil {
+		res = &ExtensionResource{}
 		if err := json.NewDecoder(requestBody).Decode(res); err != nil {
 			return fmt.Errorf("%w: %w", errExtGroupAuthValidationError, err)
 		}
