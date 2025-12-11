@@ -158,7 +158,7 @@ func extResAuthTestRoutes(rg *gin.RouterGroup, r *Router) {
 		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version",
 		r.AuditMW.AuditWithType("CreateSystemExtensionResource"),
 		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
-		r.mwSystemExtensionResourceGroupAuth(extResourceGroupAuthDenyAll),
+		MWSystemExtensionResourceGroupAuth(ExtResourceGroupAuthDenyAll, r.DB),
 		r.mwExtensionResourcesEnabledCheck,
 		r.createSystemExtensionResourceWithURIParams,
 	)
@@ -181,7 +181,7 @@ func extResAuthTestRoutes(rg *gin.RouterGroup, r *Router) {
 		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version/:resource-id",
 		r.AuditMW.AuditWithType("UpdateSystemExtensionResource"),
 		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
-		r.mwSystemExtensionResourceGroupAuth(extResourceGroupAuthDBFetch),
+		MWSystemExtensionResourceGroupAuth(ExtResourceGroupAuthDBFetch, r.DB),
 		r.mwExtensionResourcesEnabledCheck,
 		r.updateSystemExtensionResource,
 	)
@@ -190,7 +190,7 @@ func extResAuthTestRoutes(rg *gin.RouterGroup, r *Router) {
 		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version/:resource-id",
 		r.AuditMW.AuditWithType("DeleteSystemExtensionResource"),
 		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
-		r.mwSystemExtensionResourceGroupAuth(extResourceGroupAuthDBFetch),
+		MWSystemExtensionResourceGroupAuth(ExtResourceGroupAuthDBFetch, r.DB),
 		r.mwExtensionResourcesEnabledCheck,
 		r.deleteSystemExtensionResource,
 	)

@@ -32,6 +32,7 @@ type SystemExtensionResource struct {
 	DeletedAt                     null.Time   `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
 	ExtensionResourceDefinitionID string      `boil:"extension_resource_definition_id" json:"extension_resource_definition_id" toml:"extension_resource_definition_id" yaml:"extension_resource_definition_id"`
 	OwnerID                       null.String `boil:"owner_id" json:"owner_id,omitempty" toml:"owner_id" yaml:"owner_id,omitempty"`
+	ResourceVersion               int64       `boil:"resource_version" json:"resource_version" toml:"resource_version" yaml:"resource_version"`
 
 	R *systemExtensionResourceR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L systemExtensionResourceL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -45,6 +46,7 @@ var SystemExtensionResourceColumns = struct {
 	DeletedAt                     string
 	ExtensionResourceDefinitionID string
 	OwnerID                       string
+	ResourceVersion               string
 }{
 	ID:                            "id",
 	Resource:                      "resource",
@@ -53,6 +55,7 @@ var SystemExtensionResourceColumns = struct {
 	DeletedAt:                     "deleted_at",
 	ExtensionResourceDefinitionID: "extension_resource_definition_id",
 	OwnerID:                       "owner_id",
+	ResourceVersion:               "resource_version",
 }
 
 var SystemExtensionResourceTableColumns = struct {
@@ -63,6 +66,7 @@ var SystemExtensionResourceTableColumns = struct {
 	DeletedAt                     string
 	ExtensionResourceDefinitionID string
 	OwnerID                       string
+	ResourceVersion               string
 }{
 	ID:                            "system_extension_resources.id",
 	Resource:                      "system_extension_resources.resource",
@@ -71,9 +75,33 @@ var SystemExtensionResourceTableColumns = struct {
 	DeletedAt:                     "system_extension_resources.deleted_at",
 	ExtensionResourceDefinitionID: "system_extension_resources.extension_resource_definition_id",
 	OwnerID:                       "system_extension_resources.owner_id",
+	ResourceVersion:               "system_extension_resources.resource_version",
 }
 
 // Generated where
+
+type whereHelperint64 struct{ field string }
+
+func (w whereHelperint64) EQ(x int64) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.EQ, x) }
+func (w whereHelperint64) NEQ(x int64) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.NEQ, x) }
+func (w whereHelperint64) LT(x int64) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.LT, x) }
+func (w whereHelperint64) LTE(x int64) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.LTE, x) }
+func (w whereHelperint64) GT(x int64) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.GT, x) }
+func (w whereHelperint64) GTE(x int64) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.GTE, x) }
+func (w whereHelperint64) IN(slice []int64) qm.QueryMod {
+	values := make([]interface{}, 0, len(slice))
+	for _, value := range slice {
+		values = append(values, value)
+	}
+	return qm.WhereIn(fmt.Sprintf("%s IN ?", w.field), values...)
+}
+func (w whereHelperint64) NIN(slice []int64) qm.QueryMod {
+	values := make([]interface{}, 0, len(slice))
+	for _, value := range slice {
+		values = append(values, value)
+	}
+	return qm.WhereNotIn(fmt.Sprintf("%s NOT IN ?", w.field), values...)
+}
 
 var SystemExtensionResourceWhere = struct {
 	ID                            whereHelperstring
@@ -83,6 +111,7 @@ var SystemExtensionResourceWhere = struct {
 	DeletedAt                     whereHelpernull_Time
 	ExtensionResourceDefinitionID whereHelperstring
 	OwnerID                       whereHelpernull_String
+	ResourceVersion               whereHelperint64
 }{
 	ID:                            whereHelperstring{field: "\"system_extension_resources\".\"id\""},
 	Resource:                      whereHelpertypes_JSON{field: "\"system_extension_resources\".\"resource\""},
@@ -91,6 +120,7 @@ var SystemExtensionResourceWhere = struct {
 	DeletedAt:                     whereHelpernull_Time{field: "\"system_extension_resources\".\"deleted_at\""},
 	ExtensionResourceDefinitionID: whereHelperstring{field: "\"system_extension_resources\".\"extension_resource_definition_id\""},
 	OwnerID:                       whereHelpernull_String{field: "\"system_extension_resources\".\"owner_id\""},
+	ResourceVersion:               whereHelperint64{field: "\"system_extension_resources\".\"resource_version\""},
 }
 
 // SystemExtensionResourceRels is where relationship names are stored.
@@ -149,9 +179,9 @@ func (r *systemExtensionResourceR) GetOwner() *Group {
 type systemExtensionResourceL struct{}
 
 var (
-	systemExtensionResourceAllColumns            = []string{"id", "resource", "created_at", "updated_at", "deleted_at", "extension_resource_definition_id", "owner_id"}
+	systemExtensionResourceAllColumns            = []string{"id", "resource", "created_at", "updated_at", "deleted_at", "extension_resource_definition_id", "owner_id", "resource_version"}
 	systemExtensionResourceColumnsWithoutDefault = []string{"resource", "extension_resource_definition_id"}
-	systemExtensionResourceColumnsWithDefault    = []string{"id", "created_at", "updated_at", "deleted_at", "owner_id"}
+	systemExtensionResourceColumnsWithDefault    = []string{"id", "created_at", "updated_at", "deleted_at", "owner_id", "resource_version"}
 	systemExtensionResourcePrimaryKeyColumns     = []string{"id"}
 	systemExtensionResourceGeneratedColumns      = []string{}
 )

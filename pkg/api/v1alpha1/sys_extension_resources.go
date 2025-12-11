@@ -8,16 +8,21 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/aarondl/null/v8"
 	"github.com/aarondl/sqlboiler/v4/boil"
 	"github.com/aarondl/sqlboiler/v4/queries/qm"
 	"github.com/gin-gonic/gin"
+	"github.com/jmoiron/sqlx"
 	"github.com/metal-toolbox/auditevent/ginaudit"
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
+	"github.com/metal-toolbox/governor-api/internal/eventbus"
 	models "github.com/metal-toolbox/governor-api/internal/models/psql"
 	events "github.com/metal-toolbox/governor-api/pkg/events/v1alpha1"
 	"github.com/metal-toolbox/governor-api/pkg/jsonschema"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
 
 // SystemExtensionResource is the system extension resource response
@@ -57,51 +62,66 @@ func validateSystemExtensionResource(
 }
 
 // createSystemExtensionResourceCore creates a system extension resource
-func (r *Router) createSystemExtensionResourceCore(
+func createSystemExtensionResourceCore(
 	c *gin.Context,
-	ext *models.Extension,
-	erd *models.ExtensionResourceDefinition,
-	requestBody []byte,
-	ownerID string,
+	db *sqlx.DB, eb *eventbus.Client,
+	ext *models.Extension, erd *models.ExtensionResourceDefinition,
+	requestBody []byte, ownerID string,
 ) {
+	ctx, span := tracer.Start(c.Request.Context(), "createSystemExtensionResourceCore")
+	defer span.End()
+
 	// schema validation
 	if err := validateSystemExtensionResource(
-		c.Request.Context(), ext.Slug, erd, r.DB, requestBody,
+		ctx, ext.Slug, erd, db, requestBody,
 	); err != nil {
+		span.SetStatus(codes.Error, "validation error")
+		span.RecordError(err)
 		sendError(c, http.StatusBadRequest, fmt.Sprintf("validation error: %s", err.Error()))
+
 		return
 	}
+
+	span.SetAttributes(
+		attribute.String("extension.slug", ext.Slug),
+		attribute.String("erd.slug", erd.SlugSingular),
+		attribute.String("erd.version", erd.Version),
+	)
 
 	// insert
-	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
+		span.SetStatus(codes.Error, "error starting extension resource create transaction")
+		span.RecordError(err)
 		sendError(c, http.StatusBadRequest, "error starting extension resource create transaction: "+err.Error())
+
 		return
 	}
 
-	er := &models.SystemExtensionResource{Resource: requestBody}
+	er := &models.SystemExtensionResource{
+		Resource:        requestBody,
+		ResourceVersion: time.Now().UnixMilli(),
+	}
 
 	if ownerID != "" {
 		er.OwnerID = null.NewString(ownerID, true)
 	}
 
-	if err := erd.AddSystemExtensionResources(c.Request.Context(), tx, true, er); err != nil {
+	if err := erd.AddSystemExtensionResources(ctx, tx, true, er); err != nil {
 		msg := fmt.Sprintf("error creating %s: %s", erd.Name, err.Error())
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
 
+		span.SetStatus(codes.Error, msg)
+		span.RecordError(err)
 		sendError(c, http.StatusBadRequest, msg)
 
 		return
 	}
 
 	event, err := dbtools.AuditSystemExtensionResourceCreated(
-		c.Request.Context(),
-		tx,
-		getCtxAuditID(c),
-		getCtxUser(c),
-		er,
+		ctx, tx, getCtxAuditID(c), getCtxUser(c), er,
 	)
 	if err != nil {
 		msg := fmt.Sprintf("error creating extension resource (audit): %s", err.Error())
@@ -109,6 +129,8 @@ func (r *Router) createSystemExtensionResourceCore(
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
 
+		span.SetStatus(codes.Error, msg)
+		span.RecordError(err)
 		sendError(c, http.StatusBadRequest, msg)
 
 		return
@@ -120,6 +142,8 @@ func (r *Router) createSystemExtensionResourceCore(
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
 
+		span.SetStatus(codes.Error, msg)
+		span.RecordError(err)
 		sendError(c, http.StatusBadRequest, msg)
 
 		return
@@ -131,13 +155,15 @@ func (r *Router) createSystemExtensionResourceCore(
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
 
+		span.SetStatus(codes.Error, msg)
+		span.RecordError(err)
 		sendError(c, http.StatusBadRequest, msg)
 
 		return
 	}
 
-	err = r.EventBus.Publish(
-		c.Request.Context(),
+	err = eb.Publish(
+		ctx,
 		erd.SlugPlural,
 		&events.Event{
 			Version:                       erd.Version,
@@ -150,6 +176,8 @@ func (r *Router) createSystemExtensionResourceCore(
 		},
 	)
 	if err != nil {
+		span.SetStatus(codes.Error, "failed to publish extension resource create event")
+		span.RecordError(err)
 		sendError(
 			c,
 			http.StatusBadRequest,
@@ -213,7 +241,7 @@ func (r *Router) createSystemExtensionResourceWithURIParams(c *gin.Context) {
 		return
 	}
 
-	r.createSystemExtensionResourceCore(c, extension, erd, requestBody, "")
+	createSystemExtensionResourceCore(c, r.DB, r.EventBus, extension, erd, requestBody, "")
 }
 
 // listSystemExtensionResource lists system extension resources for an ERD
