@@ -136,7 +136,6 @@ func (r *Router) mwExtensionResourcesEnabledCheck(c *gin.Context) {
 	)
 
 	// find ERD
-
 	ext := getCtxExtension(c)
 	erd := getCtxERD(c)
 

@@ -160,13 +160,23 @@ func (s *ExtensionResourcesGroupAuthTestSuite) seedTestDB() error {
 // custom routes for test, it skips actual jwt validation
 func extResAuthTestRoutes(rg *gin.RouterGroup, r *Router) {
 	rg.POST(
-		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version",
-		r.AuditMW.AuditWithType("CreateSystemExtensionResource"),
+		"/extension-resources",
+		r.AuditMW.AuditWithType("CreateExtensionResource"),
 		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
-		mwFindERDWithURIParams(r.DB),
-		mwExtensionResourceGroupAuth(nil, r.DB),
+		mwFindERDWithRequestBody(r.DB),
+		mwExtensionResourceGroupAuth(extResourceGroupAuthOwnerRef, r.DB),
 		r.mwExtensionResourcesEnabledCheck,
-		r.createSystemExtensionResourceWithURIParams,
+		r.createExtensionResource,
+	)
+
+	rg.PATCH(
+		"/extension-resources/:resource-id",
+		r.AuditMW.AuditWithType("UpdateExtensionResource"),
+		r.AuthMW.AuthRequired(updateScopesWithOpenID("governor:extensionresources")),
+		mwFindERDWithRequestBody(r.DB),
+		mwExtensionResourceGroupAuth(extResourceGroupAuthDBFetch, r.DB),
+		r.mwExtensionResourcesEnabledCheck,
+		r.updateExtensionResource,
 	)
 
 	rg.GET(
@@ -181,16 +191,6 @@ func extResAuthTestRoutes(rg *gin.RouterGroup, r *Router) {
 		r.AuditMW.AuditWithType("GetSystemExtensionResource"),
 		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
 		r.getSystemExtensionResource,
-	)
-
-	rg.PATCH(
-		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version/:resource-id",
-		r.AuditMW.AuditWithType("UpdateSystemExtensionResource"),
-		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
-		mwFindERDWithURIParams(r.DB),
-		mwExtensionResourceGroupAuth(extResourceGroupAuthDBFetch, r.DB),
-		r.mwExtensionResourcesEnabledCheck,
-		r.updateSystemExtensionResource,
 	)
 
 	rg.DELETE(
@@ -505,7 +505,7 @@ func (s *ExtensionResourcesGroupAuthTestSuite) TestCreateResource() {
 		},
 	}
 
-	payload := `{"firstName": "a", "lastName": "b"}`
+	payload := `{"extension":"test-extension-1","kind":"some-resource","version":"v1","metadata":{},"spec":{"firstName": "a", "lastName": "b"}}`
 
 	for _, tc := range tt {
 		ctx := context.Background()
@@ -526,7 +526,7 @@ func (s *ExtensionResourcesGroupAuthTestSuite) TestCreateResource() {
 			req, err := http.NewRequestWithContext(
 				ctx,
 				http.MethodPost,
-				"/api/v1alpha1/extension-resources/test-extension-1/some-resources/v1",
+				"/api/v1alpha1/extension-resources",
 				io.NopCloser(bytes.NewBufferString(payload)),
 			)
 			s.Assert().NoError(err)
@@ -671,8 +671,6 @@ func (s *ExtensionResourcesGroupAuthTestSuite) TestUpdateResource() {
 		},
 	}
 
-	payload := `{"firstName": "updated", "lastName": "name"}`
-
 	for _, tc := range tt {
 		ctx := context.Background()
 
@@ -680,6 +678,14 @@ func (s *ExtensionResourcesGroupAuthTestSuite) TestUpdateResource() {
 			err := tc.before(ctx)
 			s.Assert().NoError(err)
 		}
+
+		// Build payload with correct ERD slug based on test case
+		erdSlugSingular := "some-resource"
+		if tc.erdSlug == "admin-resources" {
+			erdSlugSingular = "admin-resource"
+		}
+
+		payload := fmt.Sprintf(`{"extension":"test-extension-1","kind":"%s","version":"v1","metadata":{},"spec":{"firstName": "updated", "lastName": "name"}}`, erdSlugSingular)
 
 		r := gin.New()
 		rg := r.Group("/api/v1alpha1")
@@ -692,7 +698,7 @@ func (s *ExtensionResourcesGroupAuthTestSuite) TestUpdateResource() {
 			req, err := http.NewRequestWithContext(
 				ctx,
 				http.MethodPatch,
-				"/api/v1alpha1/extension-resources/test-extension-1/"+tc.erdSlug+"/v1/"+tc.resourceID,
+				"/api/v1alpha1/extension-resources/"+tc.resourceID,
 				io.NopCloser(bytes.NewBufferString(payload)),
 			)
 			s.Assert().NoError(err)

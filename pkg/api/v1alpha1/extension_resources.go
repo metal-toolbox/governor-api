@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	"go.uber.org/zap"
 )
 
 type ExtensionResourceMetadata struct {
@@ -31,7 +32,6 @@ type ExtensionResourceMetadataOwnerRef struct {
 }
 
 type ExtensionResourceStatus struct {
-	State     string            `json:"state,omitempty"`
 	UpdatedAt string            `json:"updated_at,omitempty"`
 	Messages  []json.RawMessage `json:"messages,omitempty"`
 }
@@ -61,24 +61,6 @@ func (r *Router) createExtensionResource(c *gin.Context) {
 
 	req := getCtxExtensionResource(c)
 
-	if req == nil {
-		if err := json.NewDecoder(c.Request.Body).Decode(req); err != nil {
-			span.SetStatus(codes.Error, "invalid request body")
-			span.RecordError(err)
-			sendError(c, http.StatusBadRequest, err.Error())
-
-			return
-		}
-	}
-
-	if req.Extension == "" || req.Kind == "" || req.Version == "" {
-		span.SetStatus(codes.Error, "missing required fields in request body")
-		sendError(c, http.StatusBadRequest, "missing required fields in request body")
-
-		return
-	}
-
-	// find ERD
 	extension, erd, err := findERDForExtensionResource(
 		c, r.DB,
 		req.Extension, req.Kind, req.Version,
@@ -108,19 +90,25 @@ func (r *Router) createExtensionResource(c *gin.Context) {
 		return
 	}
 
-	if req.Metadata.OwnerRef.Kind != ExtensionResourceOwnerKindGroup {
-		span.SetStatus(codes.Error, "invalid owner kind")
-		sendError(c, http.StatusBadRequest, "owner_ref.kind must be 'group' with system extension resources")
-
-		return
-	}
-
 	ownerID := ""
-	if req.Metadata.OwnerRef.ID != "" {
-		ownerID = req.Metadata.OwnerRef.ID
+
+	if req.Metadata.OwnerRef.Kind != "" {
+		if req.Metadata.OwnerRef.Kind != ExtensionResourceOwnerKindGroup {
+			span.SetStatus(codes.Error, "invalid owner kind")
+			sendError(c, http.StatusBadRequest, "owner_ref.kind must be 'group' with system extension resources")
+
+			return
+		}
+
+		if req.Metadata.OwnerRef.ID != "" {
+			ownerID = req.Metadata.OwnerRef.ID
+		}
 	}
 
 	res := createSystemExtensionResourceCore(c, r.DB, r.EventBus, extension, erd, req.Spec, ownerID)
+	if res == nil {
+		return
+	}
 
 	resp := &ExtensionResource{}
 	*resp = *req
@@ -136,4 +124,96 @@ func (r *Router) createExtensionResource(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, resp)
+}
+
+func (r *Router) updateExtensionResource(c *gin.Context) {
+	_, span := tracer.Start(c.Request.Context(), "updateExtensionResource")
+	defer span.End()
+	defer c.Request.Body.Close()
+
+	req := getCtxExtensionResource(c)
+
+	rid := c.Param("resource-id")
+	if rid == "" {
+		span.SetStatus(codes.Error, "missing resource ID in request body")
+		sendError(c, http.StatusBadRequest, "metadata.id is required for update")
+
+		return
+	}
+
+	// find ERD
+	extension, erd, err := findERDForExtensionResource(
+		c, r.DB,
+		req.Extension, req.Kind, req.Version,
+		findERDUseSlugSingular(),
+	)
+	if err != nil {
+		if errors.Is(err, ErrExtensionNotFound) || errors.Is(err, ErrERDNotFound) {
+			sendError(c, http.StatusNotFound, err.Error())
+			return
+		}
+
+		sendError(c, http.StatusBadRequest, err.Error())
+
+		return
+	}
+
+	span.SetAttributes(
+		attribute.String("extension", req.Extension),
+		attribute.String("kind", req.Kind),
+		attribute.String("version", req.Version),
+		attribute.String("resource.id", rid),
+	)
+
+	if erd.Scope == ExtensionResourceDefinitionScopeUser.String() {
+		span.SetStatus(codes.Error, "unimplemented")
+		sendError(c, http.StatusNotImplemented, "user-scoped extension resources are not yet supported with this API")
+
+		return
+	}
+
+	var msgs []string = nil
+	if len(req.Status.Messages) > 0 {
+		msgs = make([]string, 0, len(req.Status.Messages))
+		for _, m := range req.Status.Messages {
+			msgs = append(msgs, string(m))
+		}
+	}
+
+	var rv *int64 = nil
+	if req.Metadata.ResourceVersion != 0 {
+		rv = &req.Metadata.ResourceVersion
+		r.Logger.Debug("current resource version", zap.Int64("resource_version", *rv))
+	}
+
+	res := updateSystemExtensionResourceCore(c, r.DB, r.EventBus, extension, erd, rid, req.Spec, msgs, rv)
+	if res == nil {
+		return
+	}
+
+	resp := &ExtensionResource{}
+
+	resp.Extension = req.Extension
+	resp.Kind = req.Kind
+	resp.Version = req.Version
+	resp.Metadata.CreatedAt = res.CreatedAt.Format(time.RFC3339)
+	resp.Metadata.ID = res.ID
+	resp.Metadata.ResourceVersion = res.ResourceVersion
+
+	if res.OwnerID.Valid && res.OwnerID.String != "" {
+		resp.Metadata.OwnerRef = ExtensionResourceMetadataOwnerRef{
+			Kind: ExtensionResourceOwnerKindGroup,
+			ID:   res.OwnerID.String,
+		}
+	}
+
+	resp.Spec = json.RawMessage(res.Resource)
+	resp.Status.UpdatedAt = res.UpdatedAt.Format(time.RFC3339)
+
+	resp.Status.Messages = make([]json.RawMessage, len(res.Messages))
+	for i, msg := range res.Messages {
+		resp.Status.Messages[i] = json.RawMessage(msg)
+	}
+
+	c.JSON(http.StatusAccepted, resp)
 }

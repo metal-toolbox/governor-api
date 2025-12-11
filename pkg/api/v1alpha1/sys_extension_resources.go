@@ -6,12 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"time"
 
 	"github.com/aarondl/null/v8"
 	"github.com/aarondl/sqlboiler/v4/boil"
+	"github.com/aarondl/sqlboiler/v4/queries"
 	"github.com/aarondl/sqlboiler/v4/queries/qm"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
@@ -36,11 +36,12 @@ func validateSystemExtensionResource(
 	ctx context.Context, extSlug string,
 	erd *models.ExtensionResourceDefinition,
 	db boil.ContextExecutor, requestBody []byte,
+	excludeResourceID *string,
 ) error {
 	// schema validator
 	compiler := jsonschema.NewCompiler(
 		extSlug, erd.SlugPlural, erd.Version,
-		jsonschema.WithUniqueConstraint(ctx, erd, nil, db),
+		jsonschema.WithUniqueConstraint(ctx, erd, excludeResourceID, db),
 	)
 
 	schema, err := compiler.Compile(erd.Schema.String())
@@ -73,7 +74,7 @@ func createSystemExtensionResourceCore(
 
 	// schema validation
 	if err := validateSystemExtensionResource(
-		ctx, ext.Slug, erd, db, requestBody,
+		ctx, ext.Slug, erd, db, requestBody, nil,
 	); err != nil {
 		span.SetStatus(codes.Error, "validation error")
 		span.RecordError(err)
@@ -213,53 +214,6 @@ func createSystemExtensionResourceCore(
 	}
 }
 
-func (r *Router) createSystemExtensionResourceWithURIParams(c *gin.Context) {
-	defer c.Request.Body.Close()
-
-	extensionSlug := c.Param("ex-slug")
-	erdSlugPlural := c.Param("erd-slug-plural")
-	erdVersion := c.Param("erd-version")
-
-	requestBody, err := io.ReadAll(c.Request.Body)
-	if err != nil {
-		sendError(c, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	// find ERD
-	extension, erd, err := findERDForExtensionResource(
-		c, r.DB,
-		extensionSlug, erdSlugPlural, erdVersion,
-	)
-	if err != nil {
-		if errors.Is(err, ErrExtensionNotFound) || errors.Is(err, ErrERDNotFound) {
-			sendError(c, http.StatusNotFound, err.Error())
-			return
-		}
-
-		sendError(c, http.StatusBadRequest, err.Error())
-
-		return
-	}
-
-	if erd.Scope != ExtensionResourceDefinitionScopeSys.String() {
-		sendError(
-			c, http.StatusBadRequest,
-			fmt.Sprintf(
-				"cannot create system extension resource for %s scoped %s/%s",
-				erd.Scope, erd.SlugSingular, erd.Version,
-			),
-		)
-
-		return
-	}
-
-	resp := createSystemExtensionResourceCore(c, r.DB, r.EventBus, extension, erd, requestBody, "")
-	if resp != nil {
-		c.JSON(http.StatusCreated, resp)
-	}
-}
-
 // listSystemExtensionResource lists system extension resources for an ERD
 func (r *Router) listSystemExtensionResources(c *gin.Context) {
 	extensionSlug := c.Param("ex-slug")
@@ -390,121 +344,152 @@ func (r *Router) getSystemExtensionResource(c *gin.Context) {
 	c.JSON(http.StatusOK, er)
 }
 
-// updateSystemExtensionResource updates a system extension resources
-func (r *Router) updateSystemExtensionResource(c *gin.Context) {
-	defer c.Request.Body.Close()
-
-	extensionSlug := c.Param("ex-slug")
-	erdSlugPlural := c.Param("erd-slug-plural")
-	erdVersion := c.Param("erd-version")
-	resourceID := c.Param("resource-id")
-
-	requestBody, err := io.ReadAll(c.Request.Body)
-	if err != nil {
-		sendError(c, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	// find ERD
-	extension, erd, err := findERDForExtensionResource(
-		c, r.DB,
-		extensionSlug, erdSlugPlural, erdVersion,
-	)
-	if err != nil {
-		if errors.Is(err, ErrExtensionNotFound) || errors.Is(err, ErrERDNotFound) {
-			sendError(c, http.StatusNotFound, err.Error())
-			return
-		}
-
-		sendError(c, http.StatusBadRequest, err.Error())
-
-		return
-	}
-
-	if erd.Scope != ExtensionResourceDefinitionScopeSys.String() {
-		sendError(
-			c, http.StatusBadRequest,
-			fmt.Sprintf(
-				"cannot update system resource for %s scoped %s/%s",
-				erd.Scope, erd.SlugSingular, erd.Version,
-			),
-		)
-
-		return
-	}
+// updateSystemExtensionResourceCore updates a system extension resource
+func updateSystemExtensionResourceCore(
+	c *gin.Context,
+	db *sqlx.DB, eb *eventbus.Client,
+	ext *models.Extension, erd *models.ExtensionResourceDefinition,
+	resourceID string, requestBody []byte, statusMsgs []string, resourceVersion *int64,
+) *SystemExtensionResource {
+	ctx, span := tracer.Start(c.Request.Context(), "updateSystemExtensionResourceCore")
+	defer span.End()
 
 	qms := []qm.QueryMod{
 		qm.Where("id = ?", resourceID),
 	}
 
 	// fetch resource
-	er, err := erd.SystemExtensionResources(qms...).One(c.Request.Context(), r.DB)
+	er, err := erd.SystemExtensionResources(qms...).One(ctx, db)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
+			span.SetStatus(codes.Error, "resource not found")
+			span.RecordError(err)
 			sendError(c, http.StatusNotFound, "resource not found: "+err.Error())
-			return
+
+			return nil
 		}
 
+		span.SetStatus(codes.Error, "error finding extension resource")
+		span.RecordError(err)
 		sendError(
 			c, http.StatusBadRequest,
 			"error finding extension resources: "+err.Error(),
 		)
 
-		return
+		return nil
 	}
 
 	// schema validator
-	compiler := jsonschema.NewCompiler(
-		extension.Slug, erd.SlugPlural, erd.Version,
-		jsonschema.WithUniqueConstraint(c.Request.Context(), erd, &er.ID, r.DB),
+	if err := validateSystemExtensionResource(
+		ctx, ext.Slug, erd, db, requestBody, &er.ID,
+	); err != nil {
+		span.SetStatus(codes.Error, "validation error")
+		span.RecordError(err)
+		sendError(c, http.StatusBadRequest, fmt.Sprintf("validation error: %s", err.Error()))
+
+		return nil
+	}
+
+	// optimistic concurrency control with resource versioning
+	currentResourceVersion := er.ResourceVersion
+	if resourceVersion != nil {
+		currentResourceVersion = *resourceVersion
+	}
+
+	span.SetAttributes(
+		attribute.String("extension.slug", ext.Slug),
+		attribute.String("erd.slug", erd.SlugSingular),
+		attribute.String("erd.version", erd.Version),
+		attribute.String("resource.id", resourceID),
+		attribute.Int64("requested-resource-version", currentResourceVersion),
 	)
-
-	schema, err := compiler.Compile(erd.Schema.String())
-	if err != nil {
-		sendError(c, http.StatusBadRequest, "ERD schema is not valid: "+err.Error())
-		return
-	}
-
-	// validate payload
-	var v interface{}
-	if err := json.Unmarshal(requestBody, &v); err != nil {
-		sendError(c, http.StatusBadRequest, "unable to bind request: "+err.Error())
-		return
-	}
-
-	if err := schema.Validate(v); err != nil {
-		sendError(c, http.StatusBadRequest, err.Error())
-		return
-	}
 
 	// update
 	original := *er
-	er.Resource = requestBody
 
-	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
-	if err != nil {
-		sendError(c, http.StatusBadRequest, "error starting extension resource update transaction: "+err.Error())
-		return
+	er.Resource = requestBody
+	er.ResourceVersion = time.Now().UnixMilli()
+
+	if len(statusMsgs) > 0 {
+		er.Messages = statusMsgs
 	}
 
-	if _, err := er.Update(c.Request.Context(), tx, boil.Infer()); err != nil {
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		span.SetStatus(codes.Error, "error starting extension resource update transaction")
+		span.RecordError(err)
+		sendError(c, http.StatusBadRequest, "error starting extension resource update transaction: "+err.Error())
+
+		return nil
+	}
+
+	const update = `
+		UPDATE system_extension_resources
+			SET resource = $1, resource_version = $2, messages = $3, updated_at = NOW()
+		WHERE 
+			id = $4 AND resource_version = $5
+		RETURNING
+			updated_at
+		;
+	`
+
+	q := queries.Raw(
+		update,
+		er.Resource, er.ResourceVersion, er.Messages,
+		er.ID, currentResourceVersion,
+	)
+
+	rows, err := q.QueryContext(ctx, tx)
+	if err != nil {
 		msg := fmt.Sprintf("error updating %s: %s", erd.Name, err.Error())
+
 		if err := tx.Rollback(); err != nil {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
 
+		span.SetStatus(codes.Error, msg)
+		span.RecordError(err)
 		sendError(c, http.StatusBadRequest, msg)
 
-		return
+		return nil
 	}
 
+	if !rows.Next() {
+		defer rows.Close()
+
+		msg := fmt.Sprintf("error updating %s: resource version conflict", erd.Name)
+		if err := tx.Rollback(); err != nil {
+			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
+		}
+
+		span.SetStatus(codes.Error, msg)
+		sendError(c, http.StatusConflict, msg)
+
+		return nil
+	}
+
+	var updatedAt time.Time
+	if err := rows.Scan(&updatedAt); err != nil {
+		defer rows.Close()
+
+		msg := fmt.Sprintf("error scanning updated_at for %s: %s", erd.Name, err.Error())
+		if err := tx.Rollback(); err != nil {
+			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
+		}
+
+		span.SetStatus(codes.Error, msg)
+		span.RecordError(err)
+		sendError(c, http.StatusInternalServerError, msg)
+
+		return nil
+	}
+
+	er.UpdatedAt = updatedAt
+
+	rows.Close()
+
 	event, err := dbtools.AuditSystemExtensionResourceUpdated(
-		c.Request.Context(),
-		tx,
-		getCtxAuditID(c),
-		getCtxUser(c),
-		&original,
-		er,
+		ctx, tx, getCtxAuditID(c), getCtxUser(c), &original, er,
 	)
 	if err != nil {
 		msg := fmt.Sprintf("error updating extension resource (audit): %s", err.Error())
@@ -512,9 +497,11 @@ func (r *Router) updateSystemExtensionResource(c *gin.Context) {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
 
+		span.SetStatus(codes.Error, msg)
+		span.RecordError(err)
 		sendError(c, http.StatusBadRequest, msg)
 
-		return
+		return nil
 	}
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
@@ -523,9 +510,11 @@ func (r *Router) updateSystemExtensionResource(c *gin.Context) {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
 
+		span.SetStatus(codes.Error, msg)
+		span.RecordError(err)
 		sendError(c, http.StatusBadRequest, msg)
 
-		return
+		return nil
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -534,25 +523,29 @@ func (r *Router) updateSystemExtensionResource(c *gin.Context) {
 			msg += fmt.Sprintf("error rolling back transaction: %s", err.Error())
 		}
 
+		span.SetStatus(codes.Error, msg)
+		span.RecordError(err)
 		sendError(c, http.StatusBadRequest, msg)
 
-		return
+		return nil
 	}
 
-	err = r.EventBus.Publish(
-		c.Request.Context(),
+	err = eb.Publish(
+		ctx,
 		erd.SlugPlural,
 		&events.Event{
 			Version:                       erd.Version,
 			Action:                        events.GovernorEventUpdate,
 			AuditID:                       c.GetString(ginaudit.AuditIDContextKey),
 			ActorID:                       getCtxActorID(c),
-			ExtensionID:                   extension.ID,
+			ExtensionID:                   ext.ID,
 			ExtensionResourceID:           er.ID,
 			ExtensionResourceDefinitionID: erd.ID,
 		},
 	)
 	if err != nil {
+		span.SetStatus(codes.Error, "failed to publish extension resource update event")
+		span.RecordError(err)
 		sendError(
 			c,
 			http.StatusBadRequest,
@@ -563,16 +556,14 @@ func (r *Router) updateSystemExtensionResource(c *gin.Context) {
 			),
 		)
 
-		return
+		return nil
 	}
 
-	resp := &SystemExtensionResource{
+	return &SystemExtensionResource{
 		SystemExtensionResource: er,
 		ERD:                     erd.SlugSingular,
 		Version:                 erd.Version,
 	}
-
-	c.JSON(http.StatusAccepted, resp)
 }
 
 // deleteSystemExtensionResource deletes a system extension resources

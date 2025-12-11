@@ -447,13 +447,12 @@ func (s *SystemExtensionResourceTestSuite) TestCreateSystemExtensionResource() {
 		expectedErrMsg       string
 		expectedEventSubject string
 		expectedEventPayload *events.Event
-		params               gin.Params
 	}{
 		{
 			name:                 "ok",
-			url:                  "/api/v1alpha1/extension-resources/test-extension/test-resources/v1",
+			url:                  "/api/v1alpha1/extension-resources",
 			expectedStatus:       http.StatusCreated,
-			payload:              `{ "age": 100, "firstName": "test", "lastName": "1" }`,
+			payload:              `{"extension":"test-extension","kind":"test-resource","version":"v1","metadata":{},"spec":{ "age": 100, "firstName": "test", "lastName": "1" }}`,
 			expectedEventSubject: "events.test-resources",
 			expectedEventPayload: &events.Event{
 				Version:                       "v1",
@@ -461,17 +460,12 @@ func (s *SystemExtensionResourceTestSuite) TestCreateSystemExtensionResource() {
 				ExtensionID:                   "00000001-0000-0000-0000-000000000001",
 				ExtensionResourceDefinitionID: "00000001-0000-0000-0000-000000000002",
 			},
-			params: gin.Params{
-				gin.Param{Key: "ex-slug", Value: "test-extension"},
-				gin.Param{Key: "erd-slug-plural", Value: "test-resources"},
-				gin.Param{Key: "erd-version", Value: "v1"},
-			},
 		},
 		{
 			name:                 "duplicate entry with no constraint",
-			url:                  "/api/v1alpha1/extension-resources/test-extension/test-resources-no-constraint/v1",
+			url:                  "/api/v1alpha1/extension-resources",
 			expectedStatus:       http.StatusCreated,
-			payload:              `{"age": 10, "firstName": "Hello", "lastName": "World"}`,
+			payload:              `{"extension":"test-extension","kind":"test-resource-no-constraint","version":"v1","metadata":{},"spec":{"age": 10, "firstName": "Hello", "lastName": "World"}}`,
 			expectedEventSubject: "events.test-resources-no-constraint",
 			expectedEventPayload: &events.Event{
 				Version:                       "v1",
@@ -479,69 +473,41 @@ func (s *SystemExtensionResourceTestSuite) TestCreateSystemExtensionResource() {
 				ExtensionID:                   "00000001-0000-0000-0000-000000000001",
 				ExtensionResourceDefinitionID: "00000001-0000-0000-0000-000000000008",
 			},
-			params: gin.Params{
-				gin.Param{Key: "ex-slug", Value: "test-extension"},
-				gin.Param{Key: "erd-slug-plural", Value: "test-resources-no-constraint"},
-				gin.Param{Key: "erd-version", Value: "v1"},
-			},
 		},
 		{
 			name:           "create violates unique constraint",
-			url:            "/api/v1alpha1/extension-resources/test-extension/test-resources/v1",
+			url:            "/api/v1alpha1/extension-resources",
 			expectedStatus: http.StatusBadRequest,
 			expectedErrMsg: "unique constraint violation",
-			payload:        `{ "age": 10, "firstName": "test", "lastName": "1" }`,
-			params: gin.Params{
-				gin.Param{Key: "ex-slug", Value: "test-extension"},
-				gin.Param{Key: "erd-slug-plural", Value: "test-resources"},
-				gin.Param{Key: "erd-version", Value: "v1"},
-			},
+			payload:        `{"extension":"test-extension","kind":"test-resource","version":"v1","metadata":{},"spec":{ "age": 10, "firstName": "test", "lastName": "1" }}`,
 		},
 		{
 			name:           "json schema validation failed",
-			url:            "/api/v1alpha1/extension-resources/test-extension/test-resources/v1",
+			url:            "/api/v1alpha1/extension-resources",
 			expectedStatus: http.StatusBadRequest,
 			expectedErrMsg: "'/age': minimum: got -1, want 0",
-			payload:        `{ "age": -1, "firstName": "test", "lastName": "2" }`,
-			params: gin.Params{
-				gin.Param{Key: "ex-slug", Value: "test-extension"},
-				gin.Param{Key: "erd-slug-plural", Value: "test-resources"},
-				gin.Param{Key: "erd-version", Value: "v1"},
-			},
+			payload:        `{"extension":"test-extension","kind":"test-resource","version":"v1","metadata":{},"spec":{ "age": -1, "firstName": "test", "lastName": "2" }}`,
 		},
 		{
 			name:           "extension not found",
-			url:            "/api/v1alpha1/extension-resources/nonexistent-extension/test-resources/v1",
+			url:            "/api/v1alpha1/extension-resources",
 			expectedStatus: http.StatusNotFound,
 			expectedErrMsg: "extension does not exist",
-			params: gin.Params{
-				gin.Param{Key: "ex-slug", Value: "nonexistent-extension"},
-				gin.Param{Key: "erd-slug-plural", Value: "test-resources"},
-				gin.Param{Key: "erd-version", Value: "v1"},
-			},
+			payload:        `{"extension":"nonexistent-extension","kind":"test-resource","version":"v1","metadata":{},"spec":{}}`,
 		},
 		{
 			name:           "ERD not found",
-			url:            "/api/v1alpha1/extension-resources/test-extension/nonexistent-resources/v1",
+			url:            "/api/v1alpha1/extension-resources",
 			expectedStatus: http.StatusNotFound,
 			expectedErrMsg: "ERD does not exist",
-			params: gin.Params{
-				gin.Param{Key: "ex-slug", Value: "test-extension"},
-				gin.Param{Key: "erd-slug-plural", Value: "nonexistent-resources"},
-				gin.Param{Key: "erd-version", Value: "v1"},
-			},
+			payload:        `{"extension":"test-extension","kind":"nonexistent-resource","version":"v1","metadata":{},"spec":{}}`,
 		},
 		{
 			name:           "incorrect ERD scope",
-			url:            "/api/v1alpha1/extension-resources/test-extension/user-resources/v1",
-			expectedStatus: http.StatusBadRequest,
-			expectedErrMsg: "cannot create system extension resource for user scoped user-resource/v1",
-			payload:        `{ "age": 10, "firstName": "test", "lastName": "1" }`,
-			params: gin.Params{
-				gin.Param{Key: "ex-slug", Value: "test-extension"},
-				gin.Param{Key: "erd-slug-plural", Value: "user-resources"},
-				gin.Param{Key: "erd-version", Value: "v1"},
-			},
+			url:            "/api/v1alpha1/extension-resources",
+			expectedStatus: http.StatusNotImplemented,
+			expectedErrMsg: "user-scoped extension resources are not yet supported with this API",
+			payload:        `{"extension":"test-extension","kind":"user-resource","version":"v1","metadata":{},"spec":{ "age": 10, "firstName": "test", "lastName": "1" }}`,
 		},
 	}
 
@@ -555,10 +521,17 @@ func (s *SystemExtensionResourceTestSuite) TestCreateSystemExtensionResource() {
 			req = req.WithContext(context.Background())
 			req.Body = io.NopCloser(bytes.NewBufferString(tt.payload))
 			c.Request = req
-			c.Params = tt.params
 			c.Set(ginaudit.AuditIDContextKey, auditID)
 
-			r.createSystemExtensionResourceWithURIParams(c)
+			// Call middleware to set up context
+			mwFindERDWithRequestBody(r.DB)(c)
+
+			// Only proceed if middleware didn't abort
+			if !c.IsAborted() {
+				// Reset request body for handler since middleware consumed it
+				c.Request.Body = io.NopCloser(bytes.NewBufferString(tt.payload))
+				r.createExtensionResource(c)
+			}
 
 			assert.Equal(t, tt.expectedStatus, w.Code, "Expected status %d, got %d", tt.expectedStatus, w.Code)
 
@@ -581,9 +554,9 @@ func (s *SystemExtensionResourceTestSuite) TestCreateSystemExtensionResource() {
 			err := json.Unmarshal(s.conn.Payload, event)
 			assert.Nil(t, err)
 
-			sr := &SystemExtensionResource{}
+			er := &ExtensionResource{}
 			body := w.Body.String()
-			err = json.Unmarshal([]byte(body), sr)
+			err = json.Unmarshal([]byte(body), er)
 			assert.Nil(t, err)
 
 			assert.Equal(
@@ -607,7 +580,7 @@ func (s *SystemExtensionResourceTestSuite) TestCreateSystemExtensionResource() {
 			)
 
 			assert.Equal(
-				t, event.ExtensionResourceID, sr.ID,
+				t, event.ExtensionResourceID, er.Metadata.ID,
 				"Expected event ERD ID to match response ID",
 			)
 		})
@@ -629,9 +602,9 @@ func (s *SystemExtensionResourceTestSuite) TestUpdateSystemExtensionResource() {
 	}{
 		{
 			name:                 "ok",
-			url:                  "/api/v1alpha1/extension-resources/test-extension/test-resources/v1/00000001-0000-0000-0000-000000000004",
+			url:                  "/api/v1alpha1/extension-resources/00000001-0000-0000-0000-000000000004",
 			expectedStatus:       http.StatusAccepted,
-			payload:              `{ "age": 10, "firstName": "Hello", "lastName": "World" }`,
+			payload:              `{"extension":"test-extension","kind":"test-resource","version":"v1","metadata":{},"spec":{ "age": 10, "firstName": "Hello", "lastName": "World" }}`,
 			expectedEventSubject: "events.test-resources",
 			expectedEventPayload: &events.Event{
 				Version:                       "v1",
@@ -640,72 +613,56 @@ func (s *SystemExtensionResourceTestSuite) TestUpdateSystemExtensionResource() {
 				ExtensionResourceDefinitionID: "00000001-0000-0000-0000-000000000002",
 			},
 			params: gin.Params{
-				gin.Param{Key: "ex-slug", Value: "test-extension"},
-				gin.Param{Key: "erd-slug-plural", Value: "test-resources"},
-				gin.Param{Key: "erd-version", Value: "v1"},
 				gin.Param{Key: "resource-id", Value: "00000001-0000-0000-0000-000000000004"},
 			},
 		},
 		{
 			name:           "update violates unique constraint",
-			url:            "/api/v1alpha1/extension-resources/test-extension/test-resources/v1/00000001-0000-0000-0000-000000000004",
+			url:            "/api/v1alpha1/extension-resources/00000001-0000-0000-0000-000000000004",
 			expectedStatus: http.StatusBadRequest,
 			expectedErrMsg: "unique constraint violation",
-			payload:        `{ "age": 10, "firstName": "Hello1", "lastName": "World1" }`,
+			payload:        `{"extension":"test-extension","kind":"test-resource","version":"v1","metadata":{},"spec":{ "age": 10, "firstName": "Hello1", "lastName": "World1" }}`,
 			params: gin.Params{
-				gin.Param{Key: "ex-slug", Value: "test-extension"},
-				gin.Param{Key: "erd-slug-plural", Value: "test-resources"},
-				gin.Param{Key: "erd-version", Value: "v1"},
 				gin.Param{Key: "resource-id", Value: "00000001-0000-0000-0000-000000000004"},
 			},
 		},
 		{
 			name:           "json schema validation failed",
-			url:            "/api/v1alpha1/extension-resources/test-extension/test-resources/v1/00000001-0000-0000-0000-000000000004",
+			url:            "/api/v1alpha1/extension-resources/00000001-0000-0000-0000-000000000004",
 			expectedStatus: http.StatusBadRequest,
 			expectedErrMsg: "'/age': minimum: got -1, want 0",
-			payload:        `{ "age": -1, "firstName": "test", "lastName": "2" }`,
+			payload:        `{"extension":"test-extension","kind":"test-resource","version":"v1","metadata":{},"spec":{ "age": -1, "firstName": "test", "lastName": "2" }}`,
 			params: gin.Params{
-				gin.Param{Key: "ex-slug", Value: "test-extension"},
-				gin.Param{Key: "erd-slug-plural", Value: "test-resources"},
-				gin.Param{Key: "erd-version", Value: "v1"},
 				gin.Param{Key: "resource-id", Value: "00000001-0000-0000-0000-000000000004"},
 			},
 		},
 		{
 			name:           "extension not found",
-			url:            "/api/v1alpha1/extension-resources/nonexistent-extension/test-resources/v1/00000001-0000-0000-0000-000000000004",
+			url:            "/api/v1alpha1/extension-resources/00000001-0000-0000-0000-000000000004",
 			expectedStatus: http.StatusNotFound,
 			expectedErrMsg: "extension does not exist",
+			payload:        `{"extension":"nonexistent-extension","kind":"test-resource","version":"v1","metadata":{},"spec":{}}`,
 			params: gin.Params{
-				gin.Param{Key: "ex-slug", Value: "nonexistent-extension"},
-				gin.Param{Key: "erd-slug-plural", Value: "test-resources"},
-				gin.Param{Key: "erd-version", Value: "v1"},
 				gin.Param{Key: "resource-id", Value: "00000001-0000-0000-0000-000000000004"},
 			},
 		},
 		{
 			name:           "ERD not found",
-			url:            "/api/v1alpha1/extension-resources/test-extension/nonexistent-resources/v1/00000001-0000-0000-0000-000000000004",
+			url:            "/api/v1alpha1/extension-resources/00000001-0000-0000-0000-000000000004",
 			expectedStatus: http.StatusNotFound,
 			expectedErrMsg: "ERD does not exist",
+			payload:        `{"extension":"test-extension","kind":"nonexistent-resource","version":"v1","metadata":{},"spec":{}}`,
 			params: gin.Params{
-				gin.Param{Key: "ex-slug", Value: "test-extension"},
-				gin.Param{Key: "erd-slug-plural", Value: "nonexistent-resources"},
-				gin.Param{Key: "erd-version", Value: "v1"},
 				gin.Param{Key: "resource-id", Value: "00000001-0000-0000-0000-000000000004"},
 			},
 		},
 		{
 			name:           "incorrect ERD scope",
-			url:            "/api/v1alpha1/extension-resources/test-extension/user-resources/v1/00000001-0000-0000-0000-000000000005",
-			expectedStatus: http.StatusBadRequest,
-			expectedErrMsg: "cannot update system resource for user scoped user-resource/v1",
-			payload:        `{ "age": 10, "firstName": "test", "lastName": "1" }`,
+			url:            "/api/v1alpha1/extension-resources/00000001-0000-0000-0000-000000000005",
+			expectedStatus: http.StatusNotImplemented,
+			expectedErrMsg: "user-scoped extension resources are not yet supported with this API",
+			payload:        `{"extension":"test-extension","kind":"user-resource","version":"v1","metadata":{},"spec":{ "age": 10, "firstName": "test", "lastName": "1" }}`,
 			params: gin.Params{
-				gin.Param{Key: "ex-slug", Value: "test-extension"},
-				gin.Param{Key: "erd-slug-plural", Value: "user-resources"},
-				gin.Param{Key: "erd-version", Value: "v1"},
 				gin.Param{Key: "resource-id", Value: "00000001-0000-0000-0000-000000000005"},
 			},
 		},
@@ -724,7 +681,15 @@ func (s *SystemExtensionResourceTestSuite) TestUpdateSystemExtensionResource() {
 			c.Params = tt.params
 			c.Set(ginaudit.AuditIDContextKey, auditID)
 
-			r.updateSystemExtensionResource(c)
+			// Call middleware to set up context
+			mwFindERDWithRequestBody(r.DB)(c)
+
+			// Only proceed if middleware didn't abort
+			if !c.IsAborted() {
+				// Reset request body for handler since middleware consumed it
+				c.Request.Body = io.NopCloser(bytes.NewBufferString(tt.payload))
+				r.updateExtensionResource(c)
+			}
 
 			assert.Equal(t, tt.expectedStatus, w.Code, "Expected status %d, got %d", tt.expectedStatus, w.Code)
 
@@ -747,9 +712,9 @@ func (s *SystemExtensionResourceTestSuite) TestUpdateSystemExtensionResource() {
 			err := json.Unmarshal(s.conn.Payload, event)
 			assert.Nil(t, err)
 
-			sr := &SystemExtensionResource{}
+			er := &ExtensionResource{}
 			body := w.Body.String()
-			err = json.Unmarshal([]byte(body), sr)
+			err = json.Unmarshal([]byte(body), er)
 			assert.Nil(t, err)
 
 			assert.Equal(
@@ -773,7 +738,7 @@ func (s *SystemExtensionResourceTestSuite) TestUpdateSystemExtensionResource() {
 			)
 
 			assert.Equal(
-				t, event.ExtensionResourceID, sr.ID,
+				t, event.ExtensionResourceID, er.Metadata.ID,
 				"Expected event ERD ID to match response ID",
 			)
 		})

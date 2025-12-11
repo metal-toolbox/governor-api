@@ -685,22 +685,21 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		r.createExtensionResource,
 	)
 
-	// system extension resources
-	rg.POST(
-		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version",
-		r.AuditMW.AuditWithType("CreateSystemExtensionResource"),
-		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
+	rg.PATCH(
+		"/extension-resources/:resource-id",
+		r.AuditMW.AuditWithType("UpdateExtensionResource"),
+		r.AuthMW.AuthRequired(updateScopesWithOpenID("governor:extensionresources")),
 		r.mwUserAuthRequired(AuthRoleUser),
-		mwFindERDWithURIParams(r.DB),
-		mwExtensionResourceGroupAuth(nil, r.DB),
+		mwFindERDWithRequestBody(r.DB),
+		mwExtensionResourceGroupAuth(extResourceGroupAuthDBFetch, r.DB),
 		r.mwExtensionResourcesEnabledCheck,
-		r.createSystemExtensionResourceWithURIParams,
+		r.updateExtensionResource,
 	)
 
 	rg.GET(
 		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version",
 		r.AuditMW.AuditWithType("ListSystemExtensionResources"),
-		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
+		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:extensionresources")),
 		r.mwUserAuthRequired(AuthRoleUser),
 		r.listSystemExtensionResources,
 	)
@@ -711,17 +710,6 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
 		r.mwUserAuthRequired(AuthRoleUser),
 		r.getSystemExtensionResource,
-	)
-
-	rg.PATCH(
-		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version/:resource-id",
-		r.AuditMW.AuditWithType("UpdateSystemExtensionResource"),
-		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
-		r.mwUserAuthRequired(AuthRoleUser),
-		mwFindERDWithURIParams(r.DB),
-		mwExtensionResourceGroupAuth(extResourceGroupAuthDBFetch, r.DB),
-		r.mwExtensionResourcesEnabledCheck,
-		r.updateSystemExtensionResource,
 	)
 
 	rg.DELETE(
