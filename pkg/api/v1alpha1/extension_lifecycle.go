@@ -220,7 +220,9 @@ func mwFindERDWithRequestBody(
 		defer span.End()
 
 		// Read the entire request body into memory with a size limit
-		bodyBytes, err := io.ReadAll(io.LimitReader(c.Request.Body, maxRequestBodySizeBytes))
+		// We read one byte more than the limit to detect if the body exceeds it
+		limitedReader := io.LimitReader(c.Request.Body, maxRequestBodySizeBytes+1)
+		bodyBytes, err := io.ReadAll(limitedReader)
 		if err != nil {
 			span.SetStatus(codes.Error, err.Error())
 			sendError(c, http.StatusBadRequest, "failed to read request body: "+err.Error())
@@ -228,7 +230,7 @@ func mwFindERDWithRequestBody(
 		}
 
 		// Check if we hit the size limit
-		if len(bodyBytes) >= maxRequestBodySizeBytes {
+		if len(bodyBytes) > maxRequestBodySizeBytes {
 			span.SetStatus(codes.Error, "request body too large")
 			sendError(c, http.StatusRequestEntityTooLarge, "request body exceeds maximum size")
 			return

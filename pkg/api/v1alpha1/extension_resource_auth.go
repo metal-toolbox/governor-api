@@ -209,13 +209,15 @@ func extResourceGroupAuthOwnerRef(
 
 	if res == nil {
 		// Read the entire request body into memory with a size limit
-		bodyBytes, err := io.ReadAll(io.LimitReader(c.Request.Body, maxRequestBodySizeBytes))
+		// We read one byte more than the limit to detect if the body exceeds it
+		limitedReader := io.LimitReader(c.Request.Body, maxRequestBodySizeBytes+1)
+		bodyBytes, err := io.ReadAll(limitedReader)
 		if err != nil {
 			return fmt.Errorf("%w: failed to read request body: %w", errExtGroupAuthValidationError, err)
 		}
 
 		// Check if we hit the size limit
-		if len(bodyBytes) >= maxRequestBodySizeBytes {
+		if len(bodyBytes) > maxRequestBodySizeBytes {
 			return fmt.Errorf("%w: request body exceeds maximum size", errExtGroupAuthValidationError)
 		}
 
