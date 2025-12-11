@@ -19,7 +19,8 @@ import (
 )
 
 const (
-	extensionCtxKey = "gin-contextkey/extension"
+	extensionCtxKey        = "gin-contextkey/extension"
+	maxRequestBodySizeBytes = 10 * 1024 * 1024 // 10MB limit for request body
 )
 
 func saveExtensionToContext(c *gin.Context, extension *models.Extension) {
@@ -218,11 +219,18 @@ func mwFindERDWithRequestBody(
 		_, span := tracer.Start(c.Request.Context(), "mwFindERDWithRequestBody")
 		defer span.End()
 
-		// Read the entire request body into memory
-		bodyBytes, err := io.ReadAll(c.Request.Body)
+		// Read the entire request body into memory with a size limit
+		bodyBytes, err := io.ReadAll(io.LimitReader(c.Request.Body, maxRequestBodySizeBytes))
 		if err != nil {
 			span.SetStatus(codes.Error, err.Error())
 			sendError(c, http.StatusBadRequest, "failed to read request body: "+err.Error())
+			return
+		}
+
+		// Check if we hit the size limit
+		if len(bodyBytes) >= maxRequestBodySizeBytes {
+			span.SetStatus(codes.Error, "request body too large")
+			sendError(c, http.StatusRequestEntityTooLarge, "request body exceeds maximum size")
 			return
 		}
 

@@ -208,10 +208,15 @@ func extResourceGroupAuthOwnerRef(
 	res := getCtxExtensionResource(c)
 
 	if res == nil {
-		// Read the entire request body into memory
-		bodyBytes, err := io.ReadAll(c.Request.Body)
+		// Read the entire request body into memory with a size limit
+		bodyBytes, err := io.ReadAll(io.LimitReader(c.Request.Body, maxRequestBodySizeBytes))
 		if err != nil {
 			return fmt.Errorf("%w: failed to read request body: %w", errExtGroupAuthValidationError, err)
+		}
+
+		// Check if we hit the size limit
+		if len(bodyBytes) >= maxRequestBodySizeBytes {
+			return fmt.Errorf("%w: request body exceeds maximum size", errExtGroupAuthValidationError)
 		}
 
 		// Reset the request body so subsequent handlers can read it
