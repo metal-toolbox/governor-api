@@ -32,38 +32,8 @@ type SystemExtensionResource struct {
 	Version string `json:"version"`
 }
 
-func validateSystemExtensionResource(
-	ctx context.Context, extSlug string,
-	erd *models.ExtensionResourceDefinition,
-	db boil.ContextExecutor, requestBody []byte,
-	excludeResourceID *string,
-) error {
-	// schema validator
-	compiler := jsonschema.NewCompiler(
-		extSlug, erd.SlugPlural, erd.Version,
-		jsonschema.WithUniqueConstraint(ctx, erd, excludeResourceID, db),
-	)
-
-	schema, err := compiler.Compile(erd.Schema.String())
-	if err != nil {
-		return err
-	}
-
-	// validate payload
-	var v interface{}
-	if err := json.Unmarshal(requestBody, &v); err != nil {
-		return err
-	}
-
-	if err := schema.Validate(v); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// createSystemExtensionResourceCore creates a system extension resource
-func createSystemExtensionResourceCore(
+// createSystemExtensionResource creates a system extension resource
+func createSystemExtensionResource(
 	c *gin.Context,
 	db *sqlx.DB, eb *eventbus.Client,
 	ext *models.Extension, erd *models.ExtensionResourceDefinition,
@@ -344,8 +314,8 @@ func (r *Router) getSystemExtensionResource(c *gin.Context) {
 	c.JSON(http.StatusOK, er)
 }
 
-// updateSystemExtensionResourceCore updates a system extension resource
-func updateSystemExtensionResourceCore(
+// updateSystemExtensionResource updates a system extension resource
+func updateSystemExtensionResource(
 	c *gin.Context,
 	db *sqlx.DB, eb *eventbus.Client,
 	ext *models.Extension, erd *models.ExtensionResourceDefinition,
@@ -713,4 +683,34 @@ func (r *Router) deleteSystemExtensionResource(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusAccepted, resp)
+}
+
+func validateSystemExtensionResource(
+	ctx context.Context, extSlug string,
+	erd *models.ExtensionResourceDefinition,
+	db boil.ContextExecutor, requestBody []byte,
+	excludeResourceID *string,
+) error {
+	// schema validator
+	compiler := jsonschema.NewCompiler(
+		extSlug, erd.SlugPlural, erd.Version,
+		jsonschema.WithUniqueConstraint(ctx, erd, excludeResourceID, db),
+	)
+
+	schema, err := compiler.Compile(erd.Schema.String())
+	if err != nil {
+		return err
+	}
+
+	// validate payload
+	var v interface{}
+	if err := json.Unmarshal(requestBody, &v); err != nil {
+		return err
+	}
+
+	if err := schema.Validate(v); err != nil {
+		return err
+	}
+
+	return nil
 }

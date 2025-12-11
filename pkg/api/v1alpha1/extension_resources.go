@@ -105,7 +105,7 @@ func (r *Router) createExtensionResource(c *gin.Context) {
 		}
 	}
 
-	res := createSystemExtensionResourceCore(c, r.DB, r.EventBus, extension, erd, req.Spec, ownerID)
+	res := createSystemExtensionResource(c, r.DB, r.EventBus, extension, erd, req.Spec, ownerID)
 	if res == nil {
 		return
 	}
@@ -186,7 +186,7 @@ func (r *Router) updateExtensionResource(c *gin.Context) {
 		r.Logger.Debug("current resource version", zap.Int64("resource_version", *rv))
 	}
 
-	res := updateSystemExtensionResourceCore(c, r.DB, r.EventBus, extension, erd, rid, req.Spec, msgs, rv)
+	res := updateSystemExtensionResource(c, r.DB, r.EventBus, extension, erd, rid, req.Spec, msgs, rv)
 	if res == nil {
 		return
 	}
