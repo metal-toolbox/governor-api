@@ -108,8 +108,7 @@ ExtensionResourceMetadata:
     resource_version:
       type: integer
       format: int64
-      description: Version number for optimistic concurrency control
-      readOnly: true
+      description: Version number for optimistic concurrency control. Should only be provided on updates (not creates) to ensure the resource hasn't been modified since it was last read.
     created_at:
       type: string
       format: date-time
@@ -132,6 +131,24 @@ ExtensionResourceMetadataOwnerRef:
     - kind
     - id
 
+ExtensionResourceMetadataCreateRequest:
+  type: object
+  properties:
+    owner_ref:
+      $ref: '#/ExtensionResourceMetadataOwnerRef'
+  required:
+    - owner_ref
+
+ExtensionResourceMetadataUpdateRequest:
+  type: object
+  properties:
+    owner_ref:
+      $ref: '#/ExtensionResourceMetadataOwnerRef'
+    resource_version:
+      type: integer
+      format: int64
+      description: Version number for optimistic concurrency control
+
 ExtensionResourceStatus:
   type: object
   properties:
@@ -149,25 +166,66 @@ ExtensionResourceStatus:
       items:
         type: object
         additionalProperties: true
-      description: Status messages
-      readOnly: true
+      description: Status messages. Can be updated to track resource state changes.
+
+ExtensionResourceStatusUpdateRequest:
+  type: object
+  properties:
+    messages:
+      type: array
+      items:
+        type: object
+        additionalProperties: true
+      description: Status messages to track resource state changes
 
 ExtensionResourceCreateRequest:
   type: object
   properties:
-    data:
+    extension:
+      type: string
+      description: Extension slug
+    kind:
+      type: string
+      description: Resource kind (singular slug)
+    version:
+      type: string
+      description: Resource definition version
+    metadata:
+      $ref: '#/ExtensionResourceMetadataCreateRequest'
+    spec:
       type: object
       additionalProperties: true
-      description: Arbitrary data to store in the resource
+      description: Resource specification data
   required:
-    - data
+    - extension
+    - kind
+    - version
+    - metadata
+    - spec
 
 ExtensionResourceUpdateRequest:
   type: object
   properties:
-    data:
+    extension:
+      type: string
+      description: Extension slug
+    kind:
+      type: string
+      description: Resource kind (singular slug)
+    version:
+      type: string
+      description: Resource definition version
+    metadata:
+      $ref: '#/ExtensionResourceMetadataUpdateRequest'
+    spec:
       type: object
       additionalProperties: true
-      description: Updated data to store in the resource
+      description: Resource specification data
+    status:
+      $ref: '#/ExtensionResourceStatusUpdateRequest'
   required:
-    - data
+    - extension
+    - kind
+    - version
+    - metadata
+    - spec
