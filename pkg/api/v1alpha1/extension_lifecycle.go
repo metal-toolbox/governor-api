@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -217,10 +218,19 @@ func mwFindERDWithRequestBody(
 		_, span := tracer.Start(c.Request.Context(), "mwFindERDWithRequestBody")
 		defer span.End()
 
-		requestBody := io.NopCloser(c.Request.Body)
-		res := &ExtensionResource{}
+		// Read the entire request body into memory
+		bodyBytes, err := io.ReadAll(c.Request.Body)
+		if err != nil {
+			span.SetStatus(codes.Error, err.Error())
+			sendError(c, http.StatusBadRequest, "failed to read request body: "+err.Error())
+			return
+		}
 
-		if err := json.NewDecoder(requestBody).Decode(res); err != nil {
+		// Reset the request body so subsequent handlers can read it
+		c.Request.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+
+		res := &ExtensionResource{}
+		if err := json.Unmarshal(bodyBytes, res); err != nil {
 			span.SetStatus(codes.Error, err.Error())
 			sendError(c, http.StatusBadRequest, err.Error())
 
