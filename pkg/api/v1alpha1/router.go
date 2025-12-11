@@ -673,13 +673,26 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		r.deleteExtensionResourceDefinition,
 	)
 
+	// extension resources
+	rg.POST(
+		"/extension-resources",
+		r.AuditMW.AuditWithType("CreateExtensionResource"),
+		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
+		r.mwUserAuthRequired(AuthRoleUser),
+		mwFindERDWithRequestBody(r.DB),
+		mwExtensionResourceGroupAuth(extResourceGroupAuthOwnerRef, r.DB),
+		r.mwExtensionResourcesEnabledCheck,
+		r.createExtensionResource,
+	)
+
 	// system extension resources
 	rg.POST(
 		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version",
 		r.AuditMW.AuditWithType("CreateSystemExtensionResource"),
 		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
 		r.mwUserAuthRequired(AuthRoleUser),
-		MWSystemExtensionResourceGroupAuth(ExtResourceGroupAuthDenyAll, r.DB),
+		mwFindERDWithURIParams(r.DB),
+		mwExtensionResourceGroupAuth(nil, r.DB),
 		r.mwExtensionResourcesEnabledCheck,
 		r.createSystemExtensionResourceWithURIParams,
 	)
@@ -705,7 +718,8 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		r.AuditMW.AuditWithType("UpdateSystemExtensionResource"),
 		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
 		r.mwUserAuthRequired(AuthRoleUser),
-		MWSystemExtensionResourceGroupAuth(ExtResourceGroupAuthDBFetch, r.DB),
+		mwFindERDWithURIParams(r.DB),
+		mwExtensionResourceGroupAuth(extResourceGroupAuthDBFetch, r.DB),
 		r.mwExtensionResourcesEnabledCheck,
 		r.updateSystemExtensionResource,
 	)
@@ -715,7 +729,8 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		r.AuditMW.AuditWithType("DeleteSystemExtensionResource"),
 		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
 		r.mwUserAuthRequired(AuthRoleUser),
-		MWSystemExtensionResourceGroupAuth(ExtResourceGroupAuthDBFetch, r.DB),
+		mwFindERDWithURIParams(r.DB),
+		mwExtensionResourceGroupAuth(extResourceGroupAuthDBFetch, r.DB),
 		r.mwExtensionResourcesEnabledCheck,
 		r.deleteSystemExtensionResource,
 	)

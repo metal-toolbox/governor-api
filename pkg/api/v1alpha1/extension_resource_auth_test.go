@@ -140,6 +140,11 @@ func (s *ExtensionResourcesGroupAuthTestSuite) seedTestDB() error {
 		INSERT INTO system_extension_resources (id, extension_resource_definition_id, resource, owner_id)
 		VALUES ('00000005-0000-0000-0000-000000000010', '00000004-0000-0000-0000-000000000002', '{"firstName": "admin2", "lastName": "owned2"}'::jsonb, '00000002-0000-0000-0000-000000000003');
 		`,
+		// ERs - additional resource for DELETE test without conflict
+		`
+		INSERT INTO system_extension_resources (id, extension_resource_definition_id, resource)
+		VALUES ('00000005-0000-0000-0000-000000000011', '00000004-0000-0000-0000-000000000001', '{"firstName": "delete", "lastName": "test"}'::jsonb);
+		`,
 	}
 
 	for _, q := range testData {
@@ -158,7 +163,8 @@ func extResAuthTestRoutes(rg *gin.RouterGroup, r *Router) {
 		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version",
 		r.AuditMW.AuditWithType("CreateSystemExtensionResource"),
 		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
-		MWSystemExtensionResourceGroupAuth(ExtResourceGroupAuthDenyAll, r.DB),
+		mwFindERDWithURIParams(r.DB),
+		mwExtensionResourceGroupAuth(nil, r.DB),
 		r.mwExtensionResourcesEnabledCheck,
 		r.createSystemExtensionResourceWithURIParams,
 	)
@@ -181,7 +187,8 @@ func extResAuthTestRoutes(rg *gin.RouterGroup, r *Router) {
 		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version/:resource-id",
 		r.AuditMW.AuditWithType("UpdateSystemExtensionResource"),
 		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
-		MWSystemExtensionResourceGroupAuth(ExtResourceGroupAuthDBFetch, r.DB),
+		mwFindERDWithURIParams(r.DB),
+		mwExtensionResourceGroupAuth(extResourceGroupAuthDBFetch, r.DB),
 		r.mwExtensionResourcesEnabledCheck,
 		r.updateSystemExtensionResource,
 	)
@@ -190,7 +197,8 @@ func extResAuthTestRoutes(rg *gin.RouterGroup, r *Router) {
 		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version/:resource-id",
 		r.AuditMW.AuditWithType("DeleteSystemExtensionResource"),
 		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
-		MWSystemExtensionResourceGroupAuth(ExtResourceGroupAuthDBFetch, r.DB),
+		mwFindERDWithURIParams(r.DB),
+		mwExtensionResourceGroupAuth(extResourceGroupAuthDBFetch, r.DB),
 		r.mwExtensionResourcesEnabledCheck,
 		r.deleteSystemExtensionResource,
 	)
@@ -717,7 +725,7 @@ func (s *ExtensionResourcesGroupAuthTestSuite) TestDeleteResource() {
 			name:        "governor-admin-deletes-resource-without-owner",
 			user:        s.haroladAdmin,
 			admin:       true,
-			resourceID:  "00000005-0000-0000-0000-000000000002", // no owner
+			resourceID:  "00000005-0000-0000-0000-000000000011", // no owner (dedicated for delete test)
 			erdSlug:     "some-resources",
 			respcode:    http.StatusAccepted,
 			description: "governor admins should be able to delete any resource",

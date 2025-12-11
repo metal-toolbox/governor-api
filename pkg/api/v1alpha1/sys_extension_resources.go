@@ -67,7 +67,7 @@ func createSystemExtensionResourceCore(
 	db *sqlx.DB, eb *eventbus.Client,
 	ext *models.Extension, erd *models.ExtensionResourceDefinition,
 	requestBody []byte, ownerID string,
-) {
+) *SystemExtensionResource {
 	ctx, span := tracer.Start(c.Request.Context(), "createSystemExtensionResourceCore")
 	defer span.End()
 
@@ -79,7 +79,7 @@ func createSystemExtensionResourceCore(
 		span.RecordError(err)
 		sendError(c, http.StatusBadRequest, fmt.Sprintf("validation error: %s", err.Error()))
 
-		return
+		return nil
 	}
 
 	span.SetAttributes(
@@ -88,6 +88,20 @@ func createSystemExtensionResourceCore(
 		attribute.String("erd.version", erd.Version),
 	)
 
+	bytes, err := json.Marshal(APIStatusMessage{
+		Message:   "Resource created",
+		Status:    "true",
+		Type:      "Accepted",
+		Timestamp: time.Now().UTC(),
+	})
+	if err != nil {
+		span.SetStatus(codes.Error, "error marshalling initial status message")
+		span.RecordError(err)
+		sendError(c, http.StatusBadRequest, "error marshalling initial status message: "+err.Error())
+
+		return nil
+	}
+
 	// insert
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
@@ -95,12 +109,13 @@ func createSystemExtensionResourceCore(
 		span.RecordError(err)
 		sendError(c, http.StatusBadRequest, "error starting extension resource create transaction: "+err.Error())
 
-		return
+		return nil
 	}
 
 	er := &models.SystemExtensionResource{
 		Resource:        requestBody,
 		ResourceVersion: time.Now().UnixMilli(),
+		Messages:        []string{string(bytes)},
 	}
 
 	if ownerID != "" {
@@ -117,7 +132,7 @@ func createSystemExtensionResourceCore(
 		span.RecordError(err)
 		sendError(c, http.StatusBadRequest, msg)
 
-		return
+		return nil
 	}
 
 	event, err := dbtools.AuditSystemExtensionResourceCreated(
@@ -133,7 +148,7 @@ func createSystemExtensionResourceCore(
 		span.RecordError(err)
 		sendError(c, http.StatusBadRequest, msg)
 
-		return
+		return nil
 	}
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
@@ -146,7 +161,7 @@ func createSystemExtensionResourceCore(
 		span.RecordError(err)
 		sendError(c, http.StatusBadRequest, msg)
 
-		return
+		return nil
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -159,7 +174,7 @@ func createSystemExtensionResourceCore(
 		span.RecordError(err)
 		sendError(c, http.StatusBadRequest, msg)
 
-		return
+		return nil
 	}
 
 	err = eb.Publish(
@@ -188,16 +203,14 @@ func createSystemExtensionResourceCore(
 			),
 		)
 
-		return
+		return nil
 	}
 
-	resp := &SystemExtensionResource{
+	return &SystemExtensionResource{
 		SystemExtensionResource: er,
 		ERD:                     erd.SlugSingular,
 		Version:                 erd.Version,
 	}
-
-	c.JSON(http.StatusCreated, resp)
 }
 
 func (r *Router) createSystemExtensionResourceWithURIParams(c *gin.Context) {
@@ -241,7 +254,10 @@ func (r *Router) createSystemExtensionResourceWithURIParams(c *gin.Context) {
 		return
 	}
 
-	createSystemExtensionResourceCore(c, r.DB, r.EventBus, extension, erd, requestBody, "")
+	resp := createSystemExtensionResourceCore(c, r.DB, r.EventBus, extension, erd, requestBody, "")
+	if resp != nil {
+		c.JSON(http.StatusCreated, resp)
+	}
 }
 
 // listSystemExtensionResource lists system extension resources for an ERD

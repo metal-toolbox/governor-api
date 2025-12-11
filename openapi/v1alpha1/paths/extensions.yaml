@@ -342,6 +342,64 @@ erds-slug-version:
       - bearerAuth: []
       - oauth2ClientCredentials: ['governor:extensions:delete']
 
+extension-resources:
+  post:
+    summary: Create an extension resource
+    operationId: createExtensionResource
+    tags:
+      - Extensions
+    description: |
+      Creates a new extension resource. The extension, kind, and version must be specified in the request body.
+      The kind should use the singular slug form of the extension resource definition.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/ExtensionResource'
+          example:
+            extension: "my-extension"
+            kind: "database"
+            version: "v1"
+            metadata:
+              owner_ref:
+                kind: "group"
+                id: "550e8400-e29b-41d4-a716-446655440000"
+            spec:
+              name: "production-db"
+              host: "db.example.com"
+              port: 5432
+    responses:
+      '201':
+        description: Extension resource created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ExtensionResource'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '501':
+        description: Not Implemented
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
+                  example: "user-scoped extension resources are not yet supported with this API"
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:extensionresources:create']
+
 resources:
   get:
     summary: List system-wide extension resources

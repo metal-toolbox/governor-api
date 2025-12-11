@@ -25,14 +25,15 @@ import (
 
 // SystemExtensionResource is an object representing the database table.
 type SystemExtensionResource struct {
-	ID                            string      `boil:"id" json:"id" toml:"id" yaml:"id"`
-	Resource                      types.JSON  `boil:"resource" json:"resource" toml:"resource" yaml:"resource"`
-	CreatedAt                     time.Time   `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
-	UpdatedAt                     time.Time   `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
-	DeletedAt                     null.Time   `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
-	ExtensionResourceDefinitionID string      `boil:"extension_resource_definition_id" json:"extension_resource_definition_id" toml:"extension_resource_definition_id" yaml:"extension_resource_definition_id"`
-	OwnerID                       null.String `boil:"owner_id" json:"owner_id,omitempty" toml:"owner_id" yaml:"owner_id,omitempty"`
-	ResourceVersion               int64       `boil:"resource_version" json:"resource_version" toml:"resource_version" yaml:"resource_version"`
+	ID                            string            `boil:"id" json:"id" toml:"id" yaml:"id"`
+	Resource                      types.JSON        `boil:"resource" json:"resource" toml:"resource" yaml:"resource"`
+	CreatedAt                     time.Time         `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
+	UpdatedAt                     time.Time         `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
+	DeletedAt                     null.Time         `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
+	ExtensionResourceDefinitionID string            `boil:"extension_resource_definition_id" json:"extension_resource_definition_id" toml:"extension_resource_definition_id" yaml:"extension_resource_definition_id"`
+	OwnerID                       null.String       `boil:"owner_id" json:"owner_id,omitempty" toml:"owner_id" yaml:"owner_id,omitempty"`
+	ResourceVersion               int64             `boil:"resource_version" json:"resource_version" toml:"resource_version" yaml:"resource_version"`
+	Messages                      types.StringArray `boil:"messages" json:"messages" toml:"messages" yaml:"messages"`
 
 	R *systemExtensionResourceR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L systemExtensionResourceL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -47,6 +48,7 @@ var SystemExtensionResourceColumns = struct {
 	ExtensionResourceDefinitionID string
 	OwnerID                       string
 	ResourceVersion               string
+	Messages                      string
 }{
 	ID:                            "id",
 	Resource:                      "resource",
@@ -56,6 +58,7 @@ var SystemExtensionResourceColumns = struct {
 	ExtensionResourceDefinitionID: "extension_resource_definition_id",
 	OwnerID:                       "owner_id",
 	ResourceVersion:               "resource_version",
+	Messages:                      "messages",
 }
 
 var SystemExtensionResourceTableColumns = struct {
@@ -67,6 +70,7 @@ var SystemExtensionResourceTableColumns = struct {
 	ExtensionResourceDefinitionID string
 	OwnerID                       string
 	ResourceVersion               string
+	Messages                      string
 }{
 	ID:                            "system_extension_resources.id",
 	Resource:                      "system_extension_resources.resource",
@@ -76,6 +80,7 @@ var SystemExtensionResourceTableColumns = struct {
 	ExtensionResourceDefinitionID: "system_extension_resources.extension_resource_definition_id",
 	OwnerID:                       "system_extension_resources.owner_id",
 	ResourceVersion:               "system_extension_resources.resource_version",
+	Messages:                      "system_extension_resources.messages",
 }
 
 // Generated where
@@ -112,6 +117,7 @@ var SystemExtensionResourceWhere = struct {
 	ExtensionResourceDefinitionID whereHelperstring
 	OwnerID                       whereHelpernull_String
 	ResourceVersion               whereHelperint64
+	Messages                      whereHelpertypes_StringArray
 }{
 	ID:                            whereHelperstring{field: "\"system_extension_resources\".\"id\""},
 	Resource:                      whereHelpertypes_JSON{field: "\"system_extension_resources\".\"resource\""},
@@ -121,6 +127,7 @@ var SystemExtensionResourceWhere = struct {
 	ExtensionResourceDefinitionID: whereHelperstring{field: "\"system_extension_resources\".\"extension_resource_definition_id\""},
 	OwnerID:                       whereHelpernull_String{field: "\"system_extension_resources\".\"owner_id\""},
 	ResourceVersion:               whereHelperint64{field: "\"system_extension_resources\".\"resource_version\""},
+	Messages:                      whereHelpertypes_StringArray{field: "\"system_extension_resources\".\"messages\""},
 }
 
 // SystemExtensionResourceRels is where relationship names are stored.
@@ -179,9 +186,9 @@ func (r *systemExtensionResourceR) GetOwner() *Group {
 type systemExtensionResourceL struct{}
 
 var (
-	systemExtensionResourceAllColumns            = []string{"id", "resource", "created_at", "updated_at", "deleted_at", "extension_resource_definition_id", "owner_id", "resource_version"}
+	systemExtensionResourceAllColumns            = []string{"id", "resource", "created_at", "updated_at", "deleted_at", "extension_resource_definition_id", "owner_id", "resource_version", "messages"}
 	systemExtensionResourceColumnsWithoutDefault = []string{"resource", "extension_resource_definition_id"}
-	systemExtensionResourceColumnsWithDefault    = []string{"id", "created_at", "updated_at", "deleted_at", "owner_id", "resource_version"}
+	systemExtensionResourceColumnsWithDefault    = []string{"id", "created_at", "updated_at", "deleted_at", "owner_id", "resource_version", "messages"}
 	systemExtensionResourcePrimaryKeyColumns     = []string{"id"}
 	systemExtensionResourceGeneratedColumns      = []string{}
 )
