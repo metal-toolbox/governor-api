@@ -218,26 +218,20 @@ func mwFindERDWithRequestBody(
 		_, span := tracer.Start(c.Request.Context(), "mwFindERDWithRequestBody")
 		defer span.End()
 
-		// Read the body
-		bodyBytes, err := io.ReadAll(c.Request.Body)
-		if err != nil {
-			span.SetStatus(codes.Error, err.Error())
-			sendError(c, http.StatusBadRequest, err.Error())
+		// Decode the request while preserving the body for downstream handlers
+		buf := new(bytes.Buffer)
+		decoder := json.NewDecoder(io.TeeReader(c.Request.Body, buf))
 
-			return
-		}
-
-		// Restore the body for subsequent handlers
-		c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
-
-		// Decode the request
 		res := &ExtensionResource{}
-		if err := json.Unmarshal(bodyBytes, res); err != nil {
+		if err := decoder.Decode(res); err != nil {
 			span.SetStatus(codes.Error, err.Error())
 			sendError(c, http.StatusBadRequest, err.Error())
 
 			return
 		}
+
+		// Restore the body for downstream handlers
+		c.Request.Body = io.NopCloser(buf)
 
 		setCtxExtensionResource(c, res)
 

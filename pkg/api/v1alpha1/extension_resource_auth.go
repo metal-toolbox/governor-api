@@ -211,22 +211,18 @@ func extResourceGroupAuthOwnerRef(
 	res := getCtxExtensionResource(c)
 
 	if res == nil {
-		// Read the body
-		bodyBytes, err := io.ReadAll(c.Request.Body)
-		if err != nil {
+		// Decode the request while preserving the body for downstream handlers
+		buf := new(bytes.Buffer)
+		decoder := json.NewDecoder(io.TeeReader(c.Request.Body, buf))
+
+		res := &ExtensionResource{}
+		if err := decoder.Decode(res); err != nil {
 			span.SetStatus(codes.Error, err.Error())
-			sendError(c, http.StatusBadRequest, err.Error())
-
-			return errExtGroupAuthValidationError
-		}
-
-		// Restore the body for subsequent handlers
-		c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
-
-		res = &ExtensionResource{}
-		if err := json.Unmarshal(bodyBytes, res); err != nil {
 			return fmt.Errorf("%w: %w", errExtGroupAuthValidationError, err)
 		}
+
+		// Restore the body for downstream handlers
+		c.Request.Body = io.NopCloser(buf)
 
 		setCtxExtensionResource(c, res)
 	}
