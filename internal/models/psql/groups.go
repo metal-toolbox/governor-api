@@ -121,6 +121,7 @@ var GroupRels = struct {
 	GroupMemberships                       string
 	GroupOrganizations                     string
 	ApproverGroupGroups                    string
+	OwnerSystemExtensionResources          string
 }{
 	ApproverGroupGroup:                     "ApproverGroupGroup",
 	ApproverGroupApplications:              "ApproverGroupApplications",
@@ -135,6 +136,7 @@ var GroupRels = struct {
 	GroupMemberships:                       "GroupMemberships",
 	GroupOrganizations:                     "GroupOrganizations",
 	ApproverGroupGroups:                    "ApproverGroupGroups",
+	OwnerSystemExtensionResources:          "OwnerSystemExtensionResources",
 }
 
 // groupR is where relationships are stored.
@@ -152,6 +154,7 @@ type groupR struct {
 	GroupMemberships                       GroupMembershipSlice             `boil:"GroupMemberships" json:"GroupMemberships" toml:"GroupMemberships" yaml:"GroupMemberships"`
 	GroupOrganizations                     GroupOrganizationSlice           `boil:"GroupOrganizations" json:"GroupOrganizations" toml:"GroupOrganizations" yaml:"GroupOrganizations"`
 	ApproverGroupGroups                    GroupSlice                       `boil:"ApproverGroupGroups" json:"ApproverGroupGroups" toml:"ApproverGroupGroups" yaml:"ApproverGroupGroups"`
+	OwnerSystemExtensionResources          SystemExtensionResourceSlice     `boil:"OwnerSystemExtensionResources" json:"OwnerSystemExtensionResources" toml:"OwnerSystemExtensionResources" yaml:"OwnerSystemExtensionResources"`
 }
 
 // NewStruct creates a new relationship struct
@@ -365,6 +368,22 @@ func (r *groupR) GetApproverGroupGroups() GroupSlice {
 	}
 
 	return r.ApproverGroupGroups
+}
+
+func (o *Group) GetOwnerSystemExtensionResources() SystemExtensionResourceSlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetOwnerSystemExtensionResources()
+}
+
+func (r *groupR) GetOwnerSystemExtensionResources() SystemExtensionResourceSlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.OwnerSystemExtensionResources
 }
 
 // groupL is where Load methods for each relationship are stored.
@@ -860,6 +879,20 @@ func (o *Group) ApproverGroupGroups(mods ...qm.QueryMod) groupQuery {
 	)
 
 	return Groups(queryMods...)
+}
+
+// OwnerSystemExtensionResources retrieves all the system_extension_resource's SystemExtensionResources with an executor via owner_id column.
+func (o *Group) OwnerSystemExtensionResources(mods ...qm.QueryMod) systemExtensionResourceQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"system_extension_resources\".\"owner_id\"=?", o.ID),
+	)
+
+	return SystemExtensionResources(queryMods...)
 }
 
 // LoadApproverGroupGroup allows an eager lookup of values, cached into the
@@ -2347,6 +2380,120 @@ func (groupL) LoadApproverGroupGroups(ctx context.Context, e boil.ContextExecuto
 	return nil
 }
 
+// LoadOwnerSystemExtensionResources allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (groupL) LoadOwnerSystemExtensionResources(ctx context.Context, e boil.ContextExecutor, singular bool, maybeGroup interface{}, mods queries.Applicator) error {
+	var slice []*Group
+	var object *Group
+
+	if singular {
+		var ok bool
+		object, ok = maybeGroup.(*Group)
+		if !ok {
+			object = new(Group)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeGroup)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeGroup))
+			}
+		}
+	} else {
+		s, ok := maybeGroup.(*[]*Group)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeGroup)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeGroup))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &groupR{}
+		}
+		args[object.ID] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &groupR{}
+			}
+			args[obj.ID] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`system_extension_resources`),
+		qm.WhereIn(`system_extension_resources.owner_id in ?`, argsSlice...),
+		qmhelper.WhereIsNull(`system_extension_resources.deleted_at`),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load system_extension_resources")
+	}
+
+	var resultSlice []*SystemExtensionResource
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice system_extension_resources")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on system_extension_resources")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for system_extension_resources")
+	}
+
+	if len(systemExtensionResourceAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.OwnerSystemExtensionResources = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &systemExtensionResourceR{}
+			}
+			foreign.R.Owner = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if queries.Equal(local.ID, foreign.OwnerID) {
+				local.R.OwnerSystemExtensionResources = append(local.R.OwnerSystemExtensionResources, foreign)
+				if foreign.R == nil {
+					foreign.R = &systemExtensionResourceR{}
+				}
+				foreign.R.Owner = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
 // SetApproverGroupGroup of the group to the related item.
 // Sets o.R.ApproverGroupGroup to related.
 // Adds o to related.R.ApproverGroupGroups.
@@ -3352,6 +3499,133 @@ func (o *Group) RemoveApproverGroupGroups(ctx context.Context, exec boil.Context
 				o.R.ApproverGroupGroups[i] = o.R.ApproverGroupGroups[ln-1]
 			}
 			o.R.ApproverGroupGroups = o.R.ApproverGroupGroups[:ln-1]
+			break
+		}
+	}
+
+	return nil
+}
+
+// AddOwnerSystemExtensionResources adds the given related objects to the existing relationships
+// of the group, optionally inserting them as new records.
+// Appends related to o.R.OwnerSystemExtensionResources.
+// Sets related.R.Owner appropriately.
+func (o *Group) AddOwnerSystemExtensionResources(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*SystemExtensionResource) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			queries.Assign(&rel.OwnerID, o.ID)
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"system_extension_resources\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"owner_id"}),
+				strmangle.WhereClause("\"", "\"", 2, systemExtensionResourcePrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			queries.Assign(&rel.OwnerID, o.ID)
+		}
+	}
+
+	if o.R == nil {
+		o.R = &groupR{
+			OwnerSystemExtensionResources: related,
+		}
+	} else {
+		o.R.OwnerSystemExtensionResources = append(o.R.OwnerSystemExtensionResources, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &systemExtensionResourceR{
+				Owner: o,
+			}
+		} else {
+			rel.R.Owner = o
+		}
+	}
+	return nil
+}
+
+// SetOwnerSystemExtensionResources removes all previously related items of the
+// group replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.Owner's OwnerSystemExtensionResources accordingly.
+// Replaces o.R.OwnerSystemExtensionResources with related.
+// Sets related.R.Owner's OwnerSystemExtensionResources accordingly.
+func (o *Group) SetOwnerSystemExtensionResources(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*SystemExtensionResource) error {
+	query := "update \"system_extension_resources\" set \"owner_id\" = null where \"owner_id\" = $1"
+	values := []interface{}{o.ID}
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, query)
+		fmt.Fprintln(writer, values)
+	}
+	_, err := exec.ExecContext(ctx, query, values...)
+	if err != nil {
+		return errors.Wrap(err, "failed to remove relationships before set")
+	}
+
+	if o.R != nil {
+		for _, rel := range o.R.OwnerSystemExtensionResources {
+			queries.SetScanner(&rel.OwnerID, nil)
+			if rel.R == nil {
+				continue
+			}
+
+			rel.R.Owner = nil
+		}
+		o.R.OwnerSystemExtensionResources = nil
+	}
+
+	return o.AddOwnerSystemExtensionResources(ctx, exec, insert, related...)
+}
+
+// RemoveOwnerSystemExtensionResources relationships from objects passed in.
+// Removes related items from R.OwnerSystemExtensionResources (uses pointer comparison, removal does not keep order)
+// Sets related.R.Owner.
+func (o *Group) RemoveOwnerSystemExtensionResources(ctx context.Context, exec boil.ContextExecutor, related ...*SystemExtensionResource) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	var err error
+	for _, rel := range related {
+		queries.SetScanner(&rel.OwnerID, nil)
+		if rel.R != nil {
+			rel.R.Owner = nil
+		}
+		if _, err = rel.Update(ctx, exec, boil.Whitelist("owner_id")); err != nil {
+			return err
+		}
+	}
+	if o.R == nil {
+		return nil
+	}
+
+	for _, rel := range related {
+		for i, ri := range o.R.OwnerSystemExtensionResources {
+			if rel != ri {
+				continue
+			}
+
+			ln := len(o.R.OwnerSystemExtensionResources)
+			if ln > 1 && i < ln-1 {
+				o.R.OwnerSystemExtensionResources[i] = o.R.OwnerSystemExtensionResources[ln-1]
+			}
+			o.R.OwnerSystemExtensionResources = o.R.OwnerSystemExtensionResources[:ln-1]
 			break
 		}
 	}

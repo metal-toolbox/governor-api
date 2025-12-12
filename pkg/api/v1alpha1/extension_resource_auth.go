@@ -1,18 +1,33 @@
 package v1alpha1
 
 import (
+	"bytes"
+	"database/sql"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
 
+	"github.com/aarondl/sqlboiler/v4/boil"
+	"github.com/aarondl/sqlboiler/v4/queries/qm"
 	"github.com/gin-gonic/gin"
+	"github.com/jmoiron/sqlx"
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	models "github.com/metal-toolbox/governor-api/internal/models/psql"
-	"go.uber.org/zap"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
 
 const (
-	contextKeyERD       = "gin-contextkey/extension-resource-definition"
-	contextKeyExtension = "gin-contextkey/extension"
+	contextKeyERD               = "gin-contextkey/extension-resource-definition"
+	contextKeyExtension         = "gin-contextkey/extension"
+	contextKeyExtensionResource = "gin-contextkey/extension-resource"
+)
+
+var (
+	errExtGroupAuthAccessDenied    = errors.New("access denied")
+	errExtGroupAuthValidationError = errors.New("validation error")
 )
 
 func setCtxERD(c *gin.Context, u *models.ExtensionResourceDefinition) {
@@ -51,77 +66,180 @@ func getCtxExtension(c *gin.Context) *models.Extension {
 	return ext
 }
 
-func (r *Router) mwSystemExtensionResourceGroupAuth(c *gin.Context) {
-	if !contains(c.GetStringSlice("jwt.roles"), oidcScope) {
-		r.Logger.Debug("oidc scope not found, skipping user authorization check", zap.String("oidcScope", oidcScope))
-		return
+func setCtxExtensionResource(c *gin.Context, r *ExtensionResource) {
+	c.Set(contextKeyExtensionResource, r)
+}
+
+func getCtxExtensionResource(c *gin.Context) *ExtensionResource {
+	val, ok := c.Get(contextKeyExtensionResource)
+	if !ok {
+		return nil
 	}
 
-	user := getCtxUser(c)
-	if user == nil {
-		r.Logger.Error("user not found in context")
-		sendError(c, http.StatusUnauthorized, "invalid user")
-
-		return
+	er, ok := val.(*ExtensionResource)
+	if !ok {
+		return nil
 	}
 
-	isGovAdmin := getCtxAdmin(c)
-	if isGovAdmin != nil && *isGovAdmin {
-		r.Logger.Debug("user is gov admin")
-		return
-	}
+	return er
+}
 
-	extensionSlug := c.Param("ex-slug")
-	erdSlugPlural := c.Param("erd-slug-plural")
-	erdVersion := c.Param("erd-version")
+type resourceOwnershipCheckFn func(
+	c *gin.Context,
+	groupMembershipSet map[string]struct{},
+	db boil.ContextExecutor,
+) error
 
-	r.Logger.Debug(
-		"mwSystemExtensionResourceGroupAuth",
-		zap.String("extension-slug", extensionSlug),
-		zap.String("erd-slug-plural", erdSlugPlural),
-		zap.String("erd-version", erdVersion),
-	)
+// mwExtensionResourceGroupAuth is a middleware that checks if the user is part of the
+// extension resource definition (ERD) admin group or owner group.
+// It uses the provided resourceOwnershipCheckFn to check if the user is part of the owner group.
+// If the user is not part of either group, a 403 Forbidden response is returned.
+// If the user is part of the gov-admins role, access is granted without further checks.
+func mwExtensionResourceGroupAuth(checkFn resourceOwnershipCheckFn, db *sqlx.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ctx, span := tracer.Start(c.Request.Context(), "mwSystemExtensionResourceGroupAuth")
+		defer span.End()
 
-	// find ERD
-	ext, erd, err := findERDForExtensionResource(
-		c, r.DB,
-		extensionSlug, erdSlugPlural, erdVersion,
-	)
-	if err != nil {
-		if errors.Is(err, ErrExtensionNotFound) || errors.Is(err, ErrERDNotFound) {
-			sendError(c, http.StatusNotFound, err.Error())
+		if !contains(c.GetStringSlice("jwt.roles"), oidcScope) {
+			span.AddEvent("oidc scope not found, skipping user authorization check")
+			span.SetAttributes(attribute.String("oidcScope", oidcScope))
+
 			return
 		}
 
-		sendError(c, http.StatusBadRequest, err.Error())
+		user := getCtxUser(c)
+		if user == nil {
+			span.SetStatus(codes.Error, "user not found in context")
+			sendError(c, http.StatusUnauthorized, "invalid user")
 
-		return
-	}
-
-	setCtxExtension(c, ext)
-	setCtxERD(c, erd)
-
-	// if user is not gov-admin and there's no admin group set for the ERD
-	if !erd.AdminGroup.Valid || erd.AdminGroup.String == "" {
-		sendError(c, http.StatusForbidden, "user do not have permissions to access this resource")
-
-		return
-	}
-
-	adminGroupID := erd.AdminGroup.String
-
-	// check if user is part of the admin group
-	enumeratedMemberships, err := dbtools.GetMembershipsForUser(c.Request.Context(), r.DB.DB, user.ID, false)
-	if err != nil {
-		sendError(c, http.StatusInternalServerError, "error getting enumerated groups: "+err.Error())
-		return
-	}
-
-	for _, m := range enumeratedMemberships {
-		if m.GroupID == adminGroupID {
 			return
+		}
+
+		// allow gov-admins
+		isGovAdmin := getCtxAdmin(c)
+		if isGovAdmin != nil && *isGovAdmin {
+			span.SetAttributes(attribute.Bool("gov-admin", true))
+			return
+		}
+
+		erd := getCtxERD(c)
+		if erd == nil {
+			sendError(c, http.StatusInternalServerError, "extension resource definition was not set in context")
+			return
+		}
+
+		// check if user is part of the admin group
+		enumeratedMemberships, err := dbtools.GetMembershipsForUser(ctx, db.DB, user.ID, false)
+		if err != nil {
+			span.SetStatus(codes.Error, "error getting enumerated groups")
+			span.RecordError(err)
+			sendError(c, http.StatusInternalServerError, "error getting enumerated groups: "+err.Error())
+
+			return
+		}
+
+		membershipSet := make(map[string]struct{})
+		for _, m := range enumeratedMemberships {
+			membershipSet[m.GroupID] = struct{}{}
+		}
+
+		// allow if user is part of the admin group
+		if erd.AdminGroup.Valid && erd.AdminGroup.String != "" {
+			if _, ok := membershipSet[erd.AdminGroup.String]; ok {
+				span.SetAttributes(attribute.Bool("admin-group-member", true))
+				return
+			}
+		}
+
+		if checkFn == nil {
+			span.SetStatus(codes.Error, "no ownership check function provided")
+			sendError(c, http.StatusForbidden, "user do not have permissions to access this resource")
+
+			return
+		}
+
+		// allow if user is the owner of the resource
+		if err := checkFn(c, membershipSet, db); err != nil {
+			switch {
+			case errors.Is(err, sql.ErrNoRows):
+				span.SetStatus(codes.Error, "resource not found")
+				sendError(c, http.StatusNotFound, "resource not found")
+			case errors.Is(err, errExtGroupAuthValidationError):
+				span.SetStatus(codes.Error, "validation error")
+				sendError(c, http.StatusBadRequest, err.Error())
+			default:
+				span.SetStatus(codes.Error, "user do not have permissions to access this resource")
+				sendError(c, http.StatusForbidden, "user do not have permissions to access this resource")
+			}
+		}
+
+		span.SetAttributes(attribute.Bool("owner-group-member", true))
+	}
+}
+
+// extResourceGroupAuthDBFetch is a resource ownership check function that fetches the
+// extension resource from the database and checks if the user is part of the owner group
+func extResourceGroupAuthDBFetch(
+	c *gin.Context,
+	groupMembershipSet map[string]struct{},
+	exec boil.ContextExecutor,
+) error {
+	resourceID := c.Param("resource-id")
+
+	er, err := models.SystemExtensionResources(qm.Where("id = ?", resourceID)).One(c.Request.Context(), exec)
+	if err != nil {
+		return err
+	}
+
+	if er.OwnerID.Valid && er.OwnerID.String != "" {
+		if _, ok := groupMembershipSet[er.OwnerID.String]; ok {
+			return nil
 		}
 	}
 
-	sendError(c, http.StatusForbidden, "user do not have permissions to access this resource")
+	return errExtGroupAuthAccessDenied
+}
+
+func extResourceGroupAuthOwnerRef(
+	c *gin.Context,
+	groupMembershipSet map[string]struct{},
+	exec boil.ContextExecutor,
+) error {
+	_, span := tracer.Start(c.Request.Context(), "extResourceGroupAuthOwnerRef")
+	defer span.End()
+
+	res := getCtxExtensionResource(c)
+
+	if res == nil {
+		// Decode the request while preserving the body for downstream handlers
+		buf := new(bytes.Buffer)
+		decoder := json.NewDecoder(io.TeeReader(c.Request.Body, buf))
+
+		res := &ExtensionResource{}
+		if err := decoder.Decode(res); err != nil {
+			span.SetStatus(codes.Error, err.Error())
+			return fmt.Errorf("%w: %w", errExtGroupAuthValidationError, err)
+		}
+
+		// Restore the body for downstream handlers
+		c.Request.Body = io.NopCloser(buf)
+
+		setCtxExtensionResource(c, res)
+	}
+
+	switch res.Metadata.OwnerRef.Kind {
+	case ExtensionResourceOwnerKindUser:
+		user := getCtxUser(c)
+		if user != nil && res.Metadata.OwnerRef.ID == user.ID {
+			return nil
+		}
+	case ExtensionResourceOwnerKindGroup:
+		if res.Metadata.OwnerRef.ID != "" {
+			if _, ok := groupMembershipSet[res.Metadata.OwnerRef.ID]; ok {
+				return nil
+			}
+		}
+	}
+
+	return errExtGroupAuthAccessDenied
 }

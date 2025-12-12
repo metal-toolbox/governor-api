@@ -73,6 +73,10 @@ paths:
     $ref: './paths/extensions.yaml#/erds-slug'
   /extensions/{eid}/erds/{erd-id-slug}/{erd-version}:
     $ref: './paths/extensions.yaml#/erds-slug-version'
+  /extension-resources:
+    $ref: './paths/extensions.yaml#/extension-resources'
+  /extension-resources/{resource-id}:
+    $ref: './paths/extensions.yaml#/extension-resources-id'
   /extension-resources/{ex-slug}/{erd-slug-plural}/{erd-version}:
     $ref: './paths/extensions.yaml#/resources'
   /extension-resources/{ex-slug}/{erd-slug-plural}/{erd-version}/{resource-id}:

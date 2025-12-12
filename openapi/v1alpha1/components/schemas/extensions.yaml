@@ -72,59 +72,160 @@ ExtensionResourceDefinition:
 ExtensionResource:
   type: object
   properties:
-    id:
+    extension:
       type: string
-      format: uuid
-      description: Unique identifier for the extension resource
-    extension_id:
+      description: Extension slug
+    kind:
       type: string
-      format: uuid
-      description: ID of the associated extension
-    definition_id:
+      description: Resource kind (singular slug)
+    version:
       type: string
-      format: uuid
-      description: ID of the associated extension resource definition
-    user_id:
-      type: string
-      format: uuid
-      description: ID of the user who owns this resource
-    data:
+      description: Resource definition version
+    metadata:
+      $ref: '#/ExtensionResourceMetadata'
+    spec:
       type: object
       additionalProperties: true
-      description: Arbitrary data stored in the resource
+      description: Resource specification data
+    status:
+      $ref: '#/ExtensionResourceStatus'
+  required:
+    - extension
+    - kind
+    - version
+    - metadata
+    - spec
+
+ExtensionResourceMetadata:
+  type: object
+  properties:
+    owner_ref:
+      $ref: '#/ExtensionResourceMetadataOwnerRef'
+    id:
+      type: string
+      description: Unique identifier for the extension resource
+      readOnly: true
+    resource_version:
+      type: integer
+      format: int64
+      description: Version number for optimistic concurrency control. Should only be provided on updates (not creates) to ensure the resource hasn't been modified since it was last read.
     created_at:
       type: string
       format: date-time
       description: Timestamp when the resource was created
+      readOnly: true
+
+ExtensionResourceMetadataOwnerRef:
+  type: object
+  properties:
+    kind:
+      type: string
+      enum:
+        - group
+        - user
+      description: Type of owner (group or user)
+    id:
+      type: string
+      description: ID of the owner
+  required:
+    - kind
+    - id
+
+ExtensionResourceMetadataCreateRequest:
+  type: object
+  properties:
+    owner_ref:
+      $ref: '#/ExtensionResourceMetadataOwnerRef'
+  required:
+    - owner_ref
+
+ExtensionResourceMetadataUpdateRequest:
+  type: object
+  properties:
+    owner_ref:
+      $ref: '#/ExtensionResourceMetadataOwnerRef'
+    resource_version:
+      type: integer
+      format: int64
+      description: Version number for optimistic concurrency control
+
+ExtensionResourceStatus:
+  type: object
+  properties:
+    state:
+      type: string
+      description: Current state of the resource
+      readOnly: true
     updated_at:
       type: string
       format: date-time
-      description: Timestamp when the resource was last updated
-  required:
-    - id
-    - extension_id
-    - definition_id
-    - user_id
-    - data
-    - created_at
-    - updated_at
+      description: Timestamp when the status was last updated
+      readOnly: true
+    messages:
+      type: array
+      items:
+        type: object
+        additionalProperties: true
+      description: Status messages. Can be updated to track resource state changes.
+
+ExtensionResourceStatusUpdateRequest:
+  type: object
+  properties:
+    messages:
+      type: array
+      items:
+        type: object
+        additionalProperties: true
+      description: Status messages to track resource state changes
 
 ExtensionResourceCreateRequest:
   type: object
   properties:
-    data:
+    extension:
+      type: string
+      description: Extension slug
+    kind:
+      type: string
+      description: Resource kind (singular slug)
+    version:
+      type: string
+      description: Resource definition version
+    metadata:
+      $ref: '#/ExtensionResourceMetadataCreateRequest'
+    spec:
       type: object
       additionalProperties: true
-      description: Arbitrary data to store in the resource
+      description: Resource specification data
   required:
-    - data
+    - extension
+    - kind
+    - version
+    - metadata
+    - spec
 
 ExtensionResourceUpdateRequest:
   type: object
   properties:
-    data:
+    extension:
+      type: string
+      description: Extension slug
+    kind:
+      type: string
+      description: Resource kind (singular slug)
+    version:
+      type: string
+      description: Resource definition version
+    metadata:
+      $ref: '#/ExtensionResourceMetadataUpdateRequest'
+    spec:
       type: object
       additionalProperties: true
-      description: Updated data to store in the resource
+      description: Resource specification data
+    status:
+      $ref: '#/ExtensionResourceStatusUpdateRequest'
   required:
-    - data
+    - extension
+    - kind
+    - version
+    - metadata
+    - spec

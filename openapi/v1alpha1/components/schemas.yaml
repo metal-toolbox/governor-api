@@ -81,6 +81,10 @@ ExtensionResourceDefinition:
   $ref: './schemas/extensions.yaml#/ExtensionResourceDefinition'
 ExtensionResource:
   $ref: './schemas/extensions.yaml#/ExtensionResource'
+ExtensionResourceCreateRequest:
+  $ref: './schemas/extensions.yaml#/ExtensionResourceCreateRequest'
+ExtensionResourceUpdateRequest:
+  $ref: './schemas/extensions.yaml#/ExtensionResourceUpdateRequest'
 
 # Event schemas
 Event:

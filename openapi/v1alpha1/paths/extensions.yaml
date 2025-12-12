@@ -342,6 +342,144 @@ erds-slug-version:
       - bearerAuth: []
       - oauth2ClientCredentials: ['governor:extensions:delete']
 
+extension-resources:
+  post:
+    summary: Create an extension resource
+    operationId: createExtensionResource
+    tags:
+      - Extensions
+    description: |
+      Creates a new extension resource. The extension, kind, and version must be specified in the request body.
+      The kind should use the singular slug form of the extension resource definition.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/ExtensionResourceCreateRequest'
+          example:
+            extension: "my-extension"
+            kind: "database"
+            version: "v1"
+            metadata:
+              owner_ref:
+                kind: "group"
+                id: "550e8400-e29b-41d4-a716-446655440000"
+            spec:
+              name: "production-db"
+              host: "db.example.com"
+              port: 5432
+    responses:
+      '201':
+        description: Extension resource created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ExtensionResource'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '501':
+        description: Not Implemented
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
+                  example: "user-scoped extension resources are not yet supported with this API"
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:extensionresources:create']
+
+extension-resources-id:
+  patch:
+    summary: Update an extension resource
+    operationId: updateExtensionResource
+    tags:
+      - Extensions
+    description: |
+      Updates an existing extension resource. The extension, kind, and version must be specified in the request body.
+      The kind should use the singular slug form of the extension resource definition.
+      
+      Optionally, you can provide metadata.resource_version for optimistic concurrency control to ensure the resource
+      hasn't been modified since it was last read. You can also update status.messages to track resource state changes.
+    parameters:
+      - name: resource-id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Resource ID
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/ExtensionResourceUpdateRequest'
+          example:
+            extension: "my-extension"
+            kind: "database"
+            version: "v1"
+            metadata:
+              resource_version: 1234567890
+            spec:
+              name: "production-db"
+              host: "db.example.com"
+              port: 5432
+            status:
+              messages:
+                - '{"message": "Resource updated", "status": "true", "type": "Accepted", "timestamp": "2024-01-01T00:00:00Z"}'
+    responses:
+      '202':
+        description: Extension resource update accepted
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ExtensionResource'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '409':
+        description: Conflict
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
+                  example: "resource version conflict"
+      '501':
+        description: Not Implemented
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
+                  example: "user-scoped extension resources are not yet supported with this API"
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+    security:
+      - bearerAuth: []
+      - oauth2ClientCredentials: ['governor:extensionresources:update']
+
 resources:
   get:
     summary: List system-wide extension resources
@@ -379,52 +517,6 @@ resources:
     security:
       - bearerAuth: []
       - oauth2ClientCredentials: ['governor:extensionresources:read']
-
-  post:
-    summary: Create a system-wide extension resource
-    operationId: createSystemExtensionResource
-    tags:
-      - Extensions
-    parameters:
-      - name: ex-slug
-        in: path
-        required: true
-        schema:
-          type: string
-        description: Extension slug
-      - name: erd-slug-plural
-        in: path
-        required: true
-        schema:
-          type: string
-        description: Extension Resource Definition plural slug
-      - name: erd-version
-        in: path
-        required: true
-        schema:
-          type: string
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            $ref: '../components/schemas.yaml#/ExtensionResource'
-    responses:
-      '201':
-        description: Extension resource created
-      '400':
-        $ref: '../components/responses.yaml#/BadRequest'
-      '401':
-        $ref: '../components/responses.yaml#/Unauthorized'
-      '403':
-        $ref: '../components/responses.yaml#/Forbidden'
-      '404':
-        $ref: '../components/responses.yaml#/NotFound'
-      '500':
-        $ref: '../components/responses.yaml#/InternalError'
-    security:
-      - bearerAuth: []
-      - oauth2ClientCredentials: ['governor:extensionresources:create']
 
 resources-id:
   get:
@@ -467,48 +559,6 @@ resources-id:
     security:
       - bearerAuth: []
       - oauth2ClientCredentials: ['governor:extensionresources:read']
-
-  patch:
-    summary: Update a system-wide extension resource by ID
-    operationId: updateSystemExtensionResource
-    tags:
-      - Extensions
-    parameters:
-      - name: ex-slug
-        in: path
-        required: true
-        schema:
-          type: string
-        description: Extension slug
-      - name: erd-slug-plural
-        in: path
-        required: true
-        schema:
-          type: string
-        description: Extension resource definition slug (plural form)
-      - name: erd-version
-        in: path
-        required: true
-        schema:
-          type: string
-        description: Extension resource definition version
-      - name: resource-id
-        in: path
-        required: true
-        schema:
-          type: string
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            $ref: '../components/schemas.yaml#/ExtensionResource'
-    responses:
-      '200':
-        description: Successful response
-    security:
-      - bearerAuth: []
-      - oauth2ClientCredentials: ['governor:extensionresources:write']
 
   delete:
     summary: Delete a system-wide extension resource by ID

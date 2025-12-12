@@ -673,21 +673,33 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		r.deleteExtensionResourceDefinition,
 	)
 
-	// system-wise extension resources
+	// extension resources
 	rg.POST(
-		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version",
-		r.AuditMW.AuditWithType("CreateSystemExtensionResource"),
+		"/extension-resources",
+		r.AuditMW.AuditWithType("CreateExtensionResource"),
 		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
 		r.mwUserAuthRequired(AuthRoleUser),
-		r.mwSystemExtensionResourceGroupAuth,
+		mwFindERDWithRequestBody(r.DB),
+		mwExtensionResourceGroupAuth(extResourceGroupAuthOwnerRef, r.DB),
 		r.mwExtensionResourcesEnabledCheck,
-		r.createSystemExtensionResource,
+		r.createExtensionResource,
+	)
+
+	rg.PATCH(
+		"/extension-resources/:resource-id",
+		r.AuditMW.AuditWithType("UpdateExtensionResource"),
+		r.AuthMW.AuthRequired(updateScopesWithOpenID("governor:extensionresources")),
+		r.mwUserAuthRequired(AuthRoleUser),
+		mwFindERDWithRequestBody(r.DB),
+		mwExtensionResourceGroupAuth(extResourceGroupAuthDBFetch, r.DB),
+		r.mwExtensionResourcesEnabledCheck,
+		r.updateExtensionResource,
 	)
 
 	rg.GET(
 		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version",
 		r.AuditMW.AuditWithType("ListSystemExtensionResources"),
-		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
+		r.AuthMW.AuthRequired(readScopesWithOpenID("governor:extensionresources")),
 		r.mwUserAuthRequired(AuthRoleUser),
 		r.listSystemExtensionResources,
 	)
@@ -700,22 +712,13 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		r.getSystemExtensionResource,
 	)
 
-	rg.PATCH(
-		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version/:resource-id",
-		r.AuditMW.AuditWithType("UpdateSystemExtensionResource"),
-		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
-		r.mwUserAuthRequired(AuthRoleUser),
-		r.mwSystemExtensionResourceGroupAuth,
-		r.mwExtensionResourcesEnabledCheck,
-		r.updateSystemExtensionResource,
-	)
-
 	rg.DELETE(
 		"/extension-resources/:ex-slug/:erd-slug-plural/:erd-version/:resource-id",
 		r.AuditMW.AuditWithType("DeleteSystemExtensionResource"),
 		r.AuthMW.AuthRequired(createScopesWithOpenID("governor:extensionresources")),
 		r.mwUserAuthRequired(AuthRoleUser),
-		r.mwSystemExtensionResourceGroupAuth,
+		mwFindERDWithURIParams(r.DB),
+		mwExtensionResourceGroupAuth(extResourceGroupAuthDBFetch, r.DB),
 		r.mwExtensionResourcesEnabledCheck,
 		r.deleteSystemExtensionResource,
 	)

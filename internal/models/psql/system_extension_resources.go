@@ -25,12 +25,15 @@ import (
 
 // SystemExtensionResource is an object representing the database table.
 type SystemExtensionResource struct {
-	ID                            string     `boil:"id" json:"id" toml:"id" yaml:"id"`
-	Resource                      types.JSON `boil:"resource" json:"resource" toml:"resource" yaml:"resource"`
-	CreatedAt                     time.Time  `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
-	UpdatedAt                     time.Time  `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
-	DeletedAt                     null.Time  `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
-	ExtensionResourceDefinitionID string     `boil:"extension_resource_definition_id" json:"extension_resource_definition_id" toml:"extension_resource_definition_id" yaml:"extension_resource_definition_id"`
+	ID                            string            `boil:"id" json:"id" toml:"id" yaml:"id"`
+	Resource                      types.JSON        `boil:"resource" json:"resource" toml:"resource" yaml:"resource"`
+	CreatedAt                     time.Time         `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
+	UpdatedAt                     time.Time         `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
+	DeletedAt                     null.Time         `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
+	ExtensionResourceDefinitionID string            `boil:"extension_resource_definition_id" json:"extension_resource_definition_id" toml:"extension_resource_definition_id" yaml:"extension_resource_definition_id"`
+	OwnerID                       null.String       `boil:"owner_id" json:"owner_id,omitempty" toml:"owner_id" yaml:"owner_id,omitempty"`
+	ResourceVersion               int64             `boil:"resource_version" json:"resource_version" toml:"resource_version" yaml:"resource_version"`
+	Messages                      types.StringArray `boil:"messages" json:"messages" toml:"messages" yaml:"messages"`
 
 	R *systemExtensionResourceR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L systemExtensionResourceL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -43,6 +46,9 @@ var SystemExtensionResourceColumns = struct {
 	UpdatedAt                     string
 	DeletedAt                     string
 	ExtensionResourceDefinitionID string
+	OwnerID                       string
+	ResourceVersion               string
+	Messages                      string
 }{
 	ID:                            "id",
 	Resource:                      "resource",
@@ -50,6 +56,9 @@ var SystemExtensionResourceColumns = struct {
 	UpdatedAt:                     "updated_at",
 	DeletedAt:                     "deleted_at",
 	ExtensionResourceDefinitionID: "extension_resource_definition_id",
+	OwnerID:                       "owner_id",
+	ResourceVersion:               "resource_version",
+	Messages:                      "messages",
 }
 
 var SystemExtensionResourceTableColumns = struct {
@@ -59,6 +68,9 @@ var SystemExtensionResourceTableColumns = struct {
 	UpdatedAt                     string
 	DeletedAt                     string
 	ExtensionResourceDefinitionID string
+	OwnerID                       string
+	ResourceVersion               string
+	Messages                      string
 }{
 	ID:                            "system_extension_resources.id",
 	Resource:                      "system_extension_resources.resource",
@@ -66,9 +78,35 @@ var SystemExtensionResourceTableColumns = struct {
 	UpdatedAt:                     "system_extension_resources.updated_at",
 	DeletedAt:                     "system_extension_resources.deleted_at",
 	ExtensionResourceDefinitionID: "system_extension_resources.extension_resource_definition_id",
+	OwnerID:                       "system_extension_resources.owner_id",
+	ResourceVersion:               "system_extension_resources.resource_version",
+	Messages:                      "system_extension_resources.messages",
 }
 
 // Generated where
+
+type whereHelperint64 struct{ field string }
+
+func (w whereHelperint64) EQ(x int64) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.EQ, x) }
+func (w whereHelperint64) NEQ(x int64) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.NEQ, x) }
+func (w whereHelperint64) LT(x int64) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.LT, x) }
+func (w whereHelperint64) LTE(x int64) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.LTE, x) }
+func (w whereHelperint64) GT(x int64) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.GT, x) }
+func (w whereHelperint64) GTE(x int64) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.GTE, x) }
+func (w whereHelperint64) IN(slice []int64) qm.QueryMod {
+	values := make([]interface{}, 0, len(slice))
+	for _, value := range slice {
+		values = append(values, value)
+	}
+	return qm.WhereIn(fmt.Sprintf("%s IN ?", w.field), values...)
+}
+func (w whereHelperint64) NIN(slice []int64) qm.QueryMod {
+	values := make([]interface{}, 0, len(slice))
+	for _, value := range slice {
+		values = append(values, value)
+	}
+	return qm.WhereNotIn(fmt.Sprintf("%s NOT IN ?", w.field), values...)
+}
 
 var SystemExtensionResourceWhere = struct {
 	ID                            whereHelperstring
@@ -77,6 +115,9 @@ var SystemExtensionResourceWhere = struct {
 	UpdatedAt                     whereHelpertime_Time
 	DeletedAt                     whereHelpernull_Time
 	ExtensionResourceDefinitionID whereHelperstring
+	OwnerID                       whereHelpernull_String
+	ResourceVersion               whereHelperint64
+	Messages                      whereHelpertypes_StringArray
 }{
 	ID:                            whereHelperstring{field: "\"system_extension_resources\".\"id\""},
 	Resource:                      whereHelpertypes_JSON{field: "\"system_extension_resources\".\"resource\""},
@@ -84,18 +125,24 @@ var SystemExtensionResourceWhere = struct {
 	UpdatedAt:                     whereHelpertime_Time{field: "\"system_extension_resources\".\"updated_at\""},
 	DeletedAt:                     whereHelpernull_Time{field: "\"system_extension_resources\".\"deleted_at\""},
 	ExtensionResourceDefinitionID: whereHelperstring{field: "\"system_extension_resources\".\"extension_resource_definition_id\""},
+	OwnerID:                       whereHelpernull_String{field: "\"system_extension_resources\".\"owner_id\""},
+	ResourceVersion:               whereHelperint64{field: "\"system_extension_resources\".\"resource_version\""},
+	Messages:                      whereHelpertypes_StringArray{field: "\"system_extension_resources\".\"messages\""},
 }
 
 // SystemExtensionResourceRels is where relationship names are stored.
 var SystemExtensionResourceRels = struct {
 	ExtensionResourceDefinition string
+	Owner                       string
 }{
 	ExtensionResourceDefinition: "ExtensionResourceDefinition",
+	Owner:                       "Owner",
 }
 
 // systemExtensionResourceR is where relationships are stored.
 type systemExtensionResourceR struct {
 	ExtensionResourceDefinition *ExtensionResourceDefinition `boil:"ExtensionResourceDefinition" json:"ExtensionResourceDefinition" toml:"ExtensionResourceDefinition" yaml:"ExtensionResourceDefinition"`
+	Owner                       *Group                       `boil:"Owner" json:"Owner" toml:"Owner" yaml:"Owner"`
 }
 
 // NewStruct creates a new relationship struct
@@ -119,13 +166,29 @@ func (r *systemExtensionResourceR) GetExtensionResourceDefinition() *ExtensionRe
 	return r.ExtensionResourceDefinition
 }
 
+func (o *SystemExtensionResource) GetOwner() *Group {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetOwner()
+}
+
+func (r *systemExtensionResourceR) GetOwner() *Group {
+	if r == nil {
+		return nil
+	}
+
+	return r.Owner
+}
+
 // systemExtensionResourceL is where Load methods for each relationship are stored.
 type systemExtensionResourceL struct{}
 
 var (
-	systemExtensionResourceAllColumns            = []string{"id", "resource", "created_at", "updated_at", "deleted_at", "extension_resource_definition_id"}
+	systemExtensionResourceAllColumns            = []string{"id", "resource", "created_at", "updated_at", "deleted_at", "extension_resource_definition_id", "owner_id", "resource_version", "messages"}
 	systemExtensionResourceColumnsWithoutDefault = []string{"resource", "extension_resource_definition_id"}
-	systemExtensionResourceColumnsWithDefault    = []string{"id", "created_at", "updated_at", "deleted_at"}
+	systemExtensionResourceColumnsWithDefault    = []string{"id", "created_at", "updated_at", "deleted_at", "owner_id", "resource_version", "messages"}
 	systemExtensionResourcePrimaryKeyColumns     = []string{"id"}
 	systemExtensionResourceGeneratedColumns      = []string{}
 )
@@ -446,6 +509,17 @@ func (o *SystemExtensionResource) ExtensionResourceDefinition(mods ...qm.QueryMo
 	return ExtensionResourceDefinitions(queryMods...)
 }
 
+// Owner pointed to by the foreign key.
+func (o *SystemExtensionResource) Owner(mods ...qm.QueryMod) groupQuery {
+	queryMods := []qm.QueryMod{
+		qm.Where("\"id\" = ?", o.OwnerID),
+	}
+
+	queryMods = append(queryMods, mods...)
+
+	return Groups(queryMods...)
+}
+
 // LoadExtensionResourceDefinition allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for an N-1 relationship.
 func (systemExtensionResourceL) LoadExtensionResourceDefinition(ctx context.Context, e boil.ContextExecutor, singular bool, maybeSystemExtensionResource interface{}, mods queries.Applicator) error {
@@ -567,6 +641,131 @@ func (systemExtensionResourceL) LoadExtensionResourceDefinition(ctx context.Cont
 	return nil
 }
 
+// LoadOwner allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for an N-1 relationship.
+func (systemExtensionResourceL) LoadOwner(ctx context.Context, e boil.ContextExecutor, singular bool, maybeSystemExtensionResource interface{}, mods queries.Applicator) error {
+	var slice []*SystemExtensionResource
+	var object *SystemExtensionResource
+
+	if singular {
+		var ok bool
+		object, ok = maybeSystemExtensionResource.(*SystemExtensionResource)
+		if !ok {
+			object = new(SystemExtensionResource)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeSystemExtensionResource)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeSystemExtensionResource))
+			}
+		}
+	} else {
+		s, ok := maybeSystemExtensionResource.(*[]*SystemExtensionResource)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeSystemExtensionResource)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeSystemExtensionResource))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &systemExtensionResourceR{}
+		}
+		if !queries.IsNil(object.OwnerID) {
+			args[object.OwnerID] = struct{}{}
+		}
+
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &systemExtensionResourceR{}
+			}
+
+			if !queries.IsNil(obj.OwnerID) {
+				args[obj.OwnerID] = struct{}{}
+			}
+
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`groups`),
+		qm.WhereIn(`groups.id in ?`, argsSlice...),
+		qmhelper.WhereIsNull(`groups.deleted_at`),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load Group")
+	}
+
+	var resultSlice []*Group
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice Group")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results of eager load for groups")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for groups")
+	}
+
+	if len(groupAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(resultSlice) == 0 {
+		return nil
+	}
+
+	if singular {
+		foreign := resultSlice[0]
+		object.R.Owner = foreign
+		if foreign.R == nil {
+			foreign.R = &groupR{}
+		}
+		foreign.R.OwnerSystemExtensionResources = append(foreign.R.OwnerSystemExtensionResources, object)
+		return nil
+	}
+
+	for _, local := range slice {
+		for _, foreign := range resultSlice {
+			if queries.Equal(local.OwnerID, foreign.ID) {
+				local.R.Owner = foreign
+				if foreign.R == nil {
+					foreign.R = &groupR{}
+				}
+				foreign.R.OwnerSystemExtensionResources = append(foreign.R.OwnerSystemExtensionResources, local)
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
 // SetExtensionResourceDefinition of the systemExtensionResource to the related item.
 // Sets o.R.ExtensionResourceDefinition to related.
 // Adds o to related.R.SystemExtensionResources.
@@ -611,6 +810,86 @@ func (o *SystemExtensionResource) SetExtensionResourceDefinition(ctx context.Con
 		related.R.SystemExtensionResources = append(related.R.SystemExtensionResources, o)
 	}
 
+	return nil
+}
+
+// SetOwner of the systemExtensionResource to the related item.
+// Sets o.R.Owner to related.
+// Adds o to related.R.OwnerSystemExtensionResources.
+func (o *SystemExtensionResource) SetOwner(ctx context.Context, exec boil.ContextExecutor, insert bool, related *Group) error {
+	var err error
+	if insert {
+		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+			return errors.Wrap(err, "failed to insert into foreign table")
+		}
+	}
+
+	updateQuery := fmt.Sprintf(
+		"UPDATE \"system_extension_resources\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, []string{"owner_id"}),
+		strmangle.WhereClause("\"", "\"", 2, systemExtensionResourcePrimaryKeyColumns),
+	)
+	values := []interface{}{related.ID, o.ID}
+
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, updateQuery)
+		fmt.Fprintln(writer, values)
+	}
+	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	queries.Assign(&o.OwnerID, related.ID)
+	if o.R == nil {
+		o.R = &systemExtensionResourceR{
+			Owner: related,
+		}
+	} else {
+		o.R.Owner = related
+	}
+
+	if related.R == nil {
+		related.R = &groupR{
+			OwnerSystemExtensionResources: SystemExtensionResourceSlice{o},
+		}
+	} else {
+		related.R.OwnerSystemExtensionResources = append(related.R.OwnerSystemExtensionResources, o)
+	}
+
+	return nil
+}
+
+// RemoveOwner relationship.
+// Sets o.R.Owner to nil.
+// Removes o from all passed in related items' relationships struct.
+func (o *SystemExtensionResource) RemoveOwner(ctx context.Context, exec boil.ContextExecutor, related *Group) error {
+	var err error
+
+	queries.SetScanner(&o.OwnerID, nil)
+	if _, err = o.Update(ctx, exec, boil.Whitelist("owner_id")); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	if o.R != nil {
+		o.R.Owner = nil
+	}
+	if related == nil || related.R == nil {
+		return nil
+	}
+
+	for i, ri := range related.R.OwnerSystemExtensionResources {
+		if queries.Equal(o.OwnerID, ri.OwnerID) {
+			continue
+		}
+
+		ln := len(related.R.OwnerSystemExtensionResources)
+		if ln > 1 && i < ln-1 {
+			related.R.OwnerSystemExtensionResources[i] = related.R.OwnerSystemExtensionResources[ln-1]
+		}
+		related.R.OwnerSystemExtensionResources = related.R.OwnerSystemExtensionResources[:ln-1]
+		break
+	}
 	return nil
 }
 
