@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -204,12 +205,26 @@ func extResourceGroupAuthOwnerRef(
 	groupMembershipSet map[string]struct{},
 	exec boil.ContextExecutor,
 ) error {
-	requestBody := io.NopCloser(c.Request.Body)
+	_, span := tracer.Start(c.Request.Context(), "extResourceGroupAuthOwnerRef")
+	defer span.End()
+
 	res := getCtxExtensionResource(c)
 
 	if res == nil {
+		// Read the body
+		bodyBytes, err := io.ReadAll(c.Request.Body)
+		if err != nil {
+			span.SetStatus(codes.Error, err.Error())
+			sendError(c, http.StatusBadRequest, err.Error())
+
+			return errExtGroupAuthValidationError
+		}
+
+		// Restore the body for subsequent handlers
+		c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+
 		res = &ExtensionResource{}
-		if err := json.NewDecoder(requestBody).Decode(res); err != nil {
+		if err := json.Unmarshal(bodyBytes, res); err != nil {
 			return fmt.Errorf("%w: %w", errExtGroupAuthValidationError, err)
 		}
 
