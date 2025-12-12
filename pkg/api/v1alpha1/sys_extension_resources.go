@@ -39,7 +39,7 @@ func createSystemExtensionResource(
 	ext *models.Extension, erd *models.ExtensionResourceDefinition,
 	requestBody []byte, ownerID string,
 ) *SystemExtensionResource {
-	ctx, span := tracer.Start(c.Request.Context(), "createSystemExtensionResourceCore")
+	ctx, span := tracer.Start(c.Request.Context(), "createSystemExtensionResource")
 	defer span.End()
 
 	// schema validation
@@ -321,7 +321,7 @@ func updateSystemExtensionResource(
 	ext *models.Extension, erd *models.ExtensionResourceDefinition,
 	resourceID string, requestBody []byte, statusMsgs []string, resourceVersion *int64,
 ) *SystemExtensionResource {
-	ctx, span := tracer.Start(c.Request.Context(), "updateSystemExtensionResourceCore")
+	ctx, span := tracer.Start(c.Request.Context(), "updateSystemExtensionResource")
 	defer span.End()
 
 	qms := []qm.QueryMod{
