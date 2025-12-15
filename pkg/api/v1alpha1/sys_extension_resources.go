@@ -25,20 +25,13 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-// SystemExtensionResource is the system extension resource response
-type SystemExtensionResource struct {
-	*models.SystemExtensionResource
-	ERD     string `json:"extension_resource_definition"`
-	Version string `json:"version"`
-}
-
 // createSystemExtensionResource creates a system extension resource
 func createSystemExtensionResource(
 	c *gin.Context,
 	db *sqlx.DB, eb *eventbus.Client,
 	ext *models.Extension, erd *models.ExtensionResourceDefinition,
 	requestBody []byte, ownerID string,
-) *SystemExtensionResource {
+) {
 	ctx, span := tracer.Start(c.Request.Context(), "createSystemExtensionResource")
 	defer span.End()
 
@@ -50,7 +43,7 @@ func createSystemExtensionResource(
 		span.RecordError(err)
 		sendError(c, http.StatusBadRequest, fmt.Sprintf("validation error: %s", err.Error()))
 
-		return nil
+		return
 	}
 
 	span.SetAttributes(
@@ -70,7 +63,7 @@ func createSystemExtensionResource(
 		span.RecordError(err)
 		sendError(c, http.StatusBadRequest, "error marshalling initial status message: "+err.Error())
 
-		return nil
+		return
 	}
 
 	// insert
@@ -80,7 +73,7 @@ func createSystemExtensionResource(
 		span.RecordError(err)
 		sendError(c, http.StatusBadRequest, "error starting extension resource create transaction: "+err.Error())
 
-		return nil
+		return
 	}
 
 	er := &models.SystemExtensionResource{
@@ -103,7 +96,7 @@ func createSystemExtensionResource(
 		span.RecordError(err)
 		sendError(c, http.StatusBadRequest, msg)
 
-		return nil
+		return
 	}
 
 	event, err := dbtools.AuditSystemExtensionResourceCreated(
@@ -119,7 +112,7 @@ func createSystemExtensionResource(
 		span.RecordError(err)
 		sendError(c, http.StatusBadRequest, msg)
 
-		return nil
+		return
 	}
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
@@ -132,7 +125,7 @@ func createSystemExtensionResource(
 		span.RecordError(err)
 		sendError(c, http.StatusBadRequest, msg)
 
-		return nil
+		return
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -145,7 +138,7 @@ func createSystemExtensionResource(
 		span.RecordError(err)
 		sendError(c, http.StatusBadRequest, msg)
 
-		return nil
+		return
 	}
 
 	err = eb.Publish(
@@ -174,14 +167,10 @@ func createSystemExtensionResource(
 			),
 		)
 
-		return nil
+		return
 	}
 
-	return &SystemExtensionResource{
-		SystemExtensionResource: er,
-		ERD:                     erd.SlugSingular,
-		Version:                 erd.Version,
-	}
+	c.JSON(http.StatusCreated, mkSystemExtensionResource(ext, erd, er))
 }
 
 // listSystemExtensionResource lists system extension resources for an ERD
@@ -191,7 +180,7 @@ func (r *Router) listSystemExtensionResources(c *gin.Context) {
 	erdVersion := c.Param("erd-version")
 
 	// find ERD
-	_, erd, err := findERDForExtensionResource(
+	ext, erd, err := findERDForExtensionResource(
 		c, r.DB,
 		extensionSlug, erdSlugPlural, erdVersion,
 	)
@@ -249,7 +238,12 @@ func (r *Router) listSystemExtensionResources(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, ers)
+	resp := make([]*ExtensionResource, 0, len(ers))
+	for _, er := range ers {
+		resp = append(resp, mkSystemExtensionResource(ext, erd, er))
+	}
+
+	c.JSON(http.StatusOK, resp)
 }
 
 // getSystemExtensionResource fetches a system extension resources
@@ -261,7 +255,7 @@ func (r *Router) getSystemExtensionResource(c *gin.Context) {
 	_, deleted := c.GetQuery("deleted")
 
 	// find ERD
-	_, erd, err := findERDForExtensionResource(
+	ext, erd, err := findERDForExtensionResource(
 		c, r.DB,
 		extensionSlug, erdSlugPlural, erdVersion,
 	)
@@ -311,7 +305,7 @@ func (r *Router) getSystemExtensionResource(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, er)
+	c.JSON(http.StatusOK, mkSystemExtensionResource(ext, erd, er))
 }
 
 // updateSystemExtensionResource updates a system extension resource
@@ -320,7 +314,7 @@ func updateSystemExtensionResource(
 	db *sqlx.DB, eb *eventbus.Client,
 	ext *models.Extension, erd *models.ExtensionResourceDefinition,
 	resourceID string, requestBody []byte, statusMsgs []string, resourceVersion *int64,
-) *SystemExtensionResource {
+) {
 	ctx, span := tracer.Start(c.Request.Context(), "updateSystemExtensionResource")
 	defer span.End()
 
@@ -336,7 +330,7 @@ func updateSystemExtensionResource(
 			span.RecordError(err)
 			sendError(c, http.StatusNotFound, "resource not found: "+err.Error())
 
-			return nil
+			return
 		}
 
 		span.SetStatus(codes.Error, "error finding extension resource")
@@ -346,7 +340,7 @@ func updateSystemExtensionResource(
 			"error finding extension resources: "+err.Error(),
 		)
 
-		return nil
+		return
 	}
 
 	// schema validator
@@ -357,7 +351,7 @@ func updateSystemExtensionResource(
 		span.RecordError(err)
 		sendError(c, http.StatusBadRequest, fmt.Sprintf("validation error: %s", err.Error()))
 
-		return nil
+		return
 	}
 
 	// optimistic concurrency control with resource versioning
@@ -390,7 +384,7 @@ func updateSystemExtensionResource(
 		span.RecordError(err)
 		sendError(c, http.StatusBadRequest, "error starting extension resource update transaction: "+err.Error())
 
-		return nil
+		return
 	}
 
 	const update = `
@@ -421,7 +415,7 @@ func updateSystemExtensionResource(
 		span.RecordError(err)
 		sendError(c, http.StatusBadRequest, msg)
 
-		return nil
+		return
 	}
 
 	if !rows.Next() {
@@ -435,7 +429,7 @@ func updateSystemExtensionResource(
 		span.SetStatus(codes.Error, msg)
 		sendError(c, http.StatusConflict, msg)
 
-		return nil
+		return
 	}
 
 	var updatedAt time.Time
@@ -451,7 +445,7 @@ func updateSystemExtensionResource(
 		span.RecordError(err)
 		sendError(c, http.StatusInternalServerError, msg)
 
-		return nil
+		return
 	}
 
 	er.UpdatedAt = updatedAt
@@ -471,7 +465,7 @@ func updateSystemExtensionResource(
 		span.RecordError(err)
 		sendError(c, http.StatusBadRequest, msg)
 
-		return nil
+		return
 	}
 
 	if err := updateContextWithAuditEventData(c, event); err != nil {
@@ -484,7 +478,7 @@ func updateSystemExtensionResource(
 		span.RecordError(err)
 		sendError(c, http.StatusBadRequest, msg)
 
-		return nil
+		return
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -497,7 +491,7 @@ func updateSystemExtensionResource(
 		span.RecordError(err)
 		sendError(c, http.StatusBadRequest, msg)
 
-		return nil
+		return
 	}
 
 	err = eb.Publish(
@@ -526,14 +520,10 @@ func updateSystemExtensionResource(
 			),
 		)
 
-		return nil
+		return
 	}
 
-	return &SystemExtensionResource{
-		SystemExtensionResource: er,
-		ERD:                     erd.SlugSingular,
-		Version:                 erd.Version,
-	}
+	c.JSON(http.StatusAccepted, mkSystemExtensionResource(ext, erd, er))
 }
 
 // deleteSystemExtensionResource deletes a system extension resources
@@ -676,13 +666,7 @@ func (r *Router) deleteSystemExtensionResource(c *gin.Context) {
 		return
 	}
 
-	resp := &SystemExtensionResource{
-		SystemExtensionResource: er,
-		ERD:                     erd.SlugSingular,
-		Version:                 erd.Version,
-	}
-
-	c.JSON(http.StatusAccepted, resp)
+	c.JSON(http.StatusAccepted, nil)
 }
 
 func validateSystemExtensionResource(
@@ -713,4 +697,40 @@ func validateSystemExtensionResource(
 	}
 
 	return nil
+}
+
+func mkSystemExtensionResource(
+	ext *models.Extension, erd *models.ExtensionResourceDefinition,
+	er *models.SystemExtensionResource,
+) *ExtensionResource {
+	res := &ExtensionResource{
+		Extension: ext.Slug,
+		Kind:      erd.SlugSingular,
+		Version:   erd.Version,
+		Spec:      json.RawMessage(er.Resource),
+		Metadata: ExtensionResourceMetadata{
+			CreatedAt:       er.CreatedAt.Format(time.RFC3339),
+			ID:              er.ID,
+			ResourceVersion: er.ResourceVersion,
+		},
+		Status: ExtensionResourceStatus{
+			UpdatedAt: er.UpdatedAt.Format(time.RFC3339),
+		},
+	}
+
+	if er.OwnerID.Valid && er.OwnerID.String != "" {
+		res.Metadata.OwnerRef = ExtensionResourceMetadataOwnerRef{
+			Kind: ExtensionResourceOwnerKindGroup,
+			ID:   er.OwnerID.String,
+		}
+	}
+
+	if len(er.Messages) > 0 {
+		res.Status.Messages = make([]json.RawMessage, len(er.Messages))
+		for i, msg := range er.Messages {
+			res.Status.Messages[i] = json.RawMessage(msg)
+		}
+	}
+
+	return res
 }

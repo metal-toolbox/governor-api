@@ -105,33 +105,7 @@ func (r *Router) createExtensionResource(c *gin.Context) {
 		}
 	}
 
-	res := createSystemExtensionResource(c, r.DB, r.EventBus, extension, erd, req.Spec, ownerID)
-	if res == nil {
-		return
-	}
-
-	resp := &ExtensionResource{
-		Extension: req.Extension,
-		Kind:      req.Kind,
-		Version:   req.Version,
-		Spec:      req.Spec,
-		Metadata: ExtensionResourceMetadata{
-			OwnerRef:        req.Metadata.OwnerRef,
-			CreatedAt:       res.CreatedAt.Format(time.RFC3339),
-			ID:              res.ID,
-			ResourceVersion: res.ResourceVersion,
-		},
-		Status: ExtensionResourceStatus{
-			UpdatedAt: res.UpdatedAt.Format(time.RFC3339),
-		},
-	}
-
-	resp.Status.Messages = make([]json.RawMessage, len(res.Messages))
-	for i, msg := range res.Messages {
-		resp.Status.Messages[i] = json.RawMessage(msg)
-	}
-
-	c.JSON(http.StatusCreated, resp)
+	createSystemExtensionResource(c, r.DB, r.EventBus, extension, erd, req.Spec, ownerID)
 }
 
 func (r *Router) updateExtensionResource(c *gin.Context) {
@@ -194,34 +168,5 @@ func (r *Router) updateExtensionResource(c *gin.Context) {
 		r.Logger.Debug("current resource version", zap.Int64("resource_version", *rv))
 	}
 
-	res := updateSystemExtensionResource(c, r.DB, r.EventBus, extension, erd, rid, req.Spec, msgs, rv)
-	if res == nil {
-		return
-	}
-
-	resp := &ExtensionResource{}
-
-	resp.Extension = req.Extension
-	resp.Kind = req.Kind
-	resp.Version = req.Version
-	resp.Metadata.CreatedAt = res.CreatedAt.Format(time.RFC3339)
-	resp.Metadata.ID = res.ID
-	resp.Metadata.ResourceVersion = res.ResourceVersion
-
-	if res.OwnerID.Valid && res.OwnerID.String != "" {
-		resp.Metadata.OwnerRef = ExtensionResourceMetadataOwnerRef{
-			Kind: ExtensionResourceOwnerKindGroup,
-			ID:   res.OwnerID.String,
-		}
-	}
-
-	resp.Spec = json.RawMessage(res.Resource)
-	resp.Status.UpdatedAt = res.UpdatedAt.Format(time.RFC3339)
-
-	resp.Status.Messages = make([]json.RawMessage, len(res.Messages))
-	for i, msg := range res.Messages {
-		resp.Status.Messages[i] = json.RawMessage(msg)
-	}
-
-	c.JSON(http.StatusAccepted, resp)
+	updateSystemExtensionResource(c, r.DB, r.EventBus, extension, erd, rid, req.Spec, msgs, rv)
 }

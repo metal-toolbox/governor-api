@@ -351,6 +351,10 @@ extension-resources:
     description: |
       Creates a new extension resource. The extension, kind, and version must be specified in the request body.
       The kind should use the singular slug form of the extension resource definition.
+      
+      **Owner Reference:**
+      - For system-scoped resources, you can optionally specify a group owner via metadata.owner_ref.kind (must be "group") and metadata.owner_ref.id (group UUID)
+      - User-scoped resource ownership is not yet supported
     requestBody:
       required: true
       content:
@@ -377,7 +381,17 @@ extension-resources:
             schema:
               $ref: '../components/schemas.yaml#/ExtensionResource'
       '400':
-        $ref: '../components/responses.yaml#/BadRequest'
+        description: Bad Request (invalid owner_ref.kind, validation error, or resource constraint violation)
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
+                  examples:
+                    - "owner_ref.kind must be 'group' with system extension resources"
+                    - "validation error: resource constraint violation"
       '401':
         $ref: '../components/responses.yaml#/Unauthorized'
       '403':
@@ -410,8 +424,12 @@ extension-resources-id:
       Updates an existing extension resource. The extension, kind, and version must be specified in the request body.
       The kind should use the singular slug form of the extension resource definition.
       
+      **Optimistic Concurrency Control:**
       Optionally, you can provide metadata.resource_version for optimistic concurrency control to ensure the resource
-      hasn't been modified since it was last read. You can also update status.messages to track resource state changes.
+      hasn't been modified since it was last read.
+      
+      **Status Updates:**
+      You can also update status.messages to track resource state changes.
     parameters:
       - name: resource-id
         in: path
@@ -431,6 +449,9 @@ extension-resources-id:
             kind: "database"
             version: "v1"
             metadata:
+              owner_ref:
+                kind: "group"
+                id: "550e8400-e29b-41d4-a716-446655440000"
               resource_version: 1234567890
             spec:
               name: "production-db"
@@ -447,7 +468,17 @@ extension-resources-id:
             schema:
               $ref: '../components/schemas.yaml#/ExtensionResource'
       '400':
-        $ref: '../components/responses.yaml#/BadRequest'
+        description: Bad Request (invalid owner_ref.kind, validation error, or resource constraint violation)
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
+                  examples:
+                    - "owner_ref.kind must be 'group' with system extension resources"
+                    - "validation error: resource constraint violation"
       '401':
         $ref: '../components/responses.yaml#/Unauthorized'
       '403':
@@ -591,8 +622,8 @@ resources-id:
           type: string
         description: Resource ID
     responses:
-      '204':
-        description: No content
+      '202':
+        description: Resource deleted
     security:
       - bearerAuth: []
       - oauth2ClientCredentials: ['governor:extensionresources:delete']

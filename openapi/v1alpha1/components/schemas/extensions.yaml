@@ -123,10 +123,10 @@ ExtensionResourceMetadataOwnerRef:
       enum:
         - group
         - user
-      description: Type of owner (group or user)
+      description: Type of owner. For system-scoped resources, only 'group' is supported.
     id:
       type: string
-      description: ID of the owner
+      description: ID of the owner (group ID or user ID)
   required:
     - kind
     - id
@@ -136,8 +136,7 @@ ExtensionResourceMetadataCreateRequest:
   properties:
     owner_ref:
       $ref: '#/ExtensionResourceMetadataOwnerRef'
-  required:
-    - owner_ref
+  description: Metadata for creating an extension resource. The owner_ref field is optional.
 
 ExtensionResourceMetadataUpdateRequest:
   type: object
@@ -147,7 +146,7 @@ ExtensionResourceMetadataUpdateRequest:
     resource_version:
       type: integer
       format: int64
-      description: Version number for optimistic concurrency control
+      description: Version number for optimistic concurrency control. Required for updates to ensure the resource hasn't been modified.
 
 ExtensionResourceStatus:
   type: object

@@ -77,8 +77,8 @@ var testExtensionResourcePayload = &struct {
 }
 
 func TestClient_SystemExtensionResources(t *testing.T) {
-	testResp := func(r []byte) []*v1alpha1.SystemExtensionResource {
-		resp := []*v1alpha1.SystemExtensionResource{}
+	testResp := func(r []byte) []*v1alpha1.ExtensionResource {
+		resp := []*v1alpha1.ExtensionResource{}
 		if err := json.Unmarshal(r, &resp); err != nil {
 			t.Error(err)
 		}
@@ -93,7 +93,7 @@ func TestClient_SystemExtensionResources(t *testing.T) {
 	tests := []struct {
 		name        string
 		fields      fields
-		expected    []*v1alpha1.SystemExtensionResource
+		expected    []*v1alpha1.ExtensionResource
 		expectErr   bool
 		expectedErr error
 	}{
@@ -140,7 +140,7 @@ func TestClient_SystemExtensionResources(t *testing.T) {
 					resp:       []byte(`null`),
 				},
 			},
-			expected:  []*v1alpha1.SystemExtensionResource(nil),
+			expected:  []*v1alpha1.ExtensionResource(nil),
 			expectErr: false,
 		},
 		{
@@ -152,7 +152,7 @@ func TestClient_SystemExtensionResources(t *testing.T) {
 					resp:       []byte(`{"error":"extension does not exist: sql: no rows in result set"}`),
 				},
 			},
-			expected:    []*v1alpha1.SystemExtensionResource(nil),
+			expected:    []*v1alpha1.ExtensionResource(nil),
 			expectErr:   true,
 			expectedErr: v1alpha1.ErrExtensionNotFound,
 		},
@@ -186,8 +186,8 @@ func TestClient_SystemExtensionResources(t *testing.T) {
 }
 
 func TestClient_SystemExtensionResource(t *testing.T) {
-	testResp := func(r []byte) *v1alpha1.SystemExtensionResource {
-		resp := &v1alpha1.SystemExtensionResource{}
+	testResp := func(r []byte) *v1alpha1.ExtensionResource {
+		resp := &v1alpha1.ExtensionResource{}
 		if err := json.Unmarshal(r, resp); err != nil {
 			t.Error(err)
 		}
@@ -206,7 +206,7 @@ func TestClient_SystemExtensionResource(t *testing.T) {
 		erdVersion  string
 		resourceID  string
 		fields      fields
-		expected    *v1alpha1.SystemExtensionResource
+		expected    *v1alpha1.ExtensionResource
 		expectedErr error
 		expectErr   bool
 	}{
