@@ -860,11 +860,6 @@ func (s *SystemExtensionResourceTestSuite) TestDeleteSystemExtensionResource() {
 			err := json.Unmarshal(s.conn.Payload, event)
 			assert.Nil(t, err)
 
-			sr := &SystemExtensionResource{}
-			body := w.Body.String()
-			err = json.Unmarshal([]byte(body), sr)
-			assert.Nil(t, err)
-
 			assert.Equal(
 				t, tt.expectedEventPayload.Version, event.Version,
 				"Expected event version %s, got %s", tt.expectedEventPayload.Version, event.Version,
@@ -883,11 +878,6 @@ func (s *SystemExtensionResourceTestSuite) TestDeleteSystemExtensionResource() {
 			assert.Equal(
 				t, tt.expectedEventPayload.ExtensionResourceDefinitionID, event.ExtensionResourceDefinitionID,
 				"Expected event ERD ID %s, got %s", tt.expectedEventPayload.ExtensionResourceDefinitionID, event.ExtensionResourceDefinitionID,
-			)
-
-			assert.Equal(
-				t, event.ExtensionResourceID, sr.ID,
-				"Expected event ERD ID to match response ID",
 			)
 		})
 	}

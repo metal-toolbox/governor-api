@@ -40,7 +40,7 @@ func handleResourceStatusNotFound(respBody []byte) error {
 // SystemExtensionResource fetches a system extension resource
 func (c *Client) SystemExtensionResource(
 	ctx context.Context, extensionSlug, erdSlugPlural, erdVersion, resourceID string, deleted bool,
-) (*v1alpha1.SystemExtensionResource, error) {
+) (*v1alpha1.ExtensionResource, error) {
 	if extensionSlug == "" {
 		return nil, ErrMissingExtensionIDOrSlug
 	}
@@ -94,7 +94,7 @@ func (c *Client) SystemExtensionResource(
 		return nil, ErrRequestNonSuccess
 	}
 
-	ser := &v1alpha1.SystemExtensionResource{}
+	ser := &v1alpha1.ExtensionResource{}
 	if err := json.Unmarshal(respBody, ser); err != nil {
 		return nil, err
 	}
@@ -106,7 +106,7 @@ func (c *Client) SystemExtensionResource(
 func (c *Client) SystemExtensionResources(
 	ctx context.Context, extensionSlug, erdSlugPlural, erdVersion string,
 	deleted bool, queries map[string]string,
-) ([]*v1alpha1.SystemExtensionResource, error) {
+) ([]*v1alpha1.ExtensionResource, error) {
 	if extensionSlug == "" {
 		return nil, ErrMissingExtensionIDOrSlug
 	}
@@ -168,7 +168,7 @@ func (c *Client) SystemExtensionResources(
 		return nil, ErrRequestNonSuccess
 	}
 
-	sers := []*v1alpha1.SystemExtensionResource{}
+	sers := []*v1alpha1.ExtensionResource{}
 	if err := json.Unmarshal(respBody, &sers); err != nil {
 		return nil, err
 	}
