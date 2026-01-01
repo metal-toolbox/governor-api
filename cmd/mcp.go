@@ -9,11 +9,16 @@ import (
 	"time"
 
 	"github.com/metal-toolbox/governor-api/pkg/mcp"
+	"github.com/metal-toolbox/governor-extension-sdk/pkg/roundtripper"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.hollow.sh/toolbox/ginjwt"
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
+)
+
+const (
+	defaultMCPGovernorRequestTimeout = 10 * time.Second
 )
 
 var mcpCmd = &cobra.Command{
@@ -27,11 +32,17 @@ var mcpCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(mcpCmd)
 
+	// MCP server flags
 	mcpCmd.Flags().String("listen", "0.0.0.0:3001", "sse server listens on")
 	viperBindFlag("mcp.listen", mcpCmd.Flags().Lookup("listen"))
-
 	mcpCmd.Flags().String("metadata-base-url", "http://localhost:3001", "base URL for MCP metadata")
 	viperBindFlag("mcp.metadata-base-url", mcpCmd.Flags().Lookup("metadata-base-url"))
+
+	// Governor flags
+	mcpCmd.Flags().String("governor-url", "https://api.iam.equinixmetal.net", "url of the governor api")
+	viperBindFlag("governor.url", mcpCmd.Flags().Lookup("governor-url"))
+	mcpCmd.Flags().Duration("governor-timeout", defaultMCPGovernorRequestTimeout, "timeout for requests to governor api")
+	viperBindFlag("governor.timeout", mcpCmd.Flags().Lookup("governor-timeout"))
 
 	ginjwt.RegisterViperOIDCFlags(viper.GetViper(), mcpCmd)
 }
@@ -39,6 +50,10 @@ func init() {
 func startMCPServer(ctx context.Context) error {
 	logger := logger.Desugar()
 	logger.Info("starting MCP server")
+
+	if viper.GetBool("tracing.enabled") {
+		initTracer()
+	}
 
 	tracer := otel.GetTracerProvider().Tracer("governor-api/mcp")
 
@@ -65,12 +80,23 @@ func startMCPServer(ctx context.Context) error {
 		)
 	}
 
+	httpclient := &http.Client{
+		Timeout: viper.GetDuration("governor.timeout"),
+		Transport: roundtripper.NewGovExtRoundTripper(
+			http.DefaultTransport.RoundTrip,
+			roundtripper.WithLogger(logger),
+			roundtripper.WithTraceContext(),
+		),
+	}
+
 	mcpserver := mcp.NewGovernorMCPServer(
 		&http.Server{Addr: viper.GetString("mcp.listen")},
+		viper.GetString("governor.url"),
 		mcp.WithLogger(logger),
 		mcp.WithTracer(tracer),
 		mcp.WithAuthConfigs(authcfgs),
 		mcp.WithMetadataBaseURL(viper.GetString("mcp.metadata-base-url")),
+		mcp.WithHTTPClient(httpclient),
 	)
 
 	go func() {

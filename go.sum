@@ -226,6 +226,8 @@ github.com/mattn/go-sqlite3 v2.0.3+incompatible h1:gXHsfypPkaMZrKbD5209QV9jbUTJK
 github.com/mattn/go-sqlite3 v2.0.3+incompatible/go.mod h1:FPy6KqzDD04eiIsT53CuJW3U88zkxoIYsOqkbpncsNc=
 github.com/metal-toolbox/auditevent v0.9.0 h1:LlXP38RsysaTdWTqBdreNcOmUXI/yDK0LycNYuTIjfM=
 github.com/metal-toolbox/auditevent v0.9.0/go.mod h1:2MYKYriPI4EheqlerPwHwx4V4AUaJjmxJg1bQsBwiIU=
+github.com/metal-toolbox/governor-extension-sdk v0.0.2 h1:EgRSXKU8ZMNcASxegzx+avO8yn+4LeCs0hBQHDtfrOk=
+github.com/metal-toolbox/governor-extension-sdk v0.0.2/go.mod h1:oFgEiiXkF9uHr+N6Za0oYrZ++MpUI3XrqwO1H7kUJtA=
 github.com/metal-toolbox/iam-runtime v0.4.1 h1:xeUSB9gnc2e4MYhoWXAwBHGJDQFlPEFDcid5PEzR7lA=
 github.com/metal-toolbox/iam-runtime v0.4.1/go.mod h1:tZZ1qJy1Rc/onvsX9TRdEu5IYCa9H5WnFlM1EviFqP8=
 github.com/metal-toolbox/iam-runtime-contrib v1.0.1 h1:y6DxcWCXnRxLqWc3yHzx8gJ0EsAMel49NYs445357d4=

@@ -24,6 +24,9 @@ type GovernorMCPServer struct {
 	authConfigs     []ginjwt.AuthConfig
 	metadataBaseURL string
 
+	httpclient *http.Client
+	govURL     string
+
 	logger *zap.Logger
 	tracer trace.Tracer
 }
@@ -59,10 +62,20 @@ func WithMetadataBaseURL(url string) Option {
 	}
 }
 
+// WithHTTPClient sets the HTTP client for the GovernorMCPServer, the mcp server
+// uses this client to make outbound requests to governor api.
+func WithHTTPClient(httpClient *http.Client) Option {
+	return func(s *GovernorMCPServer) {
+		s.httpclient = httpClient
+	}
+}
+
 // NewGovernorMCPServer creates a new instance of GovernorMCPServer with the provided options.
-func NewGovernorMCPServer(httpserver *http.Server, opts ...Option) *GovernorMCPServer {
+func NewGovernorMCPServer(httpserver *http.Server, govURL string, opts ...Option) *GovernorMCPServer {
 	s := &GovernorMCPServer{
+		govURL:          govURL,
 		httpserver:      httpserver,
+		httpclient:      &http.Client{},
 		logger:          zap.NewNop(),
 		tracer:          noop.NewTracerProvider().Tracer("governor-mcp-server"),
 		metadataBaseURL: DefaultMetadataBaseURL,
