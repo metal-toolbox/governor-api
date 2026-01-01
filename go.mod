@@ -6,7 +6,7 @@ require (
 	dario.cat/mergo v1.0.2
 	github.com/XSAM/otelsql v0.40.0
 	github.com/aarondl/null/v8 v8.1.3
-	github.com/aarondl/sqlboiler/v4 v4.19.5
+	github.com/aarondl/sqlboiler/v4 v4.19.7
 	github.com/aarondl/strmangle v0.0.9
 	github.com/cockroachdb/cockroach-go/v2 v2.4.3
 	github.com/coreos/go-oidc/v3 v3.17.0
