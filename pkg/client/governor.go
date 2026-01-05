@@ -63,6 +63,12 @@ func WithClientCredentialConfig(c *clientcredentials.Config) Option {
 	}
 }
 
+func WithTokener(t Tokener) Option {
+	return func(r *Client) {
+		r.clientCredentialConfig = t
+	}
+}
+
 // WithLogger sets logger
 func WithLogger(l *zap.Logger) Option {
 	return func(r *Client) {

@@ -23,7 +23,6 @@ var (
 
 func (s *GovernorMCPServer) handleHTTPError(ctx context.Context, resp *http.Response) error {
 	span := trace.SpanFromContext(ctx)
-
 	msg := ""
 
 	respbody, err := io.ReadAll(resp.Body)

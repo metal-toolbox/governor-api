@@ -12,7 +12,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (s *GovernorMCPServer) CurrentUserInfo(ctx context.Context, req *mcp.CallToolRequest, args struct{}) (*mcp.CallToolResult, *v1alpha1.AuthenticatedUser, error) {
+func (s *GovernorMCPServer) CurrentUserInfo(ctx context.Context, req *mcp.CallToolRequest, args struct{}) (*mcp.CallToolResult, any, error) {
 	ctx, span := s.tracer.Start(ctx, "GovernorMCPServer.CurrentUserInfo")
 	defer span.End()
 
@@ -57,7 +57,7 @@ func (s *GovernorMCPServer) CurrentUserInfo(ctx context.Context, req *mcp.CallTo
 	return nil, user, nil
 }
 
-func (s *GovernorMCPServer) CurrentUserGroups(ctx context.Context, req *mcp.CallToolRequest, args struct{}) (*mcp.CallToolResult, *[]v1alpha1.AuthenticatedUserGroup, error) {
+func (s *GovernorMCPServer) CurrentUserGroups(ctx context.Context, req *mcp.CallToolRequest, args struct{}) (*mcp.CallToolResult, any, error) {
 	ctx, span := s.tracer.Start(ctx, "GovernorMCPServer.CurrentUserGroups")
 	defer span.End()
 
@@ -102,7 +102,7 @@ func (s *GovernorMCPServer) CurrentUserGroups(ctx context.Context, req *mcp.Call
 	return nil, groups, nil
 }
 
-func (s *GovernorMCPServer) CurrentUserGroupRequests(ctx context.Context, req *mcp.CallToolRequest, args struct{}) (*mcp.CallToolResult, *v1alpha1.AuthenticatedUserRequests, error) {
+func (s *GovernorMCPServer) CurrentUserGroupRequests(ctx context.Context, req *mcp.CallToolRequest, args struct{}) (*mcp.CallToolResult, any, error) {
 	ctx, span := s.tracer.Start(ctx, "GovernorMCPServer.CurrentUserGroupRequests")
 	defer span.End()
 
@@ -147,7 +147,7 @@ func (s *GovernorMCPServer) CurrentUserGroupRequests(ctx context.Context, req *m
 	return nil, requests, nil
 }
 
-func (s *GovernorMCPServer) CurrentUserGroupApprovals(ctx context.Context, req *mcp.CallToolRequest, args struct{}) (*mcp.CallToolResult, *v1alpha1.AuthenticatedUserRequests, error) {
+func (s *GovernorMCPServer) CurrentUserGroupApprovals(ctx context.Context, req *mcp.CallToolRequest, args struct{}) (*mcp.CallToolResult, any, error) {
 	ctx, span := s.tracer.Start(ctx, "GovernorMCPServer.CurrentUserGroupApprovals")
 	defer span.End()
 
@@ -190,4 +190,49 @@ func (s *GovernorMCPServer) CurrentUserGroupApprovals(ctx context.Context, req *
 	}
 
 	return nil, approvals, nil
+}
+
+type RemoveUserGroupInput struct {
+	GroupID string `json:"group_id" jsonschema:"the unique identifier of the group to remove user from"`
+}
+
+func (s *GovernorMCPServer) RemoveAuthenticatedUserGroup(ctx context.Context, req *mcp.CallToolRequest, args RemoveUserGroupInput) (*mcp.CallToolResult, *SimpleGroupOperationResult, error) {
+	ctx, span := s.tracer.Start(ctx, "GovernorMCPServer.RemoveAuthenticatedUserGroup")
+	defer span.End()
+
+	tokeninfo := req.Extra.TokenInfo
+
+	rawToken := getToken(tokeninfo)
+	if rawToken == "" {
+		return nil, nil, ErrNoTokenFound
+	}
+
+	u := fmt.Sprintf("%s/api/v1alpha1/user/groups/%s", s.govURL, args.GroupID)
+
+	s.logger.Debug("removing current user from group", zap.String("url", u), zap.String("group_id", args.GroupID))
+	span.SetAttributes(
+		attribute.String("governor-url", u),
+		attribute.String("group-id", args.GroupID),
+	)
+
+	govreq, err := http.NewRequestWithContext(ctx, http.MethodDelete, u, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	govreq.Header.Set("Authorization", "Bearer "+rawToken)
+
+	resp, err := s.httpclient.Do(govreq)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+		err := s.handleHTTPError(ctx, resp)
+		return nil, nil, err
+	}
+
+	return nil, &SimpleGroupOperationResult{Status: "success", GroupID: args.GroupID}, nil
 }
