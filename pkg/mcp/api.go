@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"go.hollow.sh/toolbox/ginjwt"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/trace"
 	"go.opentelemetry.io/otel/trace/noop"
 	"go.uber.org/zap"
@@ -88,7 +89,13 @@ func NewGovernorMCPServer(httpserver *http.Server, govURL string, opts ...Option
 	v1alpha1Handler := s.v1alpha1()
 
 	mux := http.NewServeMux()
-	mux.Handle("/v1alpha1", s.authMiddleware()(v1alpha1Handler))
+	// Wrap with tracing first, then auth middleware to ensure
+	// each HTTP request creates a fresh span that propagates to tool calls
+	mux.Handle(
+		"/v1alpha1",
+		otelhttp.NewHandler(s.authMiddleware()(v1alpha1Handler), "mcp/v1alpha1"),
+	)
+
 	s.authMetadataHandler(mux)
 
 	s.httpserver.Handler = mux

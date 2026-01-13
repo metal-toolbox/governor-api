@@ -22,7 +22,7 @@ type SearchGroupsOutput struct {
 }
 
 type ListGroupInput struct {
-	Deleted bool `json:"deleted" jsonschema:"whether to include deleted groups"`
+	Deleted bool `json:"deleted,omitempty" jsonschema:"whether to include deleted groups"`
 }
 
 type ListGroupsGroupInfo struct {
@@ -110,7 +110,7 @@ func (s *GovernorMCPServer) ListGroups(ctx context.Context, req *mcp.CallToolReq
 
 type SearchGroupsInput struct {
 	Query   string `json:"query" jsonschema:"the search query string"`
-	Deleted bool   `json:"deleted" jsonschema:"whether to include deleted groups"`
+	Deleted bool   `json:"deleted,omitempty" jsonschema:"whether to include deleted groups"`
 }
 
 func (s *GovernorMCPServer) SearchGroups(ctx context.Context, req *mcp.CallToolRequest, args SearchGroupsInput) (*mcp.CallToolResult, any, error) {
@@ -158,7 +158,7 @@ func (s *GovernorMCPServer) SearchGroups(ctx context.Context, req *mcp.CallToolR
 
 type GetGroupInput struct {
 	GroupID string `json:"group_id" jsonschema:"the unique identifier of the group"`
-	Deleted bool   `json:"deleted" jsonschema:"whether to include deleted groups"`
+	Deleted bool   `json:"deleted,omitempty" jsonschema:"whether to include deleted groups"`
 }
 
 func (s *GovernorMCPServer) GetGroup(ctx context.Context, req *mcp.CallToolRequest, args GetGroupInput) (*mcp.CallToolResult, any, error) {
@@ -302,9 +302,12 @@ func (s *GovernorMCPServer) DeleteGroup(ctx context.Context, req *mcp.CallToolRe
 
 // Create Group Request
 type CreateGroupRequestInput struct {
-	GroupID string `json:"group_id" jsonschema:"the unique identifier of the group"`
-	Note    string `json:"note,omitempty" jsonschema:"optional note for the request"`
-	IsAdmin bool   `json:"is_admin,omitempty" jsonschema:"whether requesting admin privileges"`
+	GroupID        string     `json:"group_id" jsonschema:"the unique identifier of the group"`
+	Note           string     `json:"note" jsonschema:"optional note for the request"`
+	Kind           string     `json:"kind,omitempty" jsonschema:"optional kind of request, there are two kinds: 'new_member' and 'admin_promotion'"`
+	IsAdmin        bool       `json:"is_admin" jsonschema:"whether requesting admin privileges"`
+	ExpiresAt      *time.Time `json:"expires_at,omitempty" jsonschema:"optional expiration time for admin privileges"`
+	AdminExpiresAt *time.Time `json:"admin_expires_at,omitempty" jsonschema:"optional expiration time for admin privileges"`
 }
 
 func (s *GovernorMCPServer) CreateGroupRequest(ctx context.Context, req *mcp.CallToolRequest, args CreateGroupRequestInput) (*mcp.CallToolResult, any, error) {
@@ -320,14 +323,7 @@ func (s *GovernorMCPServer) CreateGroupRequest(ctx context.Context, req *mcp.Cal
 
 	u := fmt.Sprintf("%s/api/v1alpha1/groups/%s/requests", s.govURL, args.GroupID)
 
-	payload := map[string]interface{}{
-		"is_admin": args.IsAdmin,
-	}
-	if args.Note != "" {
-		payload["note"] = args.Note
-	}
-
-	jsonPayload, err := json.Marshal(payload)
+	jsonPayload, err := json.Marshal(args)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -158,5 +158,7 @@ func (s *GovernorMCPServer) v1alpha1() *mcp.StreamableHTTPHandler {
 
 	return mcp.NewStreamableHTTPHandler(func(r *http.Request) *mcp.Server {
 		return v1alpha1
-	}, nil)
+	}, &mcp.StreamableHTTPOptions{
+		Stateless: true,
+	})
 }
