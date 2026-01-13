@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"github.com/metal-toolbox/governor-api/pkg/mcp"
-	"github.com/metal-toolbox/governor-extension-sdk/pkg/roundtripper"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.hollow.sh/toolbox/ginjwt"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 )
@@ -81,12 +81,8 @@ func startMCPServer(ctx context.Context) error {
 	}
 
 	httpclient := &http.Client{
-		Timeout: viper.GetDuration("governor.timeout"),
-		Transport: roundtripper.NewGovExtRoundTripper(
-			http.DefaultTransport.RoundTrip,
-			roundtripper.WithLogger(logger),
-			roundtripper.WithTraceContext(),
-		),
+		Timeout:   viper.GetDuration("governor.timeout"),
+		Transport: otelhttp.NewTransport(http.DefaultTransport),
 	}
 
 	mcpserver := mcp.NewGovernorMCPServer(
