@@ -15,6 +15,16 @@ groups:
         schema:
           type: boolean
           default: false
+      - name: metadata
+        in: query
+        description: |
+          Filter groups by metadata.
+          This filter should be in the format of:
+          ?metadata=key1=value&metadata=path.to.nested.field=value2
+        required: false
+        schema:
+          type: string
+          example: '?metadata=key1=value&metadata=path.to.nested.field=value2'
     responses:
       '200':
         description: Successful response

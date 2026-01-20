@@ -18,6 +18,7 @@ import (
 	"github.com/aarondl/sqlboiler/v4/queries"
 	"github.com/aarondl/sqlboiler/v4/queries/qm"
 	"github.com/aarondl/sqlboiler/v4/queries/qmhelper"
+	"github.com/aarondl/sqlboiler/v4/types"
 	"github.com/aarondl/strmangle"
 	"github.com/friendsofgo/errors"
 )
@@ -33,6 +34,7 @@ type Group struct {
 	DeletedAt     null.Time   `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
 	Note          string      `boil:"note" json:"note" toml:"note" yaml:"note"`
 	ApproverGroup null.String `boil:"approver_group" json:"approver_group,omitempty" toml:"approver_group" yaml:"approver_group,omitempty"`
+	Metadata      types.JSON  `boil:"metadata" json:"metadata" toml:"metadata" yaml:"metadata"`
 
 	R *groupR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L groupL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -48,6 +50,7 @@ var GroupColumns = struct {
 	DeletedAt     string
 	Note          string
 	ApproverGroup string
+	Metadata      string
 }{
 	ID:            "id",
 	Name:          "name",
@@ -58,6 +61,7 @@ var GroupColumns = struct {
 	DeletedAt:     "deleted_at",
 	Note:          "note",
 	ApproverGroup: "approver_group",
+	Metadata:      "metadata",
 }
 
 var GroupTableColumns = struct {
@@ -70,6 +74,7 @@ var GroupTableColumns = struct {
 	DeletedAt     string
 	Note          string
 	ApproverGroup string
+	Metadata      string
 }{
 	ID:            "groups.id",
 	Name:          "groups.name",
@@ -80,6 +85,7 @@ var GroupTableColumns = struct {
 	DeletedAt:     "groups.deleted_at",
 	Note:          "groups.note",
 	ApproverGroup: "groups.approver_group",
+	Metadata:      "groups.metadata",
 }
 
 // Generated where
@@ -94,6 +100,7 @@ var GroupWhere = struct {
 	DeletedAt     whereHelpernull_Time
 	Note          whereHelperstring
 	ApproverGroup whereHelpernull_String
+	Metadata      whereHelpertypes_JSON
 }{
 	ID:            whereHelperstring{field: "\"groups\".\"id\""},
 	Name:          whereHelperstring{field: "\"groups\".\"name\""},
@@ -104,6 +111,7 @@ var GroupWhere = struct {
 	DeletedAt:     whereHelpernull_Time{field: "\"groups\".\"deleted_at\""},
 	Note:          whereHelperstring{field: "\"groups\".\"note\""},
 	ApproverGroup: whereHelpernull_String{field: "\"groups\".\"approver_group\""},
+	Metadata:      whereHelpertypes_JSON{field: "\"groups\".\"metadata\""},
 }
 
 // GroupRels is where relationship names are stored.
@@ -390,9 +398,9 @@ func (r *groupR) GetOwnerSystemExtensionResources() SystemExtensionResourceSlice
 type groupL struct{}
 
 var (
-	groupAllColumns            = []string{"id", "name", "slug", "description", "created_at", "updated_at", "deleted_at", "note", "approver_group"}
+	groupAllColumns            = []string{"id", "name", "slug", "description", "created_at", "updated_at", "deleted_at", "note", "approver_group", "metadata"}
 	groupColumnsWithoutDefault = []string{"name", "slug", "description", "created_at", "updated_at"}
-	groupColumnsWithDefault    = []string{"id", "deleted_at", "note", "approver_group"}
+	groupColumnsWithDefault    = []string{"id", "deleted_at", "note", "approver_group", "metadata"}
 	groupPrimaryKeyColumns     = []string{"id"}
 	groupGeneratedColumns      = []string{}
 )

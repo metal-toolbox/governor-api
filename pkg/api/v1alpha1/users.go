@@ -3,11 +3,8 @@ package v1alpha1
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"net/http"
-	"regexp"
 	"strconv"
-	"strings"
 
 	"dario.cat/mergo"
 	"github.com/aarondl/null/v8"
@@ -34,41 +31,7 @@ const (
 	UserStatusSuspended = "suspended"
 )
 
-var (
-	permittedListUsersParams = []string{"external_id", "email", "metadata"}
-	metadataKeyPattern       = regexp.MustCompile(`^[a-zA-Z]([a-zA-Z0-9_\-/]+[a-zA-Z0-9])?$`)
-)
-
-// isValidMetadata recursively validates that all keys in the metadata map
-// follow the pattern [a-zA-Z0-9_/]+
-func isValidMetadata(metadata map[string]interface{}) bool {
-	for key, value := range metadata {
-		// Check if the key matches the pattern [a-zA-Z0-9_/]+
-		if !metadataKeyPattern.MatchString(key) {
-			return false
-		}
-
-		// If the value is a map, recursively validate its keys
-		if nestedMap, ok := value.(map[string]interface{}); ok {
-			if !isValidMetadata(nestedMap) {
-				return false
-			}
-		}
-
-		// If the value is a slice, check if any element is a map and validate it
-		if slice, ok := value.([]interface{}); ok {
-			for _, item := range slice {
-				if nestedMap, ok := item.(map[string]interface{}); ok {
-					if !isValidMetadata(nestedMap) {
-						return false
-					}
-				}
-			}
-		}
-	}
-
-	return true
-}
+var permittedListUsersParams = []string{"external_id", "email", "metadata"}
 
 // User is a user response
 type User struct {
@@ -95,14 +58,11 @@ type UserReq struct {
 func (r *Router) listUsers(c *gin.Context) {
 	queryMods := []qm.QueryMod{}
 
-	if _, ok := c.GetQuery("deleted"); ok {
-		queryMods = append(queryMods, qm.WithDeleted())
-	}
-
 	for k, val := range c.Request.URL.Query() {
 		r.Logger.Debug("checking query", zap.String("url.query.key", k), zap.Strings("url.query.value", val))
 
 		if k == "deleted" {
+			queryMods = append(queryMods, qm.WithDeleted())
 			continue
 		}
 
@@ -130,49 +90,15 @@ func (r *Router) listUsers(c *gin.Context) {
 				queryMods = append(queryMods, qm.Or("LOWER(email) = LOWER(?)", v))
 			}
 		case "metadata":
-			// metadata should be a JSON formatted object used to filter users with
-			// specific metadata values
-			//
-			// this object should be in the format of:
-			// ?metadata=key1=value&metadata=path.to.nested.field=value2
-			//
-			const KVPartsLen = 2
+			qms, err := dbtools.ParseJSONBFilterQueries("metadata", val)
+			if err != nil {
+				r.Logger.Error("invalid metadata query", zap.Error(err))
+				sendError(c, http.StatusBadRequest, err.Error())
 
-			for _, searchString := range val {
-				searchKV := strings.SplitN(searchString, "=", KVPartsLen)
-				if len(searchKV) < KVPartsLen {
-					r.Logger.Error("invalid metadata query format", zap.String("metadata", searchString))
-					sendError(c, http.StatusBadRequest, "invalid metadata query format: "+searchString)
-
-					return
-				}
-
-				searchKey, searchValue := searchKV[0], searchKV[1]
-				pathComponents := strings.Split(searchKey, ".")
-
-				for _, pc := range pathComponents {
-					if !metadataKeyPattern.MatchString(pc) {
-						r.Logger.Error("invalid metadata key", zap.String("key", pc))
-						sendError(c, http.StatusBadRequest, "invalid metadata key: "+pc)
-
-						return
-					}
-				}
-
-				sqlPath := fmt.Sprintf("{%s}", strings.Join(pathComponents, ","))
-
-				r.Logger.Debug(
-					"adding metadata query",
-					zap.String("search_key", searchKey),
-					zap.String("search_value", searchValue),
-					zap.String("sql_path", sqlPath),
-				)
-
-				queryMods = append(
-					queryMods,
-					qm.Where("metadata#>>? = ?", sqlPath, searchValue),
-				)
+				return
 			}
+
+			queryMods = append(queryMods, qms...)
 		default:
 			queryMods = append(queryMods, qm.Or2(qm.WhereIn(k+" IN ?", convertedVals...)))
 		}
@@ -328,7 +254,7 @@ func (r *Router) createUser(c *gin.Context) {
 		req.Metadata = &map[string]interface{}{}
 	}
 
-	if !isValidMetadata(*req.Metadata) {
+	if !dbtools.IsValidMetadata(*req.Metadata) {
 		sendError(c, http.StatusBadRequest, "invalid metadata keys, must match pattern [a-zA-Z0-9_/]+")
 		return
 	}
@@ -511,7 +437,7 @@ func (r *Router) updateUser(c *gin.Context) {
 			return
 		}
 
-		if !isValidMetadata(current) {
+		if !dbtools.IsValidMetadata(current) {
 			sendError(c, http.StatusBadRequest, "invalid metadata keys, must match pattern [a-zA-Z0-9_/]+")
 			return
 		}

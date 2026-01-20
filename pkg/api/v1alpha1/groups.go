@@ -7,10 +7,11 @@ import (
 	"regexp"
 	"strings"
 
+	"dario.cat/mergo"
 	"github.com/aarondl/null/v8"
-
 	"github.com/aarondl/sqlboiler/v4/boil"
 	"github.com/aarondl/sqlboiler/v4/queries/qm"
+	"github.com/aarondl/sqlboiler/v4/types"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/metal-toolbox/auditevent/ginaudit"
@@ -31,12 +32,16 @@ type Group struct {
 	Applications       []string `json:"applications"`
 }
 
+// permittedListGroupsParams is a list of permitted query parameters for listing groups
+var permittedListGroupsParams = []string{"name", "slug", "metadata"}
+
 // GroupReq is a group creation/update request
 type GroupReq struct {
-	Name            string `json:"name"`
-	Description     string `json:"description"`
-	Note            string `json:"note"`
-	ApproverGroupID string `json:"approver_group_id,omitempty"`
+	Name            string                  `json:"name"`
+	Description     string                  `json:"description"`
+	Note            string                  `json:"note"`
+	ApproverGroupID string                  `json:"approver_group_id,omitempty"`
+	Metadata        *map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // listGroups lists the groups as JSON
@@ -49,8 +54,42 @@ func (r *Router) listGroups(c *gin.Context) {
 		qm.Load("GroupApplications.Application"),
 	}
 
-	if _, ok := c.GetQuery("deleted"); ok {
-		queryMods = append(queryMods, qm.WithDeleted())
+	for k, val := range c.Request.URL.Query() {
+		r.Logger.Debug("checking query", zap.String("url.query.key", k), zap.Strings("url.query.value", val))
+
+		if k == "deleted" {
+			queryMods = append(queryMods, qm.WithDeleted())
+			continue
+		}
+
+		// check for allowed parameters
+		if !contains(permittedListGroupsParams, k) {
+			r.Logger.Warn("found illegal parameter in request", zap.String("parameter", k))
+
+			sendError(c, http.StatusBadRequest, "illegal parameter: "+k)
+
+			return
+		}
+
+		convertedVals := make([]interface{}, len(val))
+		for i, v := range val {
+			convertedVals[i] = v
+		}
+
+		switch k {
+		case "metadata":
+			mods, err := dbtools.ParseJSONBFilterQueries("metadata", val)
+			if err != nil {
+				r.Logger.Error("invalid metadata query", zap.Error(err))
+				sendError(c, http.StatusBadRequest, err.Error())
+
+				return
+			}
+
+			queryMods = append(queryMods, mods...)
+		default:
+			queryMods = append(queryMods, qm.Or2(qm.WhereIn(k+" IN ?", convertedVals...)))
+		}
 	}
 
 	groups, err := models.Groups(queryMods...).All(c.Request.Context(), r.DB)
@@ -188,6 +227,22 @@ func (r *Router) createGroup(c *gin.Context) {
 		ApproverGroup: approverGroupID,
 	}
 
+	group.Metadata = types.JSON{}
+
+	if req.Metadata == nil {
+		req.Metadata = &map[string]interface{}{}
+	}
+
+	if !dbtools.IsValidMetadata(*req.Metadata) {
+		sendError(c, http.StatusBadRequest, "invalid metadata keys, must match pattern [a-zA-Z0-9_/]+")
+		return
+	}
+
+	if err := group.Metadata.Marshal(req.Metadata); err != nil {
+		sendError(c, http.StatusBadRequest, "error marshalling metadata: "+err.Error())
+		return
+	}
+
 	// Validation
 	if displayMessage, err := createGroupRequestValidator(group); err != nil {
 		sendErrorWithDisplayMessage(c, http.StatusBadRequest, err.Error(), displayMessage)
@@ -307,6 +362,36 @@ func (r *Router) updateGroup(c *gin.Context) {
 	group.ApproverGroup = approverGroupID
 
 	group.Description = req.Description
+
+	if req.Metadata != nil {
+		current := map[string]interface{}{}
+		incoming := *req.Metadata
+
+		if err := group.Metadata.Unmarshal(&current); err != nil {
+			sendError(c, http.StatusBadRequest, "error unmarshalling group metadata: "+err.Error())
+			return
+		}
+
+		// merge the new metadata with the existing one
+		if err := mergo.Merge(
+			&current, incoming,
+			mergo.WithOverride,
+			mergo.WithOverrideEmptySlice,
+		); err != nil {
+			sendError(c, http.StatusBadRequest, "error merging group metadata: "+err.Error())
+			return
+		}
+
+		if !dbtools.IsValidMetadata(current) {
+			sendError(c, http.StatusBadRequest, "invalid metadata keys, must match pattern [a-zA-Z0-9_/]+")
+			return
+		}
+
+		if err := group.Metadata.Marshal(&current); err != nil {
+			sendError(c, http.StatusBadRequest, "error marshalling group metadata: "+err.Error())
+			return
+		}
+	}
 
 	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
 	if err != nil {
