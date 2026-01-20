@@ -64,6 +64,10 @@ Group:
         type: string
         format: uuid
       description: List of application IDs associated with this group
+    metadata:
+      type: object
+      additionalProperties: true
+      description: Additional metadata for the group
   required:
     - id
     - name
@@ -331,6 +335,10 @@ GroupCreateRequest:
       format: uuid
       description: ID of the group that approves membership requests for this group
       examples: ["3fa85f64-5717-4562-b3fc-2c963f66afa6"]
+    metadata:
+      type: object
+      additionalProperties: true
+      description: Additional metadata for the group
   required:
     - name
     - slug
@@ -351,6 +359,10 @@ GroupUpdateRequest:
       type: string
       format: uuid
       description: ID of the group that approves membership requests for this group
+    metadata:
+      type: object
+      additionalProperties: true
+      description: Additional metadata for the group. When updating, new keys are merged with existing metadata. To remove a key, set its value to null.
 
 GroupMember:
   type: object
@@ -856,6 +868,10 @@ GroupListItem:
       type: string
       format: date-time
       description: Timestamp when the group was soft-deleted, null if active
+    metadata:
+      type: object
+      additionalProperties: true
+      description: Additional metadata for the group
 
 CreateGroupApplicationRequest:
   type: object

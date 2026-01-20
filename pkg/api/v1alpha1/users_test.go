@@ -733,7 +733,7 @@ func TestMetadataKeyPattern(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := metadataKeyPattern.MatchString(tt.key)
+			result := dbtools.MetadataKeyPattern.MatchString(tt.key)
 			assert.Equal(t, tt.expected, result,
 				"Key '%s': expected match=%v, got=%v", tt.key, tt.expected, result)
 		})
@@ -872,9 +872,9 @@ func TestIsValidMetadata(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := isValidMetadata(tt.metadata)
+			result := dbtools.IsValidMetadata(tt.metadata)
 			assert.Equal(t, tt.expected, result,
-				"isValidMetadata(%v): expected %v, got %v", tt.metadata, tt.expected, result)
+				"IsValidMetadata(%v): expected %v, got %v", tt.metadata, tt.expected, result)
 		})
 	}
 }
