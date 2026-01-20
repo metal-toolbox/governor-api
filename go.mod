@@ -4,7 +4,7 @@ go 1.25.5
 
 require (
 	dario.cat/mergo v1.0.2
-	github.com/XSAM/otelsql v0.40.0
+	github.com/XSAM/otelsql v0.41.0
 	github.com/aarondl/null/v8 v8.1.3
 	github.com/aarondl/sqlboiler/v4 v4.19.5
 	github.com/aarondl/strmangle v0.0.9
