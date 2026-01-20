@@ -65,7 +65,6 @@ func (r *Router) listGroups(c *gin.Context) {
 		// check for allowed parameters
 		if !contains(permittedListGroupsParams, k) {
 			r.Logger.Warn("found illegal parameter in request", zap.String("parameter", k))
-
 			sendError(c, http.StatusBadRequest, "illegal parameter: "+k)
 
 			return
@@ -234,7 +233,7 @@ func (r *Router) createGroup(c *gin.Context) {
 	}
 
 	if !dbtools.IsValidMetadata(*req.Metadata) {
-		sendError(c, http.StatusBadRequest, "invalid metadata keys, must match pattern [a-zA-Z0-9_/]+")
+		sendError(c, http.StatusBadRequest, "invalid metadata keys, must start with a letter, end with an alphanumeric character, and can only contain letters, numbers, underscores, hyphens, and forward slashes")
 		return
 	}
 
@@ -383,7 +382,12 @@ func (r *Router) updateGroup(c *gin.Context) {
 		}
 
 		if !dbtools.IsValidMetadata(current) {
-			sendError(c, http.StatusBadRequest, "invalid metadata keys, must match pattern [a-zA-Z0-9_/]+")
+			sendError(
+				c,
+				http.StatusBadRequest,
+				"invalid metadata keys, must start with a letter, end with an alphanumeric character, and can only contain letters, numbers, underscores, hyphens, and forward slashes",
+			)
+
 			return
 		}
 
