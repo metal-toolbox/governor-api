@@ -25,6 +25,9 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
+// AnnotationLastAppliedConfig is the annotation key for storing the last applied configuration
+const AnnotationLastAppliedConfig = "governor-api/last-applied-configuration"
+
 // createSystemExtensionResource creates a system extension resource
 func createSystemExtensionResource(
 	c *gin.Context,
@@ -368,10 +371,33 @@ func updateSystemExtensionResource(
 		attribute.Int64("requested-resource-version", currentResourceVersion),
 	)
 
+	// record last applied configuration in annotations
+	annotations := map[string]any{}
+
+	if err := json.Unmarshal(er.Annotations, &annotations); err != nil {
+		span.SetStatus(codes.Error, "error unmarshalling existing annotations")
+		span.RecordError(err)
+		sendError(c, http.StatusBadRequest, "error unmarshalling existing annotations: "+err.Error())
+
+		return
+	}
+
+	annotations[AnnotationLastAppliedConfig] = string(er.Resource)
+
+	annotationsBytes, err := json.Marshal(annotations)
+	if err != nil {
+		span.SetStatus(codes.Error, "error marshalling annotations")
+		span.RecordError(err)
+		sendError(c, http.StatusBadRequest, "error marshalling annotations: "+err.Error())
+
+		return
+	}
+
 	// update
 	original := *er
 
 	er.Resource = requestBody
+	er.Annotations = annotationsBytes
 	er.ResourceVersion = time.Now().UnixMilli()
 
 	if len(statusMsgs) > 0 {
@@ -389,7 +415,7 @@ func updateSystemExtensionResource(
 
 	const update = `
 		UPDATE system_extension_resources
-			SET resource = $1, resource_version = $2, messages = $3, updated_at = NOW()
+			SET resource = $1, resource_version = $2, messages = $3, updated_at = NOW(), annotations = $6
 		WHERE 
 			id = $4 AND resource_version = $5
 		RETURNING
@@ -401,6 +427,7 @@ func updateSystemExtensionResource(
 		update,
 		er.Resource, er.ResourceVersion, er.Messages,
 		er.ID, currentResourceVersion,
+		er.Annotations,
 	)
 
 	rows, err := q.QueryContext(ctx, tx)

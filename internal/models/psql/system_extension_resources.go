@@ -34,6 +34,7 @@ type SystemExtensionResource struct {
 	OwnerID                       null.String       `boil:"owner_id" json:"owner_id,omitempty" toml:"owner_id" yaml:"owner_id,omitempty"`
 	ResourceVersion               int64             `boil:"resource_version" json:"resource_version" toml:"resource_version" yaml:"resource_version"`
 	Messages                      types.StringArray `boil:"messages" json:"messages" toml:"messages" yaml:"messages"`
+	Annotations                   types.JSON        `boil:"annotations" json:"annotations" toml:"annotations" yaml:"annotations"`
 
 	R *systemExtensionResourceR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L systemExtensionResourceL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -49,6 +50,7 @@ var SystemExtensionResourceColumns = struct {
 	OwnerID                       string
 	ResourceVersion               string
 	Messages                      string
+	Annotations                   string
 }{
 	ID:                            "id",
 	Resource:                      "resource",
@@ -59,6 +61,7 @@ var SystemExtensionResourceColumns = struct {
 	OwnerID:                       "owner_id",
 	ResourceVersion:               "resource_version",
 	Messages:                      "messages",
+	Annotations:                   "annotations",
 }
 
 var SystemExtensionResourceTableColumns = struct {
@@ -71,6 +74,7 @@ var SystemExtensionResourceTableColumns = struct {
 	OwnerID                       string
 	ResourceVersion               string
 	Messages                      string
+	Annotations                   string
 }{
 	ID:                            "system_extension_resources.id",
 	Resource:                      "system_extension_resources.resource",
@@ -81,6 +85,7 @@ var SystemExtensionResourceTableColumns = struct {
 	OwnerID:                       "system_extension_resources.owner_id",
 	ResourceVersion:               "system_extension_resources.resource_version",
 	Messages:                      "system_extension_resources.messages",
+	Annotations:                   "system_extension_resources.annotations",
 }
 
 // Generated where
@@ -118,6 +123,7 @@ var SystemExtensionResourceWhere = struct {
 	OwnerID                       whereHelpernull_String
 	ResourceVersion               whereHelperint64
 	Messages                      whereHelpertypes_StringArray
+	Annotations                   whereHelpertypes_JSON
 }{
 	ID:                            whereHelperstring{field: "\"system_extension_resources\".\"id\""},
 	Resource:                      whereHelpertypes_JSON{field: "\"system_extension_resources\".\"resource\""},
@@ -128,6 +134,7 @@ var SystemExtensionResourceWhere = struct {
 	OwnerID:                       whereHelpernull_String{field: "\"system_extension_resources\".\"owner_id\""},
 	ResourceVersion:               whereHelperint64{field: "\"system_extension_resources\".\"resource_version\""},
 	Messages:                      whereHelpertypes_StringArray{field: "\"system_extension_resources\".\"messages\""},
+	Annotations:                   whereHelpertypes_JSON{field: "\"system_extension_resources\".\"annotations\""},
 }
 
 // SystemExtensionResourceRels is where relationship names are stored.
@@ -186,9 +193,9 @@ func (r *systemExtensionResourceR) GetOwner() *Group {
 type systemExtensionResourceL struct{}
 
 var (
-	systemExtensionResourceAllColumns            = []string{"id", "resource", "created_at", "updated_at", "deleted_at", "extension_resource_definition_id", "owner_id", "resource_version", "messages"}
+	systemExtensionResourceAllColumns            = []string{"id", "resource", "created_at", "updated_at", "deleted_at", "extension_resource_definition_id", "owner_id", "resource_version", "messages", "annotations"}
 	systemExtensionResourceColumnsWithoutDefault = []string{"resource", "extension_resource_definition_id"}
-	systemExtensionResourceColumnsWithDefault    = []string{"id", "created_at", "updated_at", "deleted_at", "owner_id", "resource_version", "messages"}
+	systemExtensionResourceColumnsWithDefault    = []string{"id", "created_at", "updated_at", "deleted_at", "owner_id", "resource_version", "messages", "annotations"}
 	systemExtensionResourcePrimaryKeyColumns     = []string{"id"}
 	systemExtensionResourceGeneratedColumns      = []string{}
 )
