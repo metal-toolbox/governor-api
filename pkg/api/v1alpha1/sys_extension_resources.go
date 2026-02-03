@@ -392,14 +392,12 @@ func updateSystemExtensionResource(
 	}
 
 	// overwrite with requested
-	if annotations != nil {
-		for k, v := range reqAnnotations {
-			if k == AnnotationLastAppliedConfig {
-				continue
-			}
-
-			annotations[k] = v
+	for k, v := range reqAnnotations {
+		if k == AnnotationLastAppliedConfig {
+			continue
 		}
+
+		annotations[k] = v
 	}
 
 	// overwrite last applied configuration, unless the request asked to keep it unchanged
