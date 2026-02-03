@@ -25,9 +25,6 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-// AnnotationLastAppliedConfig is the annotation key for storing the last applied configuration
-const AnnotationLastAppliedConfig = "governor-api/last-applied-configuration"
-
 // createSystemExtensionResource creates a system extension resource
 func createSystemExtensionResource(
 	c *gin.Context,
@@ -79,10 +76,21 @@ func createSystemExtensionResource(
 		return
 	}
 
+	// annotations
+	annotations, err := json.Marshal(map[string]string{AnnotationLastAppliedConfig: string(requestBody)})
+	if err != nil {
+		span.SetStatus(codes.Error, "error marshalling annotations")
+		span.RecordError(err)
+		sendError(c, http.StatusBadRequest, "error marshalling annotations: "+err.Error())
+
+		return
+	}
+
 	er := &models.SystemExtensionResource{
 		Resource:        requestBody,
 		ResourceVersion: time.Now().UnixMilli(),
 		Messages:        []string{string(bytes)},
+		Annotations:     annotations,
 	}
 
 	if ownerID != "" {
@@ -317,6 +325,7 @@ func updateSystemExtensionResource(
 	db *sqlx.DB, eb *eventbus.Client,
 	ext *models.Extension, erd *models.ExtensionResourceDefinition,
 	resourceID string, requestBody []byte, statusMsgs []string, resourceVersion *int64,
+	reqAnnotations map[string]string,
 ) {
 	ctx, span := tracer.Start(c.Request.Context(), "updateSystemExtensionResource")
 	defer span.End()
@@ -371,18 +380,37 @@ func updateSystemExtensionResource(
 		attribute.Int64("requested-resource-version", currentResourceVersion),
 	)
 
-	// record last applied configuration in annotations
-	annotations := map[string]any{}
+	// merge annotations
+	annotations := map[string]string{}
 
+	// start with current
 	if err := json.Unmarshal(er.Annotations, &annotations); err != nil {
-		span.SetStatus(codes.Error, "error unmarshalling existing annotations")
+		span.SetStatus(codes.Error, "error unmarshalling current annotations")
 		span.RecordError(err)
-		sendError(c, http.StatusBadRequest, "error unmarshalling existing annotations: "+err.Error())
 
-		return
+		// non-fatal error
 	}
 
-	annotations[AnnotationLastAppliedConfig] = string(er.Resource)
+	// overwrite with requested
+	if annotations != nil {
+		for k, v := range reqAnnotations {
+			if k == AnnotationLastAppliedConfig {
+				continue
+			}
+
+			annotations[k] = v
+		}
+	}
+
+	// overwrite last applied configuration, unless the request asked to keep it unchanged
+	if v, ok := reqAnnotations[AnnotationLastAppliedConfig]; !ok || v != "skip" {
+		annotations[AnnotationLastAppliedConfig] = string(er.Resource)
+	}
+
+	span.SetAttributes(
+		attribute.String("requested-last-applied-config", string(reqAnnotations[AnnotationLastAppliedConfig])),
+		attribute.String("last-applied-config", string(annotations[AnnotationLastAppliedConfig])),
+	)
 
 	annotationsBytes, err := json.Marshal(annotations)
 	if err != nil {
@@ -743,6 +771,12 @@ func mkSystemExtensionResource(
 		Status: ExtensionResourceStatus{
 			UpdatedAt: er.UpdatedAt.Format(time.RFC3339),
 		},
+	}
+
+	annotations := map[string]string{}
+
+	if err := json.Unmarshal(er.Annotations, &annotations); err == nil {
+		res.Metadata.Annotations = annotations
 	}
 
 	if er.OwnerID.Valid && er.OwnerID.String != "" {
