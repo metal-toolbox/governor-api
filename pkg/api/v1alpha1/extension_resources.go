@@ -17,6 +17,7 @@ type ExtensionResourceMetadata struct {
 	ID              string                            `json:"id,omitempty"`
 	ResourceVersion int64                             `json:"resource_version,omitempty"`
 	CreatedAt       string                            `json:"created_at,omitempty"`
+	Annotations     map[string]string                 `json:"annotations,omitempty"`
 }
 
 type ExtensionResourceOwnerKind string
@@ -24,6 +25,11 @@ type ExtensionResourceOwnerKind string
 const (
 	ExtensionResourceOwnerKindGroup ExtensionResourceOwnerKind = "group"
 	ExtensionResourceOwnerKindUser  ExtensionResourceOwnerKind = "user"
+
+	// AnnotationLastAppliedConfig is the annotation key for storing the last applied configuration
+	AnnotationLastAppliedConfig = "extensions.v1alpha1.governor-api/last-applied-configuration"
+	// AnnotationResourceError is the annotation key for indicating an error on the resource
+	AnnotationResourceError = "extensions.v1alpha1.governor-api/error"
 )
 
 type ExtensionResourceMetadataOwnerRef struct {
@@ -168,5 +174,10 @@ func (r *Router) updateExtensionResource(c *gin.Context) {
 		r.Logger.Debug("current resource version", zap.Int64("resource_version", *rv))
 	}
 
-	updateSystemExtensionResource(c, r.DB, r.EventBus, extension, erd, rid, req.Spec, msgs, rv)
+	annotations := map[string]string{}
+	if req.Metadata.Annotations != nil {
+		annotations = req.Metadata.Annotations
+	}
+
+	updateSystemExtensionResource(c, r.DB, r.EventBus, extension, erd, rid, req.Spec, msgs, rv, annotations)
 }

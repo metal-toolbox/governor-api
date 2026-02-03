@@ -76,10 +76,21 @@ func createSystemExtensionResource(
 		return
 	}
 
+	// annotations
+	annotations, err := json.Marshal(map[string]string{AnnotationLastAppliedConfig: string(requestBody)})
+	if err != nil {
+		span.SetStatus(codes.Error, "error marshalling annotations")
+		span.RecordError(err)
+		sendError(c, http.StatusBadRequest, "error marshalling annotations: "+err.Error())
+
+		return
+	}
+
 	er := &models.SystemExtensionResource{
 		Resource:        requestBody,
 		ResourceVersion: time.Now().UnixMilli(),
 		Messages:        []string{string(bytes)},
+		Annotations:     annotations,
 	}
 
 	if ownerID != "" {
@@ -314,6 +325,7 @@ func updateSystemExtensionResource(
 	db *sqlx.DB, eb *eventbus.Client,
 	ext *models.Extension, erd *models.ExtensionResourceDefinition,
 	resourceID string, requestBody []byte, statusMsgs []string, resourceVersion *int64,
+	reqAnnotations map[string]string,
 ) {
 	ctx, span := tracer.Start(c.Request.Context(), "updateSystemExtensionResource")
 	defer span.End()
@@ -368,10 +380,50 @@ func updateSystemExtensionResource(
 		attribute.Int64("requested-resource-version", currentResourceVersion),
 	)
 
+	// merge annotations
+	annotations := map[string]string{}
+
+	// start with current
+	if err := json.Unmarshal(er.Annotations, &annotations); err != nil {
+		span.SetStatus(codes.Error, "error unmarshalling current annotations")
+		span.RecordError(err)
+
+		// non-fatal error
+	}
+
+	// overwrite with requested
+	for k, v := range reqAnnotations {
+		if k == AnnotationLastAppliedConfig {
+			continue
+		}
+
+		annotations[k] = v
+	}
+
+	// overwrite last applied configuration, unless the request asked to keep it unchanged
+	if v, ok := reqAnnotations[AnnotationLastAppliedConfig]; !ok || v != "skip" {
+		annotations[AnnotationLastAppliedConfig] = string(er.Resource)
+	}
+
+	span.SetAttributes(
+		attribute.String("requested-last-applied-config", string(reqAnnotations[AnnotationLastAppliedConfig])),
+		attribute.String("last-applied-config", string(annotations[AnnotationLastAppliedConfig])),
+	)
+
+	annotationsBytes, err := json.Marshal(annotations)
+	if err != nil {
+		span.SetStatus(codes.Error, "error marshalling annotations")
+		span.RecordError(err)
+		sendError(c, http.StatusBadRequest, "error marshalling annotations: "+err.Error())
+
+		return
+	}
+
 	// update
 	original := *er
 
 	er.Resource = requestBody
+	er.Annotations = annotationsBytes
 	er.ResourceVersion = time.Now().UnixMilli()
 
 	if len(statusMsgs) > 0 {
@@ -389,7 +441,7 @@ func updateSystemExtensionResource(
 
 	const update = `
 		UPDATE system_extension_resources
-			SET resource = $1, resource_version = $2, messages = $3, updated_at = NOW()
+			SET resource = $1, resource_version = $2, messages = $3, updated_at = NOW(), annotations = $6
 		WHERE 
 			id = $4 AND resource_version = $5
 		RETURNING
@@ -401,6 +453,7 @@ func updateSystemExtensionResource(
 		update,
 		er.Resource, er.ResourceVersion, er.Messages,
 		er.ID, currentResourceVersion,
+		er.Annotations,
 	)
 
 	rows, err := q.QueryContext(ctx, tx)
@@ -716,6 +769,12 @@ func mkSystemExtensionResource(
 		Status: ExtensionResourceStatus{
 			UpdatedAt: er.UpdatedAt.Format(time.RFC3339),
 		},
+	}
+
+	annotations := map[string]string{}
+
+	if err := json.Unmarshal(er.Annotations, &annotations); err == nil {
+		res.Metadata.Annotations = annotations
 	}
 
 	if er.OwnerID.Valid && er.OwnerID.String != "" {
