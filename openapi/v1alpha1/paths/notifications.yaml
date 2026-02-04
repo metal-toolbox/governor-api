@@ -46,9 +46,11 @@ types:
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '../components/schemas.yaml#/NotificationType'
+              oneOf:
+                - type: array
+                  items:
+                    $ref: '../components/schemas.yaml#/NotificationType'
+                - type: 'null'
 
 types-id:
   get:
@@ -88,9 +90,11 @@ targets:
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '../components/schemas.yaml#/NotificationTarget'
+              oneOf:
+                - type: array
+                  items:
+                    $ref: '../components/schemas.yaml#/NotificationTarget'
+                - type: 'null'
 
 targets-id:
   get:

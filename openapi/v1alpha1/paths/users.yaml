@@ -44,9 +44,11 @@ users:
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '../components/schemas/users.yaml#/User'
+              oneOf:
+                - type: array
+                  items:
+                    $ref: '../components/schemas/users.yaml#/User'
+                - type: 'null'
       '400':
         $ref: '../components/responses.yaml#/BadRequest'
       '401':

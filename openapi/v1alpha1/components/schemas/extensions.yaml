@@ -14,9 +14,12 @@ Extension:
     description:
       type: string
       description: Description of the extension
-    version:
+    enabled:
+      type: boolean
+      description: Whether the extension is enabled
+    status:
       type: string
-      description: Version of the extension
+      description: Current status of the extension
     created_at:
       type: string
       format: date-time
@@ -25,11 +28,17 @@ Extension:
       type: string
       format: date-time
       description: Timestamp when the extension was last updated
+    deleted_at:
+      type: [string, "null"]
+      format: date-time
+      description: Timestamp when the extension was deleted, if applicable
   required:
     - id
     - name
     - slug
-    - version
+    - description
+    - enabled
+    - status
     - created_at
     - updated_at
 
@@ -39,38 +48,70 @@ ExtensionResourceDefinition:
     id:
       type: string
       format: uuid
+      description: Unique identifier for the resource definition
     extension_id:
       type: string
       format: uuid
+      description: ID of the parent extension
     name:
       type: string
+      description: Name of the resource definition
     description:
       type: string
-    version:
-      type: string
+      description: Description of the resource definition
+    enabled:
+      type: boolean
+      description: Whether this resource definition is enabled
     slug_singular:
       type: string
+      description: Singular slug for the resource type
     slug_plural:
       type: string
+      description: Plural slug for the resource type
+    version:
+      type: string
+      description: Version of the resource definition
     scope:
       type: string
+      description: Scope of the resource (user, system, etc)
     schema:
       type: object
       additionalProperties: true
+      description: JSON schema for resource validation
     admin_group:
-      type: string
+      type: [string, "null"]
       format: uuid
+      description: ID of the group that administers this resource type
     created_at:
       type: string
       format: date-time
+      description: Timestamp when the definition was created
     updated_at:
       type: string
       format: date-time
-    enabled:
-      type: boolean
+      description: Timestamp when the definition was last updated
+    deleted_at:
+      type: [string, "null"]
+      format: date-time
+      description: Timestamp when the definition was deleted, if applicable
+  required:
+    - id
+    - extension_id
+    - name
+    - description
+    - enabled
+    - slug_singular
+    - slug_plural
+    - version
+    - scope
+    - schema
+    - created_at
+    - updated_at
 
 ExtensionResource:
   type: object
+  description: |
+    Represents an extension resource instance. Extension resources are custom data objects defined by ExtensionResourceDefinitions.
   properties:
     extension:
       type: string
@@ -88,7 +129,9 @@ ExtensionResource:
       additionalProperties: true
       description: Resource specification data
     status:
-      $ref: '#/ExtensionResourceStatus'
+      oneOf:
+        - $ref: '#/ExtensionResourceStatus'
+        - type: "null"
   required:
     - extension
     - kind
@@ -100,13 +143,15 @@ ExtensionResourceMetadata:
   type: object
   properties:
     owner_ref:
-      $ref: '#/ExtensionResourceMetadataOwnerRef'
+      oneOf:
+        - $ref: '#/ExtensionResourceMetadataOwnerRef'
+        - type: "null"
     id:
       type: string
       description: Unique identifier for the extension resource
       readOnly: true
     resource_version:
-      type: integer
+      type: [integer, "null"]
       format: int64
       description: Version number for optimistic concurrency control. Should only be provided on updates (not creates) to ensure the resource hasn't been modified since it was last read.
     created_at:
@@ -152,30 +197,34 @@ ExtensionResourceStatus:
   type: object
   properties:
     state:
-      type: string
+      type: [string, "null"]
       description: Current state of the resource
       readOnly: true
     updated_at:
-      type: string
+      type: [string, "null"]
       format: date-time
       description: Timestamp when the status was last updated
       readOnly: true
     messages:
-      type: array
-      items:
-        type: object
-        additionalProperties: true
+      oneOf:
+        - type: array
+          items:
+            type: object
+            additionalProperties: true
+        - type: "null"
       description: Status messages. Can be updated to track resource state changes.
 
 ExtensionResourceStatusUpdateRequest:
   type: object
   properties:
     messages:
-      type: array
-      items:
-        type: object
-        additionalProperties: true
-      description: Status messages to track resource state changes
+      oneOf:
+        - type: array
+          items:
+            type: object
+            additionalProperties: true
+          description: Status messages to track resource state changes
+        - type: "null"
 
 ExtensionResourceCreateRequest:
   type: object

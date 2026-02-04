@@ -17,27 +17,27 @@ Event:
         type: string
       description: Array of changes made in this event
     actor_id:
-      type: string
+      type: [string, "null"]
       format: uuid
       description: ID of the actor who performed the action
     subject_group_id:
-      type: string
+      type: [string, "null"]
       format: uuid
       description: ID of the group that was the subject of the event (if applicable)
     subject_user_id:
-      type: string
+      type: [string, "null"]
       format: uuid
       description: ID of the user that was the subject of the event (if applicable)
     subject_organization_id:
-      type: string
+      type: [string, "null"]
       format: uuid
       description: ID of the organization that was the subject of the event (if applicable)
     subject_application_id:
-      type: string
+      type: [string, "null"]
       format: uuid
       description: ID of the application that was the subject of the event (if applicable)
     parent_id:
-      type: string
+      type: [string, "null"]
       format: uuid
       description: ID of the parent event (if applicable)
     created_at:

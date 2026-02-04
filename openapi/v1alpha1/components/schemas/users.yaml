@@ -1,22 +1,26 @@
 User:
   type: object
+  description: |
+    Represents a user in the Governor system. Core user object returned by user endpoints (GET /users/:id, POST /users, etc). Contains basic user information and timestamps.
   properties:
     id:
       type: string
       format: uuid
       description: Unique identifier for the user
     name:
-      type: string
+      type: [string, "null"]
       description: Name of the user
     email:
       type: string
       format: email
       description: Email address of the user
     external_id:
-      type: string
+      type: [string, "null"]
       description: External ID for the user from the identity provider
     avatar_url:
-      type: string
+      type: 
+        - string
+        - 'null'
       format: uri
       description: URL to user's profile image
     created_at:
@@ -28,11 +32,11 @@ User:
       format: date-time
       description: Timestamp when the user was last updated
     deleted_at:
-      type: string
+      type: [string, "null"]
       format: date-time
       description: Timestamp when the user was deleted (if applicable)
     metadata:
-      type: object
+      type: [object, "null"]
       additionalProperties: true
       description: Additional metadata for the user
   required:
@@ -43,112 +47,118 @@ User:
 
 UserProfile:
   type: object
+  description: |
+    Extended user profile returned by GET /users/:id. Includes all User fields plus membership information, GitHub details, and metadata.
   properties:
     id:
       type: string
       format: uuid
       description: Unique identifier for the user
     name:
-      type: string
-      description: Name of the user
+      type: [string, "null"]
+      description: Name of the user (optional, can be null)
     email:
       type: string
       format: email
       description: Email address of the user
+    external_id:
+      type: [string, "null"]
+      description: External ID for the user from the identity provider
     avatar_url:
-      type: string
+      type: [string, "null"]
       format: uri
       description: URL to user's profile image
     status:
-      type: string
+      type: [string, "null"]
       enum: [active, inactive, pending, suspended]
       description: Current status of the user account
-    preferences:
-      type: object
-      additionalProperties: true
-      description: User preferences JSON object
     created_at:
       type: string
       format: date-time
       description: Timestamp when the user was created
     updated_at:
-      type: string
+      type: [string, "null"]
       format: date-time
       description: Timestamp when the user was last updated
+    deleted_at:
+      type: [string, "null"]
+      format: date-time
+      description: Timestamp when the user was deleted (if applicable)
+    github_id:
+      type: [string, "null"]
+      description: GitHub user ID if connected with GitHub
     github_username:
-      type: string
+      type: [string, "null"]
       description: GitHub username if connected with GitHub
-  required:
-    - id
-    - name
-    - email
-
-AuthenticatedUser:
-  type: object
-  properties:
-    id:
-      type: string
-      format: uuid
-      description: Unique identifier for the authenticated user
-    name:
-      type: string
-      description: Full name of the authenticated user
-    email:
-      type: string
-      format: email
-      description: Email address of the authenticated user
-    avatar_url:
-      type: string
-      format: uri
-      description: URL to the user's avatar image
-    status:
-      type: string
-      enum: [active, inactive, pending, suspended]
-      description: Current status of the user account
+    metadata:
+      type: [object, "null"]
+      additionalProperties: true
+      description: Additional metadata for the user
+      example:
+        department: "engineering"
+        location: "remote"
+        details: 
+          team: "platform"
+          level: 3
     memberships:
-      type: array
-      items:
-        type: string
-        format: uuid
-      description: List of group IDs the user is a member of (directly or indirectly)
+      oneOf:
+        - type: array
+          items:
+            type: string
+            format: uuid
+          description: List of group IDs the user is a member of (directly or indirectly)
+        - type: "null"
     memberships_direct:
-      type: array
-      items:
-        type: string
-        format: uuid
-      description: List of group IDs the user is directly a member of
+      oneOf:
+        - type: array
+          items:
+            type: string
+            format: uuid
+          description: List of group IDs the user is directly a member of
+        - type: "null"
     membership_requests:
-      type: array
-      items:
-        type: string
-        format: uuid
-      description: List of group IDs the user has requested to join
+      oneOf:
+        - type: array
+          items:
+            type: string
+            format: uuid
+          description: List of group IDs the user has requested to join
+        - type: "null"
     notification_preferences:
       $ref: '../schemas/notifications.yaml#/NotificationPreferences'
-    admin:
-      type: boolean
-      description: Whether the user has admin privileges
   required:
     - id
-    - name
     - email
-    - admin
+
+AuthenticatedUserProfile:
+  type: object
+  description: Profile of the authenticated user. Extends UserProfile with admin flag. Used in GET /user endpoint.
+  allOf:
+    - $ref: '#/UserProfile'
+    - type: object
+      properties:
+        admin:
+          type: boolean
+          description: Whether the user has admin privileges
+      required:
+        - admin
 
 AuthenticatedUserRequestPayload:
   type: object
   properties:
     avatar_url:
-      type: string
+      type: [string, "null"]
       format: uri
       description: URL to the user's avatar image
     github_username:
-      type: string
+      type: [string, "null"]
       description: GitHub username if connected with GitHub
     notification_preferences:
       $ref: '../schemas/notifications.yaml#/UserNotificationPreferencesUpdate'
 
 UserCreateRequest:
   type: object
+  description: Request payload for creating a new user (POST /users). Requires name and email; other fields are optional.
   properties:
     name:
       type: string
@@ -160,16 +170,16 @@ UserCreateRequest:
       description: Email address of the user
       examples: ["jane.smith@example.com"]
     external_id:
-      type: string
+      type: [string, "null"]
       description: External identity provider user ID
       examples: ["auth0|123456789"]
     avatar_url:
-      type: string
+      type: [string, "null"]
       format: uri
       description: URL to the user's avatar image
       examples: ["https://example.com/avatars/jane.jpg"]
     github_username:
-      type: string
+      type: [string, "null"]
       description: GitHub username if connected with GitHub
       examples: ["jane-dev"]
     status:
@@ -193,20 +203,21 @@ UserCreateRequest:
 
 UserUpdateRequest:
   type: object
+  description: Request payload for updating an existing user (PUT /users/:id). All fields are optional and nullable for partial updates.
   properties:
     name:
-      type: string
+      type: [string, "null"]
       description: Full name of the user
     email:
-      type: string
+      type: [string, "null"]
       format: email
       description: Email address of the user
     avatar_url:
-      type: string
+      type: [string, "null"]
       format: uri
       description: URL to the user's avatar image
     github_username:
-      type: string
+      type: [string, "null"]
       description: GitHub username if connected with GitHub
     status:
       type: string
@@ -231,3 +242,44 @@ UserWithMemberships:
           items:
             $ref: '../schemas/groups.yaml#/GroupMembership'
           description: Group memberships for this user
+
+AuthenticatedUserGroupApplicationRequest:
+  type: object
+  description: Group application request shown to authenticated user in GET /user/groups/approvals. Extends GroupApplicationRequest.
+  allOf:
+    - $ref: '../schemas/groups.yaml#/GroupApplicationRequest'
+
+AuthenticatedUserGroupMemberRequest:
+  type: object
+  description: Group membership request shown to authenticated user in GET /user/groups/approvals or GET /user/groups/requests. Extends GroupMemberRequest with additional admin flag.
+  allOf:
+    - $ref: '../schemas/groups.yaml#/GroupMemberRequest'
+    - type: object
+      properties:
+        admin:
+          type: boolean
+          description: Whether the authenticated user is an admin of the group being requested
+      required:
+        - admin
+
+AuthenticatedUserRequests:
+  type: object
+  description: Combined response for GET /user/groups/approvals and GET /user/groups/requests endpoints. Contains both application requests and member requests.
+  properties:
+    application_requests:
+      oneOf:
+        - type: array
+          items:
+            $ref: '#/AuthenticatedUserGroupApplicationRequest'
+        - type: 'null'
+      description: List of group application requests the user can approve or has made
+    member_requests:
+      oneOf:
+        - type: array
+          items:
+            $ref: '#/AuthenticatedUserGroupMemberRequest'
+        - type: 'null'
+      description: List of group membership requests the user can approve or has made
+  required:
+    - application_requests
+    - member_requests

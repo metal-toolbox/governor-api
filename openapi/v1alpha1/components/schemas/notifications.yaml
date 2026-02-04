@@ -1,45 +1,50 @@
 NotificationPreferences:
-  type: object
-  properties:
-    user_id:
-      type: string
-      format: uuid
-      description: ID of the user these preferences belong to
-    preferences:
-      type: array
-      items:
-        $ref: '#/NotificationPreference'
-      description: List of notification preferences for the user
-  required:
-    - user_id
-    - preferences
+  type: array
+  items:
+    $ref: '#/UserNotificationPreference'
+  description: List of user notification preferences
 
-NotificationPreference:
+UserNotificationPreference:
   type: object
   properties:
-    notification_type_id:
+    notification_type:
       type: string
-      format: uuid
-      description: ID of the notification type
-    notification_target_id:
-      type: string
-      format: uuid
-      description: ID of the notification target (if applicable)
+      description: Slug identifier for the notification type
     enabled:
-      type: boolean
-      description: Whether this notification preference is enabled
+      type: [boolean, "null"]
+      description: Whether this notification type is enabled
+    notification_targets:
+      oneOf:
+        - type: array
+          items:
+            $ref: '#/UserNotificationPreferenceTarget'
+          description: Notification targets for this preference
+        - type: "null"
   required:
-    - notification_type_id
-    - enabled
+    - notification_type
+
+UserNotificationPreferenceTarget:
+  type: object
+  properties:
+    target:
+      type: string
+      description: Target slug identifier (e.g., email, slack, webhook)
+    enabled:
+      type: [boolean, "null"]
+      description: Whether notifications to this target are enabled
+  required:
+    - target
 
 NotificationPreferencesUpdateRequest:
   type: object
   properties:
     preferences:
-      type: array
-      items:
-        $ref: '#/NotificationPreference'
-      description: List of notification preferences to update
+      oneOf:
+        - type: array
+          items:
+            $ref: '#/UserNotificationPreference'
+          description: List of notification preferences to update
+        - type: "null"
   required:
     - preferences
 
@@ -47,28 +52,32 @@ UserNotificationPreferencesUpdate:
   type: object
   properties:
     channels:
-      type: object
-      properties:
-        email:
-          type: boolean
-        slack:
-          type: boolean
-        webhook:
-          type: boolean
-      description: Notification channels to enable/disable
+      oneOf:
+        - type: [object, "null"]
+          properties:
+            email:
+              type: boolean
+            slack:
+              type: boolean
+            webhook:
+              type: boolean
+          description: Notification channels to enable/disable
+        - type: "null"
     notification_types:
-      type: object
-      additionalProperties:
-        type: object
-        properties:
-          enabled:
-            type: boolean
-          channels:
-            type: array
-            items:
-              type: string
-              enum: [email, slack, webhook]
-      description: Settings for specific notification types
+      oneOf:
+        - type: [object, "null"]
+          additionalProperties:
+            type: object
+            properties:
+              enabled:
+                type: boolean
+              channels:
+                type: array
+                items:
+                  type: string
+                  enum: [email, slack, webhook]
+          description: Settings for specific notification types
+        - type: "null"
 
 NotificationType:
   type: object
@@ -80,51 +89,58 @@ NotificationType:
     name:
       type: string
       description: Name of the notification type
+    slug:
+      type: string
+      description: Unique slug identifier for the notification type
     description:
       type: string
       description: Description of the notification type
-    key:
-      type: string
-      description: Unique key identifier for the notification type
     default_enabled:
       type: boolean
       description: Whether this type is enabled by default
-    available_channels:
-      type: array
-      items:
-        type: string
-        enum: [email, slack, webhook]
-      description: Channels available for this notification type
+    created_at:
+      type: string
+      format: date-time
+      description: Timestamp when the notification type was created
+    updated_at:
+      type: string
+      format: date-time
+      description: Timestamp when the notification type was last updated
+    deleted_at:
+      type: [string, "null"]
+      format: date-time
+      description: Timestamp when the notification type was deleted, if applicable
   required:
     - id
     - name
-    - key
+    - slug
+    - description
+    - default_enabled
+    - created_at
+    - updated_at
 
 NotificationTarget:
   type: object
+  description: |
+    System-level notification target configuration (e.g., email, Slack, webhook).
+    These define the available notification channels in the system.
   properties:
     id:
       type: string
       format: uuid
       description: Unique identifier for the notification target
-    user_id:
+    name:
       type: string
-      format: uuid
-      description: ID of the user this target belongs to
-    type:
+      description: Name of the notification target
+    slug:
       type: string
-      enum: [email, slack, webhook]
-      description: Type of notification target
-    value:
+      description: Unique slug identifier for the notification target
+    description:
       type: string
-      description: Target value (email address, Slack handle, webhook URL)
-    verified:
+      description: Description of the notification target
+    default_enabled:
       type: boolean
-      description: Whether this target has been verified
-    verified_at:
-      type: string
-      format: date-time
-      description: Timestamp when the target was verified
+      description: Whether this target is enabled by default for new users
     created_at:
       type: string
       format: date-time
@@ -133,8 +149,15 @@ NotificationTarget:
       type: string
       format: date-time
       description: Timestamp when the target was last updated
+    deleted_at:
+      type: [string, "null"]
+      format: date-time
+      description: Timestamp when the target was deleted, if applicable
   required:
     - id
-    - user_id
-    - type
-    - value
+    - name
+    - slug
+    - description
+    - default_enabled
+    - created_at
+    - updated_at
