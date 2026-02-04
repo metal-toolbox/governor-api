@@ -6,17 +6,19 @@ User:
       format: uuid
       description: Unique identifier for the user
     name:
-      type: string
+      type: [string, "null"]
       description: Name of the user
     email:
       type: string
       format: email
       description: Email address of the user
     external_id:
-      type: string
+      type: [string, "null"]
       description: External ID for the user from the identity provider
     avatar_url:
-      type: string
+      type: 
+        - string
+        - 'null'
       format: uri
       description: URL to user's profile image
     created_at:
@@ -28,7 +30,7 @@ User:
       format: date-time
       description: Timestamp when the user was last updated
     deleted_at:
-      type: string
+      type: [string, "null"]
       format: date-time
       description: Timestamp when the user was deleted (if applicable)
     metadata:
@@ -49,62 +51,51 @@ UserProfile:
       format: uuid
       description: Unique identifier for the user
     name:
-      type: string
+      type: [string, "null"]
       description: Name of the user
     email:
       type: string
       format: email
       description: Email address of the user
+    external_id:
+      type: [string, "null"]
+      description: External ID for the user from the identity provider
     avatar_url:
-      type: string
+      type: [string, "null"]
       format: uri
       description: URL to user's profile image
     status:
-      type: string
+      type: [string, "null"]
       enum: [active, inactive, pending, suspended]
       description: Current status of the user account
-    preferences:
-      type: object
-      additionalProperties: true
-      description: User preferences JSON object
     created_at:
       type: string
       format: date-time
       description: Timestamp when the user was created
     updated_at:
-      type: string
+      type: [string, "null"]
       format: date-time
       description: Timestamp when the user was last updated
+    deleted_at:
+      type: [string, "null"]
+      format: date-time
+      description: Timestamp when the user was deleted (if applicable)
+    github_id:
+      type: [string, "null"]
+      description: GitHub user ID if connected with GitHub
     github_username:
-      type: string
+      type: [string, "null"]
       description: GitHub username if connected with GitHub
-  required:
-    - id
-    - name
-    - email
-
-AuthenticatedUser:
-  type: object
-  properties:
-    id:
-      type: string
-      format: uuid
-      description: Unique identifier for the authenticated user
-    name:
-      type: string
-      description: Full name of the authenticated user
-    email:
-      type: string
-      format: email
-      description: Email address of the authenticated user
-    avatar_url:
-      type: string
-      format: uri
-      description: URL to the user's avatar image
-    status:
-      type: string
-      enum: [active, inactive, pending, suspended]
-      description: Current status of the user account
+    metadata:
+      type: [object, "null"]
+      additionalProperties: true
+      description: Additional metadata for the user
+      example:
+        department: "engineering"
+        location: "remote"
+        details: 
+          team: "platform"
+          level: 3
     memberships:
       type: array
       items:
@@ -125,24 +116,32 @@ AuthenticatedUser:
       description: List of group IDs the user has requested to join
     notification_preferences:
       $ref: '../schemas/notifications.yaml#/NotificationPreferences'
-    admin:
-      type: boolean
-      description: Whether the user has admin privileges
   required:
     - id
     - name
     - email
-    - admin
+
+AuthenticatedUserProfile:
+  type: object
+  allOf:
+    - $ref: '#/UserProfile'
+    - type: object
+      properties:
+        admin:
+          type: boolean
+          description: Whether the user has admin privileges
+      required:
+        - admin
 
 AuthenticatedUserRequestPayload:
   type: object
   properties:
     avatar_url:
-      type: string
+      type: [string, "null"]
       format: uri
       description: URL to the user's avatar image
     github_username:
-      type: string
+      type: [string, "null"]
       description: GitHub username if connected with GitHub
     notification_preferences:
       $ref: '../schemas/notifications.yaml#/UserNotificationPreferencesUpdate'
@@ -160,16 +159,16 @@ UserCreateRequest:
       description: Email address of the user
       examples: ["jane.smith@example.com"]
     external_id:
-      type: string
+      type: [string, "null"]
       description: External identity provider user ID
       examples: ["auth0|123456789"]
     avatar_url:
-      type: string
+      type: [string, "null"]
       format: uri
       description: URL to the user's avatar image
       examples: ["https://example.com/avatars/jane.jpg"]
     github_username:
-      type: string
+      type: [string, "null"]
       description: GitHub username if connected with GitHub
       examples: ["jane-dev"]
     status:
@@ -195,18 +194,18 @@ UserUpdateRequest:
   type: object
   properties:
     name:
-      type: string
+      type: [string, "null"]
       description: Full name of the user
     email:
-      type: string
+      type: [string, "null"]
       format: email
       description: Email address of the user
     avatar_url:
-      type: string
+      type: [string, "null"]
       format: uri
       description: URL to the user's avatar image
     github_username:
-      type: string
+      type: [string, "null"]
       description: GitHub username if connected with GitHub
     status:
       type: string

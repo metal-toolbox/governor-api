@@ -5,6 +5,10 @@ User:
   $ref: './schemas/users.yaml#/User'
 UserProfile:
   $ref: './schemas/users.yaml#/UserProfile'
+AuthenticatedUserProfile:
+  $ref: './schemas/users.yaml#/AuthenticatedUserProfile'
+AuthenticatedUserRequestPayload:
+  $ref: './schemas/users.yaml#/AuthenticatedUserRequestPayload'
 
 # Group schemas
 Group:

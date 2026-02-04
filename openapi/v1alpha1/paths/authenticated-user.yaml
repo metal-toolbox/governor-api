@@ -1,6 +1,6 @@
 user-groups:
   get:
-    summary: Get authenticated user's groups
+    summary: Get current user's groups
     operationId: getAuthenticatedUserGroups
     tags:
       - AuthenticatedUser
@@ -22,7 +22,7 @@ user-groups:
 
 user-groups-id:
   delete:
-    summary: Remove authenticated user from a group
+    summary: Remove current user from a group
     operationId: removeAuthenticatedUserGroup
     tags:
       - AuthenticatedUser
@@ -47,7 +47,7 @@ user-groups-id:
 
 user-groups-requests:
   get:
-    summary: Get authenticated user's group requests
+    summary: Get current user's group requests
     operationId: getAuthenticatedUserGroupRequests
     tags:
       - AuthenticatedUser
@@ -63,7 +63,7 @@ user-groups-requests:
 
 user-groups-approvals:
   get:
-    summary: Get authenticated user's group approvals
+    summary: Get current user's group approvals
     operationId: getAuthenticatedUserGroupApprovals
     tags:
       - AuthenticatedUser
@@ -79,7 +79,7 @@ user-groups-approvals:
 
 user:
   get:
-    summary: Get authenticated user's profile
+    summary: Get current user's profile
     operationId: getAuthenticatedUserProfile
     tags:
       - AuthenticatedUser
@@ -91,14 +91,14 @@ user:
         content:
           application/json:
             schema:
-              $ref: '../components/schemas.yaml#/UserProfile'
+              $ref: '../components/schemas.yaml#/AuthenticatedUserProfile'
       '401':
         $ref: '../components/responses.yaml#/Unauthorized'
       '500':
         $ref: '../components/responses.yaml#/InternalError'
 
   put:
-    summary: Update authenticated user's profile
+    summary: Update current user's profile
     operationId: updateAuthenticatedUserProfile
     tags:
       - AuthenticatedUser
@@ -109,7 +109,7 @@ user:
       content:
         application/json:
           schema:
-            $ref: '../components/schemas.yaml#/UserProfile'
+            $ref: '../components/schemas.yaml#/AuthenticatedUserRequestPayload'
     responses:
       '200':
         description: Successful response

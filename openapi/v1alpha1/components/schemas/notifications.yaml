@@ -1,36 +1,40 @@
 NotificationPreferences:
-  type: object
-  properties:
-    user_id:
-      type: string
-      format: uuid
-      description: ID of the user these preferences belong to
-    preferences:
-      type: array
-      items:
-        $ref: '#/NotificationPreference'
-      description: List of notification preferences for the user
-  required:
-    - user_id
-    - preferences
+  type: array
+  items:
+    $ref: '#/UserNotificationPreference'
+  nullable: true
+  description: List of user notification preferences
 
-NotificationPreference:
+UserNotificationPreference:
   type: object
   properties:
-    notification_type_id:
+    notification_type:
       type: string
-      format: uuid
-      description: ID of the notification type
-    notification_target_id:
-      type: string
-      format: uuid
-      description: ID of the notification target (if applicable)
+      description: Slug identifier for the notification type
     enabled:
       type: boolean
-      description: Whether this notification preference is enabled
+      nullable: true
+      description: Whether this notification type is enabled
+    notification_targets:
+      type: array
+      items:
+        $ref: '#/UserNotificationPreferenceTarget'
+      description: Notification targets for this preference
   required:
-    - notification_type_id
-    - enabled
+    - notification_type
+
+UserNotificationPreferenceTarget:
+  type: object
+  properties:
+    target:
+      type: string
+      description: Target slug identifier (e.g., email, slack, webhook)
+    enabled:
+      type: boolean
+      nullable: true
+      description: Whether notifications to this target are enabled
+  required:
+    - target
 
 NotificationPreferencesUpdateRequest:
   type: object
@@ -38,7 +42,7 @@ NotificationPreferencesUpdateRequest:
     preferences:
       type: array
       items:
-        $ref: '#/NotificationPreference'
+        $ref: '#/UserNotificationPreference'
       description: List of notification preferences to update
   required:
     - preferences
