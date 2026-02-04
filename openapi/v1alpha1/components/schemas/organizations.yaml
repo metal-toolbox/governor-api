@@ -1,5 +1,7 @@
 Organization:
   type: object
+  description: |
+    Represents an organization in the Governor system. Organizations are used to group teams/groups together for organizational hierarchy.
   properties:
     id:
       type: string
@@ -20,7 +22,7 @@ Organization:
       format: date-time
       description: Timestamp when the organization was last updated
     deleted_at:
-      type: string
+      type: [string, "null"]
       format: date-time
       description: Timestamp when the organization was deleted (if applicable)
   required:
@@ -32,6 +34,7 @@ Organization:
 
 OrganizationCreateRequest:
   type: object
+  description: Request payload for creating a new organization (POST /organizations). Requires the organization name.
   properties:
     name:
       type: string

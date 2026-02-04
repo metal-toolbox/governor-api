@@ -88,9 +88,11 @@ extensions:
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '../components/schemas.yaml#/Extension'
+              oneOf:
+                - type: array
+                  items:
+                    $ref: '../components/schemas.yaml#/Extension'
+                - type: 'null'
     security:
       - bearerAuth: []
       - oauth2ClientCredentials: ['governor:extensions:read']
@@ -136,9 +138,11 @@ erds:
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '../components/schemas.yaml#/ExtensionResourceDefinition'
+              oneOf:
+                - type: array
+                  items:
+                    $ref: '../components/schemas.yaml#/ExtensionResourceDefinition'
+                - type: "null"
     security:
       - bearerAuth: []
       - oauth2ClientCredentials: ['governor:extensions:read']
@@ -542,9 +546,11 @@ resources:
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '../components/schemas.yaml#/ExtensionResource'
+              oneOf:
+                - type: array
+                  items:
+                    $ref: '../components/schemas.yaml#/ExtensionResource'
+                - type: "null"
     security:
       - bearerAuth: []
       - oauth2ClientCredentials: ['governor:extensionresources:read']
@@ -721,9 +727,11 @@ users-resources:
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '../components/schemas.yaml#/ExtensionResource'
+              oneOf:
+                - type: array
+                  items:
+                    $ref: '../components/schemas.yaml#/ExtensionResource'
+                - type: "null"
       '401':
         $ref: '../openapi.yaml#/components/responses/Unauthorized'
       '403':

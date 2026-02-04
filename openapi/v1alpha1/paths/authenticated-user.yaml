@@ -12,9 +12,11 @@ user-groups:
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '../components/schemas.yaml#/Group'
+              oneOf:
+                - type: array
+                  items:
+                    $ref: '../components/schemas.yaml#/Group'
+                - type: 'null'
       '401':
         $ref: '../components/responses.yaml#/Unauthorized'
       '500':
@@ -48,6 +50,7 @@ user-groups-id:
 user-groups-requests:
   get:
     summary: Get current user's group requests
+    description: Returns a list of group membership requests and application requests that the authenticated user has made
     operationId: getAuthenticatedUserGroupRequests
     tags:
       - AuthenticatedUser
@@ -57,13 +60,12 @@ user-groups-requests:
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '../components/schemas.yaml#/GroupRequest'
+              $ref: '../components/schemas.yaml#/AuthenticatedUserRequests'
 
 user-groups-approvals:
   get:
     summary: Get current user's group approvals
+    description: Returns a list of group membership requests and application requests that the authenticated user can approve
     operationId: getAuthenticatedUserGroupApprovals
     tags:
       - AuthenticatedUser
@@ -73,9 +75,7 @@ user-groups-approvals:
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '../components/schemas.yaml#/GroupApproval'
+              $ref: '../components/schemas.yaml#/AuthenticatedUserRequests'
 
 user:
   get:

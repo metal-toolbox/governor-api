@@ -9,12 +9,20 @@ AuthenticatedUserProfile:
   $ref: './schemas/users.yaml#/AuthenticatedUserProfile'
 AuthenticatedUserRequestPayload:
   $ref: './schemas/users.yaml#/AuthenticatedUserRequestPayload'
+AuthenticatedUserRequests:
+  $ref: './schemas/users.yaml#/AuthenticatedUserRequests'
+AuthenticatedUserGroupApplicationRequest:
+  $ref: './schemas/users.yaml#/AuthenticatedUserGroupApplicationRequest'
+AuthenticatedUserGroupMemberRequest:
+  $ref: './schemas/users.yaml#/AuthenticatedUserGroupMemberRequest'
 
 # Group schemas
 Group:
   $ref: './schemas/groups.yaml#/Group'
-GroupRequest:
-  $ref: './schemas/groups.yaml#/GroupRequest'
+GroupMemberRequest:
+  $ref: './schemas/groups.yaml#/GroupMemberRequest'
+GroupMember:
+  $ref: './schemas/groups.yaml#/GroupMember'
 GroupApproval:
   $ref: './schemas/groups.yaml#/GroupApproval'
 GroupMembership:
@@ -25,10 +33,6 @@ GroupCreateRequest:
   $ref: './schemas/groups.yaml#/GroupCreateRequest'
 GroupUpdateRequest:
   $ref: './schemas/groups.yaml#/GroupUpdateRequest'
-GroupMember:
-  $ref: './schemas/groups.yaml#/GroupMember'
-GroupMembershipRequest:
-  $ref: './schemas/groups.yaml#/GroupMembershipRequest'
 GroupMemberUpdate:
   $ref: './schemas/groups.yaml#/GroupMemberUpdate'
 GroupHierarchyRequest:
@@ -43,8 +47,6 @@ GroupRequestProcessingAction:
   $ref: './schemas/groups.yaml#/GroupRequestProcessingAction'
 CreateGroupMemberRequestPayload:
   $ref: './schemas/groups.yaml#/CreateGroupMemberRequestPayload'
-GroupMemberRequest:
-  $ref: './schemas/groups.yaml#/GroupMemberRequest'
 GroupOrganizationLink:
   $ref: './schemas/groups.yaml#/GroupOrganizationLink'
 AuthenticatedUserGroup:
@@ -62,7 +64,7 @@ GroupApplication:
 GroupApplicationRequest:
   $ref: './schemas/groups.yaml#/GroupApplicationRequest'
 CreateGroupApplicationRequest:
-  $ref: './schemas/groups.yaml#/CreateGroupApp'
+  $ref: './schemas/groups.yaml#/CreateGroupApplicationRequest'
 GroupApplicationRequestAction:
   $ref: './schemas/groups.yaml#/GroupApplicationRequestAction'
 

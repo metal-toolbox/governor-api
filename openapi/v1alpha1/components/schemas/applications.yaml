@@ -1,5 +1,7 @@
 Application:
   type: object
+  description: |
+    Represents an application in the Governor system. Applications are linked to groups to control access. Returned by application endpoints.
   properties:
     id:
       type: string
@@ -20,17 +22,22 @@ Application:
       format: date-time
       description: Timestamp when the application was last updated
     deleted_at:
-      type: string
+      type: [string, "null"]
       format: date-time
       description: Timestamp when the application was deleted, if applicable
     approver_group_id:
-      type: string
+      type: [string, "null"]
       format: uuid
       description: ID of the group that approves application access requests
     type_id:
-      type: string
+      type: [string, "null"]
       format: uuid
       description: ID of the application type
+    type:
+      description: The application type details, included when populated
+      oneOf:
+        - $ref: '#/ApplicationType'
+        - type: "null"
   required:
     - id
     - name
@@ -55,7 +62,7 @@ ApplicationType:
       type: string
       description: Description of the application type
     logo_url:
-      type: string
+      type: [string, "null"]
       format: uri
       description: URL to the logo image for this application type
     created_at:
@@ -67,7 +74,7 @@ ApplicationType:
       format: date-time
       description: Timestamp when the application type was last updated
     deleted_at:
-      type: string
+      type: [string, "null"]
       format: date-time
       description: Timestamp when the application type was deleted, if applicable
   required:
@@ -89,6 +96,7 @@ ApplicationWithType:
 
 ApplicationRequest:
   type: object
+  description: Request payload for creating or updating an application (POST /applications, PUT /applications/:id).
   properties:
     name:
       type: string
@@ -100,7 +108,7 @@ ApplicationRequest:
       description: ID of the application type
       examples: ["3fa85f64-5717-4562-b3fc-2c963f66afa6"]
     approver_group_id:
-      type: string
+      type: [string, "null"]
       format: uuid
       description: ID of the group that approves application access requests (if needed)
   required:
@@ -119,7 +127,7 @@ ApplicationTypeRequest:
       description: Description of the application type
       examples: ["Database services that require access management"]
     logo_url:
-      type: string
+      type: [string, "null"]
       format: uri
       description: URL to the logo image for this application type
       examples: ["https://example.com/logos/database.png"]

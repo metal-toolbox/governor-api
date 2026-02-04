@@ -21,9 +21,11 @@ organizations:
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '../components/schemas/organizations.yaml#/Organization'
+              oneOf:
+                - type: array
+                  items:
+                    $ref: '../components/schemas/organizations.yaml#/Organization'
+                - type: 'null'
       '400':
         $ref: '../components/responses.yaml#/BadRequest'
       '401':
@@ -164,9 +166,11 @@ organizations-id-groups:
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '../components/schemas.yaml#/GroupListItem'
+              oneOf:
+                - type: array
+                  items:
+                    $ref: '../components/schemas.yaml#/GroupListItem'
+                - type: 'null'
       '400':
         $ref: '../components/responses.yaml#/BadRequest'
       '401':

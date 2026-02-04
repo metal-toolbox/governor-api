@@ -31,9 +31,11 @@ groups:
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '../components/schemas.yaml#/GroupListItem'
+              oneOf:
+                - type: array
+                  items:
+                    $ref: '../components/schemas.yaml#/GroupListItem'
+                - type: 'null'
       '400':
         $ref: '../components/responses.yaml#/BadRequest'
       '401':
@@ -141,8 +143,18 @@ groups-id:
         schema:
           type: string
     responses:
-      '204':
-        description: No content
+      '202':
+        description: Group deletion accepted
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/Group'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
 
 requests:
   get:
@@ -159,9 +171,11 @@ requests:
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '../components/schemas.yaml#/GroupRequest'
+              oneOf:
+                - type: array
+                  items:
+                    $ref: '../components/schemas.yaml#/GroupMemberRequest'
+                - type: 'null'
 
 memberships:
   get:
@@ -178,9 +192,11 @@ memberships:
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '../components/schemas.yaml#/GroupMembership'
+              oneOf:
+                - type: array
+                  items:
+                    $ref: '../components/schemas.yaml#/GroupMembership'
+                - type: 'null'
 
 hierarchies:
   get:
@@ -197,9 +213,11 @@ hierarchies:
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '../components/schemas.yaml#/GroupHierarchy'
+              oneOf:
+                - type: array
+                  items:
+                    $ref: '../components/schemas.yaml#/GroupHierarchy'
+                - type: 'null'
 
 groups-id-events:
   get:
@@ -268,9 +286,11 @@ groups-id-requests:
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '../components/schemas.yaml#/GroupRequest'
+              oneOf:
+                - type: array
+                  items:
+                    $ref: '../components/schemas.yaml#/GroupMemberRequest'
+                - type: 'null'
 
   post:
     summary: Create a request to join a group or request admin promotion
@@ -394,9 +414,11 @@ groups-id-users:
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '../components/schemas.yaml#/GroupMember'
+              oneOf:
+                - type: array
+                  items:
+                    $ref: '../components/schemas.yaml#/GroupMember'
+                - type: 'null'
       '401':
         $ref: '../components/responses.yaml#/Unauthorized'
       '404':
@@ -431,7 +453,7 @@ groups-id-users-uid:
       content:
         application/json:
           schema:
-            $ref: '../components/schemas.yaml#/GroupMembershipRequest'
+            $ref: '../components/schemas.yaml#/GroupMemberRequest'
     responses:
       '204':
         description: User successfully added to group
@@ -544,9 +566,11 @@ groups-id-hierarchies:
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '../components/schemas.yaml#/GroupHierarchy'
+              oneOf:
+                - type: array
+                  items:
+                    $ref: '../components/schemas.yaml#/GroupHierarchy'
+                - type: 'null'
       '401':
         $ref: '../components/responses.yaml#/Unauthorized'
       '404':
@@ -759,9 +783,11 @@ groups-id-apprequests:
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '../components/schemas.yaml#/GroupApplicationRequest'
+              oneOf:
+                - type: array
+                  items:
+                    $ref: '../components/schemas.yaml#/GroupApplicationRequest'
+                -  type: 'null'
       '401':
         $ref: '../components/responses.yaml#/Unauthorized'
       '404':

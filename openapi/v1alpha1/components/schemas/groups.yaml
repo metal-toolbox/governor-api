@@ -1,5 +1,7 @@
 Group:
   type: object
+  description: |
+    Represents a group in the Governor system. Core group object returned by group endpoints (GET /groups/:id, POST /groups, etc).
   properties:
     id:
       type: string
@@ -15,11 +17,11 @@ Group:
       type: string
       description: Description of the group
     note:
-      type: string
+      type: [string, "null"]
       description: Additional notes or comments about the group
       default: ""
     approver_group:
-      type: string
+      type: [string, "null"]
       format: uuid
       description: ID of the group that approves membership requests for this group
     created_at:
@@ -31,38 +33,48 @@ Group:
       format: date-time
       description: Timestamp when the group was last updated
     deleted_at:
-      type: string
+      type: [string, "null"]
       format: date-time
       description: Timestamp when the group was soft-deleted, null if active
     members:
-      type: array
-      items:
-        type: string
-        format: uuid
+      oneOf:
+        - type: array
+          items:
+            type: string
+            format: uuid
+        - type: 'null'
       description: List of user IDs that are members of this group
     members_direct:
-      type: array
-      items:
-        type: string
-        format: uuid
+      oneOf:
+        - type: array
+          items:
+            type: string
+            format: uuid
+        - type: 'null'
       description: List of user IDs that are direct members of this group
     membership_requests:
-      type: array
-      items:
-        type: string
-        format: uuid
+      oneOf:
+        - type: array
+          items:
+            type: string
+            format: uuid
+        - type: 'null'
       description: List of user IDs with pending membership requests
     organizations:
-      type: array
-      items:
-        type: string
-        format: uuid
+      oneOf:
+        - type: array
+          items:
+            type: string
+            format: uuid
+        - type: 'null'
       description: List of organization IDs this group belongs to
     applications:
-      type: array
-      items:
-        type: string
-        format: uuid
+      oneOf:
+        - type: array
+          items:
+            type: string
+            format: uuid
+        - type: 'null'
       description: List of application IDs associated with this group
     metadata:
       type: object
@@ -72,56 +84,82 @@ Group:
     - id
     - name
     - slug
-    - description
     - created_at
     - updated_at
 
-GroupRequest:
+GroupMemberRequest:
   type: object
+  description: |
+    A pending request from a user to join a group or request admin promotion.
+    This is an enriched view that includes user and group details for display purposes.
   properties:
     id:
       type: string
       format: uuid
-      description: Unique identifier for the group request
-    user_id:
-      type: string
-      format: uuid
-      description: ID of the user requesting to join the group
+      description: Unique identifier for the membership request
     group_id:
       type: string
       format: uuid
-      description: ID of the group the user is requesting to join
-    status:
+      description: ID of the group being requested
+    group_name:
       type: string
-      enum: [pending, approved, rejected]
-      description: Status of the request
-    requested_at:
+      description: Name of the group being requested
+    group_slug:
+      type: string
+      description: Slug of the group being requested
+    user_id:
+      type: string
+      format: uuid
+      description: ID of the user making the request
+    user_name:
+      type: [string, "null"]
+      description: Name of the user making the request
+    user_email:
+      type: [string, "null"]
+      format: email
+      description: Email of the user making the request
+    user_avatar_url:
+      type: [string, "null"]
+      description: Avatar URL of the user making the request
+    created_at:
       type: string
       format: date-time
-      description: Timestamp when the request was made
-    processed_at:
-      type: string
+      description: Timestamp when the request was created
+    updated_at:
+      type: [string, "null"]
       format: date-time
-      description: Timestamp when the request was processed
-    request_reason:
-      type: string
-      description: Reason provided by the user for joining the group
-    processed_reason:
-      type: string
-      description: Reason provided by the approver for processing the request
+      description: Timestamp when the request was last updated
     is_admin:
       type: boolean
-      description: Whether the user is requesting admin privileges
+      description: Whether admin privileges are being requested
+    note:
+      type: string
+      description: Note or reason provided with the request
+    expires_at:
+      type: [string, "null"]
+      format: date-time
+      description: When the membership should expire (if approved)
+    admin_expires_at:
+      type: [string, "null"]
+      format: date-time
+      description: When admin privileges should expire (if approved)
     kind:
       type: string
       enum: [new_member, admin_promotion]
-      description: Type of request (new membership or admin promotion)
+      description: Type of request - new_member or admin_promotion
   required:
     - id
-    - user_id
     - group_id
-    - status
-    - requested_at
+    - group_name
+    - group_slug
+    - user_id
+    - user_name
+    - user_email
+    - created_at
+    - updated_at
+    - is_admin
+    - note
+    - kind
 
 GroupRequestUser:
   type: object
@@ -135,19 +173,18 @@ GroupRequestUser:
       type: string
       format: email
     avatar_url:
-      type: string
-      format: uri
+      type: [string, "null"]
 
 GroupRequestGroup:
   type: object
   properties:
     id:
-      type: string
+      type: [string, "null"]
       format: uuid
     name:
-      type: string
+      type: [string, "null"]
     slug:
-      type: string
+      type: [string, "null"]
 
 GroupApproval:
   type: object
@@ -165,7 +202,7 @@ GroupApproval:
       format: uuid
       description: ID of the group involved in the approval
     request_id:
-      type: string
+      type: [string, "null"]
       format: uuid
       description: ID of the associated request
     status:
@@ -173,15 +210,15 @@ GroupApproval:
       enum: [pending, approved, rejected]
       description: Status of the approval
     created_at:
-      type: string
+      type: [string, "null"]
       format: date-time
       description: Timestamp when the approval was created
     updated_at:
-      type: string
+      type: [string, "null"]
       format: date-time
       description: Timestamp when the approval was last updated
     reason:
-      type: string
+      type: [string, "null"]
       description: Reason provided for the approval decision
   required:
     - id
@@ -194,7 +231,6 @@ GroupMembership:
   properties:
     id:
       type: string
-      format: uuid
       description: Unique identifier for the membership
     user_id:
       type: string
@@ -208,15 +244,15 @@ GroupMembership:
       type: boolean
       description: Whether the user has admin privileges in this group
     created_at:
-      type: string
+      type: [string, "null"]
       format: date-time
       description: Timestamp when the membership was created
     updated_at:
-      type: string
+      type: [string, "null"]
       format: date-time
       description: Timestamp when the membership was last updated
     admin_expires_at:
-      type: string
+      type: [string, "null"]
       format: date-time
       description: Timestamp when admin privileges expire, if applicable
   required:
@@ -224,6 +260,52 @@ GroupMembership:
     - user_id
     - group_id
     - is_admin
+
+GroupMember:
+  type: object
+  description: |
+    Represents a user's membership in a group, enriched with user details.
+    Used for listing group members (GET /groups/:id/users).
+  properties:
+    id:
+      type: string
+      format: uuid
+      description: ID of the user
+    name:
+      type: string
+      description: Name of the user
+    email:
+      type: string
+      format: email
+      description: Email address of the user
+    avatar_url:
+      type: string
+      description: Avatar URL of the user
+    status:
+      type: string
+      description: Status of the user account
+    is_admin:
+      type: boolean
+      description: Whether the user has admin privileges in this group
+    expires_at:
+      type: [string, "null"]
+      format: date-time
+      description: When the membership expires, if applicable
+    admin_expires_at:
+      type: [string, "null"]
+      format: date-time
+      description: When admin privileges expire, if applicable
+    direct:
+      type: boolean
+      description: Whether this is a direct membership (not inherited via group hierarchy)
+  required:
+    - id
+    - name
+    - email
+    - avatar_url
+    - status
+    - is_admin
+    - direct
 
 GroupHierarchy:
   type: object
@@ -247,7 +329,7 @@ GroupHierarchy:
       type: string
       description: Slug of the member group
     expires_at:
-      type: string
+      type: [string, "null"]
       format: date-time
       description: When the hierarchy relationship expires, if applicable
   required:
@@ -271,32 +353,36 @@ AuthenticatedUserGroup:
       type: string
       description: URL-friendly identifier for the group
     description:
-      type: string
+      type: [string, "null"]
       description: Description of the group
     note:
-      type: string
+      type: [string, "null"]
       description: Additional notes about the group
     approver_group_id:
-      type: string
+      type: [string, "null"]
       format: uuid
       description: ID of the group that approves membership requests
     created_at:
-      type: string
+      type: [string, "null"]
       format: date-time
       description: Timestamp when the group was created
     updated_at:
-      type: string
+      type: [string, "null"]
       format: date-time
       description: Timestamp when the group was last updated
     organizations:
-      type: array
-      items:
-        $ref: '../schemas/organizations.yaml#/Organization'
+      oneOf:
+        - type: array
+          items:
+            $ref: '../schemas/organizations.yaml#/Organization'
+        - type: 'null'
       description: Organizations this group belongs to
     applications:
-      type: array
-      items:
-        $ref: '../schemas/applications.yaml#/Application'
+      oneOf:
+        - type: array
+          items:
+            $ref: '../schemas/applications.yaml#/Application'
+        - type: 'null'
       description: Applications associated with this group
     admin:
       type: boolean
@@ -313,6 +399,19 @@ AuthenticatedUserGroup:
 
 GroupCreateRequest:
   type: object
+  description: |
+    Request payload for creating a new group (POST /groups). Requires name and slug; description and approver_group_id are optional.
+    
+    Usage: POST /groups
+    
+    Validation rules:
+    - name: Must be unique
+    - slug: Must be unique and URL-safe (lowercase, no spaces, alphanumeric and hyphens only)
+    - approver_group_id: Must reference an existing group if provided
+    
+    Common patterns:
+    - For teams: name="Engineering Team", slug="engineering-team"
+    - For access control: Set approver_group_id to a management/admin group
   properties:
     name:
       type: string
@@ -323,15 +422,15 @@ GroupCreateRequest:
       description: URL-friendly identifier for the group
       examples: ["engineering-team"]
     description:
-      type: string
+      type: [string, "null"]
       description: Description of the group
       examples: ["The core engineering team responsible for development"]
     note:
-      type: string
+      type: [string, "null"]
       description: Additional notes about the group
       examples: ["Contact team lead for more information"]
     approver_group_id:
-      type: string
+      type: [string, "null"]
       format: uuid
       description: ID of the group that approves membership requests for this group
       examples: ["3fa85f64-5717-4562-b3fc-2c963f66afa6"]
@@ -345,64 +444,25 @@ GroupCreateRequest:
 
 GroupUpdateRequest:
   type: object
+  description: Request payload for updating an existing group (PUT /groups/:id). All fields are optional for partial updates.
   properties:
     name:
-      type: string
+      type: [string, "null"]
       description: Name of the group
     description:
-      type: string
+      type: [string, "null"]
       description: Description of the group
     note:
-      type: string
+      type: [string, "null"]
       description: Additional notes about the group
     approver_group_id:
-      type: string
+      type: [string, "null"]
       format: uuid
       description: ID of the group that approves membership requests for this group
     metadata:
       type: object
       additionalProperties: true
       description: Additional metadata for the group. When updating, new keys are merged with existing metadata. To remove a key, set its value to null.
-
-GroupMember:
-  type: object
-  properties:
-    id:
-      type: string
-      description: Unique identifier for the member
-    name:
-      type: string
-      description: Name of the member
-    email:
-      type: string
-      format: email
-      description: Email of the member
-    avatar_url:
-      type: string
-      format: uri
-      description: URL to the member's avatar image
-    status:
-      type: string
-      description: Status of the member
-    is_admin:
-      type: boolean
-      description: Whether the member has admin privileges
-    expires_at:
-      type: string
-      format: date-time
-      description: When the membership expires, if applicable
-    admin_expires_at:
-      type: string
-      format: date-time
-      description: When admin privileges expire, if applicable
-    direct:
-      type: boolean
-      description: Whether this is a direct membership
-  required:
-    - id
-    - name
-    - email
-    - is_admin
 
 GroupMemberUpdate:
   type: object
@@ -411,7 +471,7 @@ GroupMemberUpdate:
       type: boolean
       description: Whether the user should have admin privileges
     admin_expires_at:
-      type: string
+      type: [string, "null"]
       format: date-time
       description: When the admin role should expire (optional)
   required:
@@ -431,22 +491,22 @@ CreateGroupMemberRequestPayload:
   type: object
   properties:
     is_admin:
-      type: boolean
+      type: [boolean, "null"]
       description: Whether admin privileges are being requested
       default: false
     note:
-      type: string
+      type: [string, "null"]
       description: Reason for requesting membership
     expires_at:
-      type: string
+      type: [string, "null"]
       format: date-time
       description: When the membership should expire (optional)
     admin_expires_at:
-      type: string
+      type: [string, "null"]
       format: date-time
       description: When the admin role should expire (optional)
     kind:
-      type: string
+      type: [string, "null"]
       enum: [new_member, admin_promotion]
       default: new_member
       description: Type of request (new membership or admin promotion)
@@ -459,7 +519,7 @@ GroupHierarchyRequest:
       format: uuid
       description: ID of the group to add as a member
     expires_at:
-      type: string
+      type: [string, "null"]
       format: date-time
       description: When the hierarchy relationship should expire (optional)
   required:
@@ -469,75 +529,9 @@ GroupHierarchyUpdate:
   type: object
   properties:
     expires_at:
-      type: string
+      type: [string, "null"]
       format: date-time
       description: When the hierarchy relationship should expire (optional)
-
-GroupMemberRequest:
-  type: object
-  properties:
-    id:
-      type: string
-      format: uuid
-      description: Unique identifier for the request
-    group_id:
-      type: string
-      format: uuid
-      description: ID of the group
-    group_name:
-      type: string
-      description: Name of the group
-    group_slug:
-      type: string
-      description: Slug of the group
-    user_id:
-      type: string
-      format: uuid
-      description: ID of the user
-    user_name:
-      type: string
-      description: Name of the user
-    user_email:
-      type: string
-      format: email
-      description: Email of the user
-    user_avatar_url:
-      type: string
-      format: uri
-      description: URL to the user's avatar image
-    created_at:
-      type: string
-      format: date-time
-      description: Timestamp when the request was created
-    updated_at:
-      type: string
-      format: date-time
-      description: Timestamp when the request was last updated
-    is_admin:
-      type: boolean
-      description: Whether the request is for admin privileges
-    note:
-      type: string
-      description: Reason provided for the request
-    expires_at:
-      type: string
-      format: date-time
-      description: When the membership should expire (if applicable)
-    admin_expires_at:
-      type: string
-      format: date-time
-      description: When the admin role should expire (if applicable)
-    kind:
-      type: string
-      enum: [new_member, admin_promotion]
-      description: Type of request (new membership or admin promotion)
-  required:
-    - id
-    - group_id
-    - user_id
-    - created_at
-    - updated_at
-    - kind
 
 # Group-Applications related schemas
 GroupApplication:
@@ -582,48 +576,47 @@ GroupApplicationRequest:
       format: uuid
       description: ID of the group
     group_name:
-      type: string
+      type: [string, "null"]
       description: Name of the group
     group_slug:
-      type: string
+      type: [string, "null"]
       description: Slug of the group
     application_id:
       type: string
       format: uuid
       description: ID of the application
     application_name:
-      type: string
+      type: [string, "null"]
       description: Name of the application
     application_slug:
-      type: string
+      type: [string, "null"]
       description: Slug of the application
     approver_group_id:
-      type: string
+      type: [string, "null"]
       format: uuid
       description: ID of the group that approves this request
     approver_group_name:
-      type: string
+      type: [string, "null"]
       description: Name of the approver group
     approver_group_slug:
-      type: string
+      type: [string, "null"]
       description: Slug of the approver group
     requester_user_id:
-      type: string
+      type: [string, "null"]
       format: uuid
       description: ID of the user who made the request
     requester_user_name:
-      type: string
+      type: [string, "null"]
       description: Name of the requester user
     requester_user_email:
-      type: string
+      type: [string, "null"]
       format: email
       description: Email of the requester user
     requester_user_avatar_url:
-      type: string
-      format: uri
+      type: [string, "null"]
       description: URL to the requester user's avatar image
     note:
-      type: string
+      type: [string, "null"]
       description: Additional notes about the request
     created_at:
       type: string
@@ -681,63 +674,10 @@ GroupOrganizationLink:
     - created_at
     - updated_at
 
-GroupMembershipRequest:
-  type: object
-  properties:
-    id:
-      type: string
-      format: uuid
-      description: Unique identifier for the membership request
-    user_id:
-      type: string
-      format: uuid
-      description: ID of the user requesting membership
-    group_id:
-      type: string
-      format: uuid
-      description: ID of the group being requested to join
-    status:
-      type: string
-      enum: [pending, approved, rejected]
-      description: Current status of the membership request
-    created_at:
-      type: string
-      format: date-time
-      description: When the request was created
-    updated_at:
-      type: string
-      format: date-time
-      description: When the request was last updated
-    processed_at:
-      type: string
-      format: date-time
-      description: When the request was processed
-    note:
-      type: string
-      description: Additional notes or reason for the request
-    is_admin:
-      type: boolean
-      description: Whether admin privileges are being requested
-    expires_at:
-      type: string
-      format: date-time
-      description: When the membership should expire
-    admin_expires_at:
-      type: string
-      format: date-time
-      description: When admin privileges should expire
-  required:
-    - id
-    - user_id
-    - group_id
-    - status
-    - created_at
-    - updated_at
-
 GroupMembershipRequestWithDetails:
   type: object
   allOf:
-    - $ref: '#/GroupMembershipRequest'
+    - $ref: '#/GroupMemberRequest'
     - type: object
       properties:
         user:
@@ -761,7 +701,7 @@ GroupMembershipResponse:
       format: date-time
       description: When the membership was created
     expires_at:
-      type: string
+      type: [string, "null"]
       format: date-time
       description: When the membership expires
   required:
@@ -773,21 +713,21 @@ CreateGroupRequest:
   type: object
   properties:
     is_admin:
-      type: boolean
+      type: [boolean, "null"]
       description: Whether the request is for admin privileges
     note:
-      type: string
+      type: [string, "null"]
       description: Optional note explaining the request
     expires_at:
-      type: string
+      type: [string, "null"]
       format: date-time
       description: When the membership should expire (if granted)
     admin_expires_at:
-      type: string
+      type: [string, "null"]
       format: date-time
       description: When the admin privileges should expire (if granted)
     kind:
-      type: string
+      type: [string, "null"]
       enum: [new_member, admin_promotion]
       description: Type of request - either for new membership or admin promotion
       default: new_member
@@ -822,12 +762,12 @@ CreateGroupApp:
       description: Description of the application
       examples: ["A test application for development"]
     type_id:
-      type: string
+      type: [string, "null"]
       format: uuid
       description: ID of the application type
       examples: ["123e4567-e89b-12d3-a456-426614174000"]
     approver_group_id:
-      type: string
+      type: [string, "null"]
       format: uuid
       description: ID of the group that approves access requests for this application
       examples: ["123e4567-e89b-12d3-a456-426614174001"]
@@ -853,7 +793,7 @@ GroupListItem:
       description: Additional notes or comments about the group
       default: ""
     approver_group:
-      type: string
+      type: [string, "null"]
       format: uuid
       description: ID of the group that approves membership requests for this group
     created_at:
@@ -865,7 +805,7 @@ GroupListItem:
       format: date-time
       description: Timestamp when the group was last updated
     deleted_at:
-      type: string
+      type: [string, "null"]
       format: date-time
       description: Timestamp when the group was soft-deleted, null if active
     metadata:
@@ -881,7 +821,7 @@ CreateGroupApplicationRequest:
       format: uuid
       description: ID of the application to link to the group
     note:
-      type: string
+      type: [string, "null"]
       description: Additional notes about the request
   required:
     - application_id

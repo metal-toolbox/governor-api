@@ -21,9 +21,11 @@ applications:
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '../components/schemas.yaml#/Application'
+              oneOf:
+                - type: array
+                  items:
+                    $ref: '../components/schemas.yaml#/Application'
+                - type: 'null'
       '400':
         $ref: '../components/responses.yaml#/BadRequest'
       '401':
@@ -221,9 +223,11 @@ applications-id-groups:
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '../components/schemas.yaml#/Group'
+              oneOf:
+                - type: array
+                  items:
+                    $ref: '../components/schemas.yaml#/Group'
+                - type: 'null'
       '400':
         $ref: '../components/responses.yaml#/BadRequest'
       '401':
@@ -436,9 +440,11 @@ types-id-applications:
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '../components/schemas.yaml#/Application'
+              oneOf:
+                - type: array
+                  items:
+                    $ref: '../components/schemas.yaml#/Application'
+                - type: 'null'
       '400':
         $ref: '../components/responses.yaml#/BadRequest'
       '401':

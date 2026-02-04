@@ -424,8 +424,11 @@ func (r *Router) getGroupHierarchiesAll(c *gin.Context) {
 			ParentGroupID:   h.ParentGroupID,
 			ParentGroupSlug: h.R.ParentGroup.Slug,
 			MemberGroupID:   h.MemberGroupID,
-			MemberGroupSlug: h.R.MemberGroup.Slug,
 			ExpiresAt:       h.ExpiresAt,
+		}
+
+		if h.R.MemberGroup != nil {
+			hierarchiesResponse[i].MemberGroupSlug = h.R.MemberGroup.Slug
 		}
 	}
 
