@@ -20,11 +20,18 @@ jobs:
       - name: Bundle OpenAPI Spec
         run: |
           redocly bundle openapi/v1alpha1/openapi.yaml -o _site/openapi-bundle.yaml
+          redocly bundle openapi/v1alpha1/openapi.yaml -o _site/openapi-bundle.json
           redocly build-docs openapi/v1alpha1/openapi.yaml --title "Governor API" -o _site/index.html
       - name: Upload OpenAPI Bundle
         uses: actions/upload-pages-artifact@v4
         with:
           retention-days: 1
+      - name: Upload to Release
+        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
+        with:
+          files: |
+            _site/openapi-bundle.json
+            _site/openapi-bundle.yaml
 
   publish-pages:
     runs-on: ubuntu-latest
