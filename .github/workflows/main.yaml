@@ -56,7 +56,6 @@ jobs:
   build-go:
     name: 🏗️ build go
     runs-on: ubuntu-latest
-    container: golang:1.25.7
     needs:
       - lint
       - test
@@ -107,14 +106,24 @@ jobs:
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         with:
           context: .
-          push: true
+          push: ${{ github.ref == 'refs/heads/main' }}
+          load: true
           file: Dockerfile
           build-args: BIN=bin/${{ env.APP_NAME }}
           labels: ${{ steps.meta.outputs.labels }}
           tags: |
             ${{ steps.meta.outputs.tags }}
             ${{ env.IMAGE_REPO }}:${{ needs.setup.outputs.image_tag }}
+      - name: Save image as tar for scanning
+        run: docker save ${{ env.IMAGE_REPO }}:${{ needs.setup.outputs.image_tag }} -o image.tar
+      - name: Upload image artifact
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: docker-image
+          path: image.tar
+          retention-days: 1
       - name: sign image
+        if: github.ref == 'refs/heads/main'
         run: cosign sign --yes ${{ env.IMAGE_REPO }}@${{ steps.build-push.outputs.digest }}
 
   trivy-scan:
@@ -128,17 +137,21 @@ jobs:
       security-events: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # 0.33.1
+      - name: Download image artifact
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
-          image-ref: ${{ env.IMAGE_REPO }}:${{ needs.setup.outputs.image_tag }}
+          name: docker-image
+          path: .
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # 0.33.1
+        with:
+          input: 'image.tar'
           format: 'sarif'
           output: 'trivy-results.sarif'
-      - uses: github/codeql-action/upload-sarif@45cbd0c69e560cd9e7cd7f8c32362050c9b7ded2 # v4.32.2
-        with:
-          sarif_file: 'trivy-results.sarif'
-      - uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # 0.33.1
-        with:
-          image-ref: ${{ env.IMAGE_REPO }}:${{ needs.setup.outputs.image_tag }}
-          format: 'table'
           severity: 'CRITICAL,HIGH'
           exit-code: '1'
+      - name: Upload Trivy results to Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@45cbd0c69e560cd9e7cd7f8c32362050c9b7ded2 # v4.32.2
+        with:
+          sarif_file: 'trivy-results.sarif'
