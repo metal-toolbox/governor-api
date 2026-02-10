@@ -6,9 +6,10 @@ import (
 	"errors"
 
 	"github.com/coreos/go-oidc/v3/oidc"
+	jose "github.com/go-jose/go-jose/v4"
+	"github.com/go-jose/go-jose/v4/jwt"
 	"go.hollow.sh/toolbox/ginjwt"
 	"golang.org/x/oauth2"
-	"gopkg.in/square/go-jose.v2/jwt"
 )
 
 // OIDCProviderConfig is used to configure the openidconnect object from the openidconnect package
@@ -34,7 +35,7 @@ type OIDCUserInfo struct {
 func UserInfoFromJWT(ctx context.Context, rawToken string, oidcConfigs []ginjwt.AuthConfig) (*OIDCUserInfo, error) {
 	var userInfo *oidc.UserInfo
 
-	accessToken, err := jwt.ParseSigned(rawToken)
+	accessToken, err := jwt.ParseSigned(rawToken, []jose.SignatureAlgorithm{jose.RS256, jose.HS256})
 	if err != nil {
 		return nil, err
 	}
