@@ -1,6 +1,6 @@
 module github.com/metal-toolbox/governor-api
 
-go 1.25.6
+go 1.25.7
 
 require (
 	dario.cat/mergo v1.0.2
@@ -14,6 +14,7 @@ require (
 	github.com/gin-contrib/cors v1.7.6
 	github.com/gin-contrib/zap v1.1.6
 	github.com/gin-gonic/gin v1.11.0
+	github.com/go-jose/go-jose/v4 v4.1.3
 	github.com/goccy/go-json v0.10.5
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
@@ -42,7 +43,6 @@ require (
 	go.uber.org/zap v1.27.1
 	golang.org/x/oauth2 v0.34.0
 	google.golang.org/grpc v1.78.0
-	gopkg.in/square/go-jose.v2 v2.6.0
 )
 
 require (
@@ -52,7 +52,6 @@ require (
 	github.com/bytedance/sonic/loader v0.5.0 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
-	github.com/go-jose/go-jose/v4 v4.1.3 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/goccy/go-yaml v1.19.2 // indirect
 	github.com/gofrs/flock v0.13.0 // indirect
@@ -74,6 +73,7 @@ require (
 	golang.org/x/sync v0.19.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260128011058-8636f8732409 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260128011058-8636f8732409 // indirect
+	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 )
 
 require (

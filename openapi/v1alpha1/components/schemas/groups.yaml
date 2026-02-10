@@ -161,71 +161,6 @@ GroupMemberRequest:
     - note
     - kind
 
-GroupRequestUser:
-  type: object
-  properties:
-    id:
-      type: string
-      format: uuid
-    name:
-      type: string
-    email:
-      type: string
-      format: email
-    avatar_url:
-      type: [string, "null"]
-
-GroupRequestGroup:
-  type: object
-  properties:
-    id:
-      type: [string, "null"]
-      format: uuid
-    name:
-      type: [string, "null"]
-    slug:
-      type: [string, "null"]
-
-GroupApproval:
-  type: object
-  properties:
-    id:
-      type: string
-      format: uuid
-      description: Unique identifier for the approval
-    user_id:
-      type: string
-      format: uuid
-      description: ID of the user who needs approval
-    group_id:
-      type: string
-      format: uuid
-      description: ID of the group involved in the approval
-    request_id:
-      type: [string, "null"]
-      format: uuid
-      description: ID of the associated request
-    status:
-      type: string
-      enum: [pending, approved, rejected]
-      description: Status of the approval
-    created_at:
-      type: [string, "null"]
-      format: date-time
-      description: Timestamp when the approval was created
-    updated_at:
-      type: [string, "null"]
-      format: date-time
-      description: Timestamp when the approval was last updated
-    reason:
-      type: [string, "null"]
-      description: Reason provided for the approval decision
-  required:
-    - id
-    - user_id
-    - group_id
-    - status
-
 GroupMembership:
   type: object
   properties:
@@ -397,7 +332,7 @@ AuthenticatedUserGroup:
     - admin
     - direct
 
-GroupCreateRequest:
+GroupRequest:
   type: object
   description: |
     Request payload for creating a new group (POST /groups). Requires name and slug; description and approver_group_id are optional.
@@ -417,20 +352,16 @@ GroupCreateRequest:
       type: string
       description: Name of the group
       examples: ["Engineering Team"]
-    slug:
-      type: string
-      description: URL-friendly identifier for the group
-      examples: ["engineering-team"]
     description:
-      type: [string, "null"]
+      type: string
       description: Description of the group
       examples: ["The core engineering team responsible for development"]
     note:
-      type: [string, "null"]
+      type: string
       description: Additional notes about the group
       examples: ["Contact team lead for more information"]
     approver_group_id:
-      type: [string, "null"]
+      type: string
       format: uuid
       description: ID of the group that approves membership requests for this group
       examples: ["3fa85f64-5717-4562-b3fc-2c963f66afa6"]
@@ -440,29 +371,8 @@ GroupCreateRequest:
       description: Additional metadata for the group
   required:
     - name
-    - slug
-
-GroupUpdateRequest:
-  type: object
-  description: Request payload for updating an existing group (PUT /groups/:id). All fields are optional for partial updates.
-  properties:
-    name:
-      type: [string, "null"]
-      description: Name of the group
-    description:
-      type: [string, "null"]
-      description: Description of the group
-    note:
-      type: [string, "null"]
-      description: Additional notes about the group
-    approver_group_id:
-      type: [string, "null"]
-      format: uuid
-      description: ID of the group that approves membership requests for this group
-    metadata:
-      type: object
-      additionalProperties: true
-      description: Additional metadata for the group. When updating, new keys are merged with existing metadata. To remove a key, set its value to null.
+    - description
+    - note
 
 GroupMemberUpdate:
   type: object
@@ -673,17 +583,6 @@ GroupOrganizationLink:
     - organization_id
     - created_at
     - updated_at
-
-GroupMembershipRequestWithDetails:
-  type: object
-  allOf:
-    - $ref: '#/GroupMemberRequest'
-    - type: object
-      properties:
-        user:
-          $ref: '#/GroupRequestUser'
-        group:
-          $ref: '#/GroupRequestGroup'
 
 GroupMembershipResponse:
   type: object

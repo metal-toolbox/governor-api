@@ -23,26 +23,18 @@ GroupMemberRequest:
   $ref: './schemas/groups.yaml#/GroupMemberRequest'
 GroupMember:
   $ref: './schemas/groups.yaml#/GroupMember'
-GroupApproval:
-  $ref: './schemas/groups.yaml#/GroupApproval'
 GroupMembership:
   $ref: './schemas/groups.yaml#/GroupMembership'
 GroupHierarchy:
   $ref: './schemas/groups.yaml#/GroupHierarchy'
-GroupCreateRequest:
-  $ref: './schemas/groups.yaml#/GroupCreateRequest'
-GroupUpdateRequest:
-  $ref: './schemas/groups.yaml#/GroupUpdateRequest'
+GroupRequest:
+  $ref: './schemas/groups.yaml#/GroupRequest'
 GroupMemberUpdate:
   $ref: './schemas/groups.yaml#/GroupMemberUpdate'
 GroupHierarchyRequest:
   $ref: './schemas/groups.yaml#/GroupHierarchyRequest'
 GroupHierarchyUpdate:
   $ref: './schemas/groups.yaml#/GroupHierarchyUpdate'
-GroupRequestUser:
-  $ref: './schemas/groups.yaml#/GroupRequestUser'
-GroupRequestGroup:
-  $ref: './schemas/groups.yaml#/GroupRequestGroup'
 GroupRequestProcessingAction:
   $ref: './schemas/groups.yaml#/GroupRequestProcessingAction'
 CreateGroupMemberRequestPayload:
