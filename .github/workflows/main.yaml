@@ -4,10 +4,20 @@ on:
     
 env:
   APP_NAME: governor-api
-  IMAGE_REPO: ghcr.io/metal-toolbox/${{ env.APP_NAME }}
-  IMAGE_TAG: ${{ github.run_number }}-${{ github.sha::::0:8 }}
+  IMAGE_REPO: ghcr.io/metal-toolbox/governor-api
 
 jobs:
+  setup:
+    name: ⚙️ setup
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.vars.outputs.image-tag }}
+    steps:
+      - id: vars
+        run: |
+          SHORT_SHA="${GITHUB_SHA:0:8}"
+          echo "image-tag=${{ github.run_number }}-${SHORT_SHA}" >> $GITHUB_OUTPUT
+
   lint: 
     name: 📎 lint
     runs-on: ubuntu-latest
@@ -21,7 +31,7 @@ jobs:
   test:
     name: 🧪 test
     runs-on: ubuntu-latest
-    container: golang:1.25.6
+    container: golang:1.25.7
     services:
       pg: 
         image: postgres:18
@@ -46,56 +56,59 @@ jobs:
   build-go:
     name: 🏗️ build go
     runs-on: ubuntu-latest
-    container: golang:1.25.6
+    container: golang:1.25.7
     needs:
       - lint
       - test
     env:
       CGO_ENABLED: 0
       GOOS: linux
-      BIN: bin/${{ env.APP_NAME }}
-      ARTIFACT_NAME: ${{ env.APP_NAME }}-bin
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
         with:
           go-version-file: 'go.mod'
       - name: build
-        run: go build -buildvcs=false -mod=mod -a -o ${{ env.BIN }}
+        run: go build -buildvcs=false -mod=mod -a -o bin/${{ env.APP_NAME }}
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
-          name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.BIN }}
+          name: ${{ env.APP_NAME }}-bin
+          path: bin/${{ env.APP_NAME }}
 
   build-docker:
     name: 🐳 build and publish docker image
     runs-on: ubuntu-latest
     needs:
       - build-go
+      - setup
     permissions:
       contents: write
       id-token: write
       packages: write
-    env:
-      BIN: bin/${{ env.APP_NAME }}
-      ARTIFACT_NAME: ${{ env.APP_NAME }}-bin
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: actions/download-artifact@0cbb1a1b8c3a4b8c9e7d9c1f1a4e5b8f8c9d6e # v6.0.0
+      - id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
         with:
-          name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.BIN }}
+          images: ${{ env.IMAGE_REPO }}
       - name: login GHCR
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: ${{ env.APP_NAME }}-bin
+          path: bin/${{ env.APP_NAME }}
       - name: build and push
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         with:
           context: .
           push: true
           file: Dockerfile
-          tags: ${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG }}
           build-args: NAME=${{ env.APP_NAME }}
+          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ${{ steps.meta.outputs.tags }}
+            ${{ env.IMAGE_REPO }}:${{ needs.setup.outputs.image_tag }}
