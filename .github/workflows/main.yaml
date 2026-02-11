@@ -27,7 +27,7 @@ jobs:
   test:
     name: 🧪 test
     runs-on: ubuntu-latest
-    container: golang:1.25.7
+    container: golang:1.26.0
     services:
       pg: 
         image: postgres:18
