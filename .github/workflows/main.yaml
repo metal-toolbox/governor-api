@@ -52,9 +52,6 @@ jobs:
   build-go:
     name: 🏗️ build go
     runs-on: ubuntu-latest
-    needs:
-      - lint
-      - test
     env:
       CGO_ENABLED: 0
       GOOS: linux
@@ -72,6 +69,8 @@ jobs:
   build-docker:
     name: 🐳 build and publish docker image
     needs:
+      - lint
+      - test
       - build-go
       - setup
     permissions:
