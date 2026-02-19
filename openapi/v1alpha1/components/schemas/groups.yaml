@@ -87,6 +87,22 @@ Group:
     - created_at
     - updated_at
 
+AddUserToGroupRequest:
+  type: object
+  properties:
+    is_admin:
+      type: [boolean, "null"]
+      description: Whether admin privileges are being requested
+      default: false
+    expires_at:
+      type: [string, "null"]
+      format: date-time
+      description: When the membership should expire (optional)
+    admin_expires_at:
+      type: [string, "null"]
+      format: date-time
+      description: When the admin role should expire (optional)
+
 GroupMemberRequest:
   type: object
   description: |
