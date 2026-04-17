@@ -16,13 +16,13 @@ jobs:
       app_name: ${{ env.APP_NAME }}
     steps:
       - id: shortsha
-        uses: metal-toolbox/ci-toolbox/actions/short-sha@v0.0.1
+        uses: metal-toolbox/ci-toolbox/actions/short-sha@v0.0.2
 
   lint: 
     name: 📎 lint
     runs-on: ubuntu-latest
     steps:
-      - uses: metal-toolbox/ci-toolbox/actions/golangci-lint@v0.0.1
+      - uses: metal-toolbox/ci-toolbox/actions/golangci-lint@v0.0.2
 
   test:
     name: 🧪 test
@@ -56,7 +56,7 @@ jobs:
       CGO_ENABLED: 0
       GOOS: linux
     steps:
-      - uses: metal-toolbox/ci-toolbox/actions/setup-go@v0.0.1
+      - uses: metal-toolbox/ci-toolbox/actions/setup-go@v0.0.2
       - name: build
         run: go build -buildvcs=false -mod=mod -a -o bin/${{ env.APP_NAME }}
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
@@ -77,7 +77,7 @@ jobs:
       contents: write
       id-token: write
       packages: write
-    uses: metal-toolbox/ci-toolbox/.github/workflows/build-docker.yaml@v0.0.1
+    uses: metal-toolbox/ci-toolbox/.github/workflows/build-docker.yaml@v0.0.2
     with:
       artifact-name: ${{ needs.build-go.outputs.artifact-name }}
       artifact-path: bin
