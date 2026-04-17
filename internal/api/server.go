@@ -124,7 +124,7 @@ func (s *Server) setup() *gin.Engine {
 		}),
 	)
 
-	router.Use(ginzap.RecoveryWithZap(s.Conf.Logger.With(zap.String("component", "api")), true))
+	router.Use(recoveryMiddleware(s.Conf.Logger.With(zap.String("component", "api"))))
 
 	tp := otel.GetTracerProvider()
 	if tp != nil {
