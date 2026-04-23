@@ -309,7 +309,7 @@ AuthenticatedUserGroup:
     note:
       type: [string, "null"]
       description: Additional notes about the group
-    approver_group_id:
+    approver_group:
       type: [string, "null"]
       format: uuid
       description: ID of the group that approves membership requests
@@ -321,6 +321,13 @@ AuthenticatedUserGroup:
       type: [string, "null"]
       format: date-time
       description: Timestamp when the group was last updated
+    deleted_at:
+      type: [string, "null"]
+      format: date-time
+      description: Timestamp when the group was deleted (if applicable)
+    metadata:
+      type: object
+      description: Arbitrary metadata associated with the group
     organizations:
       oneOf:
         - type: array

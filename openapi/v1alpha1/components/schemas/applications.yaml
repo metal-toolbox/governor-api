@@ -63,7 +63,6 @@ ApplicationType:
       description: Description of the application type
     logo_url:
       type: [string, "null"]
-      format: uri
       description: URL to the logo image for this application type
     created_at:
       type: string
@@ -128,7 +127,6 @@ ApplicationTypeRequest:
       examples: ["Database services that require access management"]
     logo_url:
       type: [string, "null"]
-      format: uri
       description: URL to the logo image for this application type
       examples: ["https://example.com/logos/database.png"]
   required:
