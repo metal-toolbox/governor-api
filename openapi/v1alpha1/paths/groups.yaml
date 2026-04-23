@@ -453,7 +453,7 @@ groups-id-users-uid:
       content:
         application/json:
           schema:
-            $ref: '../components/schemas.yaml#/GroupMemberRequest'
+            $ref: '../components/schemas.yaml#/AddUserToGroupRequest'
     responses:
       '204':
         description: User successfully added to group

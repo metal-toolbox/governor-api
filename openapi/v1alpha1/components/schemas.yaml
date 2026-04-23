@@ -21,6 +21,8 @@ Group:
   $ref: './schemas/groups.yaml#/Group'
 GroupMemberRequest:
   $ref: './schemas/groups.yaml#/GroupMemberRequest'
+AddUserToGroupRequest:
+  $ref: './schemas/groups.yaml#/AddUserToGroupRequest'
 GroupMember:
   $ref: './schemas/groups.yaml#/GroupMember'
 GroupMembership:

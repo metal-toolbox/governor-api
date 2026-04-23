@@ -87,6 +87,22 @@ Group:
     - created_at
     - updated_at
 
+AddUserToGroupRequest:
+  type: object
+  properties:
+    is_admin:
+      type: [boolean, "null"]
+      description: Whether admin privileges are being requested
+      default: false
+    expires_at:
+      type: [string, "null"]
+      format: date-time
+      description: When the membership should expire (optional)
+    admin_expires_at:
+      type: [string, "null"]
+      format: date-time
+      description: When the admin role should expire (optional)
+
 GroupMemberRequest:
   type: object
   description: |
@@ -293,7 +309,7 @@ AuthenticatedUserGroup:
     note:
       type: [string, "null"]
       description: Additional notes about the group
-    approver_group_id:
+    approver_group:
       type: [string, "null"]
       format: uuid
       description: ID of the group that approves membership requests
@@ -305,6 +321,13 @@ AuthenticatedUserGroup:
       type: [string, "null"]
       format: date-time
       description: Timestamp when the group was last updated
+    deleted_at:
+      type: [string, "null"]
+      format: date-time
+      description: Timestamp when the group was deleted (if applicable)
+    metadata:
+      type: object
+      description: Arbitrary metadata associated with the group
     organizations:
       oneOf:
         - type: array

@@ -12,7 +12,6 @@ User:
       description: Name of the user
     email:
       type: string
-      format: email
       description: Email address of the user
     external_id:
       type: [string, "null"]
@@ -21,7 +20,6 @@ User:
       type: 
         - string
         - 'null'
-      format: uri
       description: URL to user's profile image
     created_at:
       type: string
@@ -59,14 +57,12 @@ UserProfile:
       description: Name of the user (optional, can be null)
     email:
       type: string
-      format: email
       description: Email address of the user
     external_id:
       type: [string, "null"]
       description: External ID for the user from the identity provider
     avatar_url:
       type: [string, "null"]
-      format: uri
       description: URL to user's profile image
     status:
       type: [string, "null"]
@@ -148,7 +144,6 @@ AuthenticatedUserRequestPayload:
   properties:
     avatar_url:
       type: [string, "null"]
-      format: uri
       description: URL to the user's avatar image
     github_username:
       type: [string, "null"]
@@ -166,7 +161,6 @@ UserCreateRequest:
       examples: ["Jane Smith"]
     email:
       type: string
-      format: email
       description: Email address of the user
       examples: ["jane.smith@example.com"]
     external_id:
@@ -175,7 +169,6 @@ UserCreateRequest:
       examples: ["auth0|123456789"]
     avatar_url:
       type: [string, "null"]
-      format: uri
       description: URL to the user's avatar image
       examples: ["https://example.com/avatars/jane.jpg"]
     github_username:
@@ -210,11 +203,9 @@ UserUpdateRequest:
       description: Full name of the user
     email:
       type: [string, "null"]
-      format: email
       description: Email address of the user
     avatar_url:
       type: [string, "null"]
-      format: uri
       description: URL to the user's avatar image
     github_username:
       type: [string, "null"]

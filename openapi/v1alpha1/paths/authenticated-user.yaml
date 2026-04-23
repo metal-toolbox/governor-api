@@ -15,7 +15,7 @@ user-groups:
               oneOf:
                 - type: array
                   items:
-                    $ref: '../components/schemas.yaml#/Group'
+                    $ref: '../components/schemas.yaml#/AuthenticatedUserGroup'
                 - type: 'null'
       '401':
         $ref: '../components/responses.yaml#/Unauthorized'
