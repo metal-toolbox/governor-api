@@ -9,7 +9,7 @@ require (
 	github.com/aarondl/sqlboiler/v4 v4.19.7
 	github.com/aarondl/strmangle v0.0.9
 	github.com/cockroachdb/cockroach-go/v2 v2.4.3
-	github.com/coreos/go-oidc/v3 v3.17.0
+	github.com/coreos/go-oidc/v3 v3.19.0
 	github.com/friendsofgo/errors v0.9.2
 	github.com/gin-contrib/cors v1.7.6
 	github.com/gin-contrib/zap v1.1.7
