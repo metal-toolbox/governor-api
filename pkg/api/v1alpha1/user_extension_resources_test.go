@@ -23,7 +23,7 @@ import (
 	events "github.com/metal-toolbox/governor-api/pkg/events/v1alpha1"
 	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/suite"
-	"go.hollow.sh/toolbox/ginauth"
+	"github.com/metal-toolbox/hollow-toolbox/ginauth"
 	"go.uber.org/zap"
 )
 

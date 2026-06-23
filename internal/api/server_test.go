@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"go.hollow.sh/toolbox/ginjwt"
+	"github.com/metal-toolbox/hollow-toolbox/ginjwt"
 
 	"github.com/stretchr/testify/assert"
 )

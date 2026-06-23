@@ -8,7 +8,7 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 	jose "github.com/go-jose/go-jose/v4"
 	"github.com/go-jose/go-jose/v4/jwt"
-	"go.hollow.sh/toolbox/ginjwt"
+	"github.com/metal-toolbox/hollow-toolbox/ginjwt"
 	"golang.org/x/oauth2"
 )
 
