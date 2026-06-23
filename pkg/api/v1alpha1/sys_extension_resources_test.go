@@ -22,10 +22,10 @@ import (
 	dbm "github.com/metal-toolbox/governor-api/db/psql"
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	"github.com/metal-toolbox/governor-api/internal/eventbus"
+	"github.com/metal-toolbox/hollow-toolbox/ginauth"
 	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"github.com/metal-toolbox/hollow-toolbox/ginauth"
 )
 
 type SystemExtensionResourceTestSuite struct {

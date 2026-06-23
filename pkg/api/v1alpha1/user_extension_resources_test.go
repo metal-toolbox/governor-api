@@ -21,9 +21,9 @@ import (
 	"github.com/metal-toolbox/governor-api/internal/eventbus"
 	models "github.com/metal-toolbox/governor-api/internal/models/psql"
 	events "github.com/metal-toolbox/governor-api/pkg/events/v1alpha1"
+	"github.com/metal-toolbox/hollow-toolbox/ginauth"
 	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/suite"
-	"github.com/metal-toolbox/hollow-toolbox/ginauth"
 	"go.uber.org/zap"
 )
 

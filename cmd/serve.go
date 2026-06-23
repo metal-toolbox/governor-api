@@ -7,9 +7,9 @@ import (
 	"os"
 
 	audithelpers "github.com/metal-toolbox/auditevent/helpers"
+	"github.com/metal-toolbox/hollow-toolbox/ginjwt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/metal-toolbox/hollow-toolbox/ginjwt"
 
 	"github.com/metal-toolbox/governor-api/internal/api"
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
