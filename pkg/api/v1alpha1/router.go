@@ -9,8 +9,8 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/metal-toolbox/auditevent/ginaudit"
-	"go.hollow.sh/toolbox/ginauth"
-	"go.hollow.sh/toolbox/ginjwt"
+	"github.com/metal-toolbox/hollow-toolbox/ginauth"
+	"github.com/metal-toolbox/hollow-toolbox/ginjwt"
 
 	"github.com/metal-toolbox/governor-api/internal/eventbus"
 )

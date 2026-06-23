@@ -22,10 +22,10 @@ import (
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	"github.com/metal-toolbox/governor-api/internal/eventbus"
 	models "github.com/metal-toolbox/governor-api/internal/models/psql"
+	"github.com/metal-toolbox/hollow-toolbox/ginauth"
 	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"go.hollow.sh/toolbox/ginauth"
 	"go.uber.org/zap"
 )
 
