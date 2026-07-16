@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 	"net/url"
-	"sync"
 	"time"
 
 	"go.opentelemetry.io/otel"
@@ -21,24 +20,12 @@ const (
 
 var tracer = otel.GetTracerProvider().Tracer("http-client.governor-api/v1alpha1")
 
-// HTTPDoer implements the standard http.Client interface.
-type HTTPDoer interface {
-	Do(req *http.Request) (*http.Response, error)
-}
-
-// Tokener implements the token interface
-type Tokener interface {
-	Token(ctx context.Context) (*oauth2.Token, error)
-}
-
 // Client is a governor API client
 type Client struct {
-	url                    string
-	clientCredentialConfig Tokener
-	logger                 *zap.Logger
-	token                  *oauth2.Token
-	httpClient             HTTPDoer
-	authMux                sync.Mutex
+	url        string
+	logger     *zap.Logger
+	httpClient *http.Client
+	ts         oauth2.TokenSource
 }
 
 // URL returns the governor url
@@ -57,9 +44,18 @@ func WithURL(u string) Option {
 }
 
 // WithClientCredentialConfig sets the oauth client credential config
+//
+// Deprecated: use WithTokenSource instead
 func WithClientCredentialConfig(c *clientcredentials.Config) Option {
 	return func(r *Client) {
-		r.clientCredentialConfig = c
+		r.ts = c.TokenSource(context.Background())
+	}
+}
+
+// WithTokenSource set the oauth token source
+func WithTokenSource(ts oauth2.TokenSource) Option {
+	return func(r *Client) {
+		r.ts = ts
 	}
 }
 
@@ -71,7 +67,7 @@ func WithLogger(l *zap.Logger) Option {
 }
 
 // WithHTTPClient overrides the default http client
-func WithHTTPClient(c HTTPDoer) Option {
+func WithHTTPClient(c *http.Client) Option {
 	return func(r *Client) {
 		r.httpClient = c
 	}
@@ -90,49 +86,21 @@ func NewClient(opts ...Option) (*Client, error) {
 		opt(&client)
 	}
 
-	t, err := client.auth(context.TODO())
-	if err != nil {
-		return nil, err
+	if client.ts != nil {
+		if _, err := client.ts.Token(); err != nil {
+			return nil, err
+		}
+
+		client.httpClient.Transport = &oauth2.Transport{
+			Source: client.ts,
+			Base:   client.httpClient.Transport,
+		}
 	}
-
-	client.authMux.Lock()
-	defer client.authMux.Unlock()
-
-	client.token = t
 
 	return &client, nil
 }
 
-func (c *Client) auth(ctx context.Context) (*oauth2.Token, error) {
-	c.logger.Debug("authenticating governor client", zap.Any("clientcredentialconfig", c.clientCredentialConfig))
-	return c.clientCredentialConfig.Token(ctx)
-}
-
-func (c *Client) refreshAuth(ctx context.Context) error {
-	if c.token != nil && !time.Now().After(c.token.Expiry) {
-		return nil
-	}
-
-	t, err := c.auth(ctx)
-	if err != nil {
-		return err
-	}
-
-	c.authMux.Lock()
-	defer c.authMux.Unlock()
-
-	c.token = t
-
-	c.logger.Debug("refreshing governor client authentication")
-
-	return nil
-}
-
 func (c *Client) newGovernorRequest(ctx context.Context, method, u string) (*http.Request, error) {
-	if err := c.refreshAuth(ctx); err != nil {
-		return nil, err
-	}
-
 	c.logger.Debug("parsing url", zap.String("url", u))
 
 	queryURL, err := url.Parse(u)
@@ -146,9 +114,6 @@ func (c *Client) newGovernorRequest(ctx context.Context, method, u string) (*htt
 	if err != nil {
 		return nil, err
 	}
-
-	bearer := "Bearer " + c.token.AccessToken
-	req.Header.Add("Authorization", bearer)
 
 	return req, nil
 }

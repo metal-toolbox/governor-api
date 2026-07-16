@@ -9,7 +9,6 @@ import (
 	"github.com/metal-toolbox/governor-api/pkg/api/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
-	"golang.org/x/oauth2"
 )
 
 func TestClient_UserExtensionResources(t *testing.T) {
@@ -23,7 +22,7 @@ func TestClient_UserExtensionResources(t *testing.T) {
 	}
 
 	type fields struct {
-		httpClient HTTPDoer
+		transport http.RoundTripper
 	}
 
 	tests := []struct {
@@ -36,7 +35,7 @@ func TestClient_UserExtensionResources(t *testing.T) {
 		{
 			name: "example request",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testExtensionResourcesResponse),
 					statusCode: http.StatusOK,
@@ -48,7 +47,7 @@ func TestClient_UserExtensionResources(t *testing.T) {
 		{
 			name: "non-success",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusInternalServerError,
 				},
@@ -59,7 +58,7 @@ func TestClient_UserExtensionResources(t *testing.T) {
 		{
 			name: "bad json response",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 					resp:       []byte(`{`),
@@ -70,7 +69,7 @@ func TestClient_UserExtensionResources(t *testing.T) {
 		{
 			name: "null response",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 					resp:       []byte(`null`),
@@ -82,7 +81,7 @@ func TestClient_UserExtensionResources(t *testing.T) {
 		{
 			name: "extension not found",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusNotFound,
 					resp:       []byte(`{"error":"extension not found: sql: no rows in result set"}`),
@@ -95,7 +94,7 @@ func TestClient_UserExtensionResources(t *testing.T) {
 		{
 			name: "user not found",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusNotFound,
 					resp:       []byte(`{"error":"user does not exist: sql: no rows in result set"}`),
@@ -110,11 +109,9 @@ func TestClient_UserExtensionResources(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.fields.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.fields.transport},
 			}
 			got, err := c.UserExtensionResources(
 				context.TODO(), "user-1", "test-extension-1", "some-resources", "v1", false, nil,
@@ -145,7 +142,7 @@ func TestClient_UserExtensionResource(t *testing.T) {
 	}
 
 	type fields struct {
-		httpClient *mockHTTPDoer
+		transport *mockTransport
 	}
 
 	tests := []struct {
@@ -168,7 +165,7 @@ func TestClient_UserExtensionResource(t *testing.T) {
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testExtensionResourceResponse),
 					statusCode: http.StatusOK,
@@ -184,7 +181,7 @@ func TestClient_UserExtensionResource(t *testing.T) {
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testExtensionResourceResponse),
 					statusCode: http.StatusOK,
@@ -201,7 +198,7 @@ func TestClient_UserExtensionResource(t *testing.T) {
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusInternalServerError,
 				},
@@ -217,7 +214,7 @@ func TestClient_UserExtensionResource(t *testing.T) {
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 					resp:       []byte(`{`),
@@ -233,7 +230,7 @@ func TestClient_UserExtensionResource(t *testing.T) {
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 				},
@@ -249,7 +246,7 @@ func TestClient_UserExtensionResource(t *testing.T) {
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 				},
@@ -264,7 +261,7 @@ func TestClient_UserExtensionResource(t *testing.T) {
 			erdVersion:  "v1alpha1",
 			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 				},
@@ -280,7 +277,7 @@ func TestClient_UserExtensionResource(t *testing.T) {
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			userID:      "",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 				},
@@ -296,7 +293,7 @@ func TestClient_UserExtensionResource(t *testing.T) {
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusNotFound,
 					resp:       []byte(`{"error":"extension does not exist"}`),
@@ -313,7 +310,7 @@ func TestClient_UserExtensionResource(t *testing.T) {
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusNotFound,
 					resp:       []byte(`{"error":"ERD does not exist"}`),
@@ -330,7 +327,7 @@ func TestClient_UserExtensionResource(t *testing.T) {
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusNotFound,
 					resp:       []byte(`{"error":"extension resource does not exist"}`),
@@ -347,7 +344,7 @@ func TestClient_UserExtensionResource(t *testing.T) {
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusNotFound,
 					resp:       []byte(`{"error":"user does not exist"}`),
@@ -361,11 +358,9 @@ func TestClient_UserExtensionResource(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.fields.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.fields.transport},
 			}
 			got, err := c.UserExtensionResource(
 				context.TODO(), tt.userID, tt.extensionID, tt.erdID, tt.erdVersion,
@@ -397,7 +392,7 @@ func TestClient_CreateUserExtensionResource(t *testing.T) {
 	}
 
 	type fields struct {
-		httpClient HTTPDoer
+		transport http.RoundTripper
 	}
 
 	tests := []struct {
@@ -419,7 +414,7 @@ func TestClient_CreateUserExtensionResource(t *testing.T) {
 			erdVersion:  "v1alpha1",
 			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testExtensionResourceResponse),
 					statusCode: http.StatusCreated,
@@ -436,7 +431,7 @@ func TestClient_CreateUserExtensionResource(t *testing.T) {
 			erdVersion:  "v1alpha1",
 			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testExtensionResourceResponse),
 					statusCode: http.StatusAccepted,
@@ -453,7 +448,7 @@ func TestClient_CreateUserExtensionResource(t *testing.T) {
 			erdVersion:  "v1alpha1",
 			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusInternalServerError,
 				},
@@ -469,7 +464,7 @@ func TestClient_CreateUserExtensionResource(t *testing.T) {
 			erdVersion:  "v1alpha1",
 			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusCreated,
 					resp:       []byte(`{`),
@@ -485,7 +480,7 @@ func TestClient_CreateUserExtensionResource(t *testing.T) {
 			erdVersion:  "v1alpha1",
 			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testExtensionResourceResponse),
 					statusCode: http.StatusCreated,
@@ -502,7 +497,7 @@ func TestClient_CreateUserExtensionResource(t *testing.T) {
 			erdVersion:  "v1alpha1",
 			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testExtensionResourceResponse),
 					statusCode: http.StatusCreated,
@@ -519,7 +514,7 @@ func TestClient_CreateUserExtensionResource(t *testing.T) {
 			erdVersion:  "v1alpha1",
 			userID:      "",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testExtensionResourceResponse),
 					statusCode: http.StatusCreated,
@@ -536,7 +531,7 @@ func TestClient_CreateUserExtensionResource(t *testing.T) {
 			erdVersion:  "v1alpha1",
 			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(`{"error":"extension does not exist: sql: no rows in result set"}`),
 					statusCode: http.StatusNotFound,
@@ -553,7 +548,7 @@ func TestClient_CreateUserExtensionResource(t *testing.T) {
 			erdVersion:  "v1alpha1",
 			userID:      "f7c1c9f5-6c7d-4d6e-8d7e-9c7a3a9b5f0d",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(`{"error":"user does not exist: sql: no rows in result set"}`),
 					statusCode: http.StatusNotFound,
@@ -568,11 +563,9 @@ func TestClient_CreateUserExtensionResource(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov/",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.fields.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov/",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.fields.transport},
 			}
 			got, err := c.CreateUserExtensionResource(
 				context.TODO(), tt.userID, tt.extensionID, tt.erdID, tt.erdVersion, tt.req,
@@ -603,7 +596,7 @@ func TestClient_UpdateUserExtensionResource(t *testing.T) {
 	}
 
 	type fields struct {
-		httpClient *mockHTTPDoer
+		transport *mockTransport
 	}
 
 	tests := []struct {
@@ -627,7 +620,7 @@ func TestClient_UpdateUserExtensionResource(t *testing.T) {
 			userID:      "e8f5f7c8-6d4a-4c7d-9a5b-9c9c8d7e6f5a",
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testExtensionResourceResponse),
 					statusCode: http.StatusOK,
@@ -645,7 +638,7 @@ func TestClient_UpdateUserExtensionResource(t *testing.T) {
 			userID:      "e8f5f7c8-6d4a-4c7d-9a5b-9c9c8d7e6f5a",
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testExtensionResourceResponse),
 					statusCode: http.StatusAccepted,
@@ -663,7 +656,7 @@ func TestClient_UpdateUserExtensionResource(t *testing.T) {
 			userID:      "e8f5f7c8-6d4a-4c7d-9a5b-9c9c8d7e6f5a",
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusInternalServerError,
 				},
@@ -680,7 +673,7 @@ func TestClient_UpdateUserExtensionResource(t *testing.T) {
 			userID:      "e8f5f7c8-6d4a-4c7d-9a5b-9c9c8d7e6f5a",
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 					resp:       []byte(`{`),
@@ -696,7 +689,7 @@ func TestClient_UpdateUserExtensionResource(t *testing.T) {
 			userID:     "e8f5f7c8-6d4a-4c7d-9a5b-9c9c8d7e6f5a",
 			resourceID: "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(""),
 					statusCode: http.StatusOK,
@@ -713,7 +706,7 @@ func TestClient_UpdateUserExtensionResource(t *testing.T) {
 			userID:      "e8f5f7c8-6d4a-4c7d-9a5b-9c9c8d7e6f5a",
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(""),
 					statusCode: http.StatusOK,
@@ -730,7 +723,7 @@ func TestClient_UpdateUserExtensionResource(t *testing.T) {
 			erdVersion:  "v1alpha1",
 			userID:      "e8f5f7c8-6d4a-4c7d-9a5b-9c9c8d7e6f5a",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(""),
 					statusCode: http.StatusOK,
@@ -743,7 +736,7 @@ func TestClient_UpdateUserExtensionResource(t *testing.T) {
 		{
 			name: "missing user id",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(""),
 					statusCode: http.StatusOK,
@@ -765,7 +758,7 @@ func TestClient_UpdateUserExtensionResource(t *testing.T) {
 			userID:      "e8f5f7c8-6d4a-4c7d-9a5b-9c9c8d7e6f5a",
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(`{"error":"extension does not exist"}`),
 					statusCode: http.StatusNotFound,
@@ -783,7 +776,7 @@ func TestClient_UpdateUserExtensionResource(t *testing.T) {
 			userID:      "e8f5f7c8-6d4a-4c7d-9a5b-9c9c8d7e6f5a",
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(`{"error":"ERD does not exist"}`),
 					statusCode: http.StatusNotFound,
@@ -802,7 +795,7 @@ func TestClient_UpdateUserExtensionResource(t *testing.T) {
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			req:         testExtensionResourcePayload,
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(`{"error":"user does not exist"}`),
 					statusCode: http.StatusNotFound,
@@ -816,11 +809,9 @@ func TestClient_UpdateUserExtensionResource(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.fields.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.fields.transport},
 			}
 			got, err := c.UpdateUserExtensionResource(
 				context.TODO(), tt.userID, tt.extensionID, tt.erdID, tt.erdVersion,
@@ -843,7 +834,7 @@ func TestClient_UpdateUserExtensionResource(t *testing.T) {
 
 func TestClient_DeleteUserExtensionResource(t *testing.T) {
 	type fields struct {
-		httpClient *mockHTTPDoer
+		transport *mockTransport
 	}
 
 	tests := []struct {
@@ -865,7 +856,7 @@ func TestClient_DeleteUserExtensionResource(t *testing.T) {
 			erdVersion:  "v1alpha1",
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testExtensionResourceResponse),
 					statusCode: http.StatusOK,
@@ -881,7 +872,7 @@ func TestClient_DeleteUserExtensionResource(t *testing.T) {
 			erdVersion:  "v1alpha1",
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusInternalServerError,
 				},
@@ -896,7 +887,7 @@ func TestClient_DeleteUserExtensionResource(t *testing.T) {
 			erdVersion:  "v1alpha1",
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 				},
@@ -911,7 +902,7 @@ func TestClient_DeleteUserExtensionResource(t *testing.T) {
 			erdVersion: "v1alpha1",
 			resourceID: "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 				},
@@ -925,7 +916,7 @@ func TestClient_DeleteUserExtensionResource(t *testing.T) {
 			extensionID: "test-extension-1",
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 				},
@@ -940,7 +931,7 @@ func TestClient_DeleteUserExtensionResource(t *testing.T) {
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 				},
@@ -956,7 +947,7 @@ func TestClient_DeleteUserExtensionResource(t *testing.T) {
 			erdVersion:  "v1alpha1",
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusNotFound,
 					resp:       []byte(`{"error":"extension does not exist"}`),
@@ -973,7 +964,7 @@ func TestClient_DeleteUserExtensionResource(t *testing.T) {
 			erdVersion:  "v1alpha1",
 			resourceID:  "673ccd3a-1381-4e68-bc90-04e5f6745b9c",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusNotFound,
 					resp:       []byte(`{"error":"ERD does not exist"}`),
@@ -987,11 +978,9 @@ func TestClient_DeleteUserExtensionResource(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.fields.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.fields.transport},
 			}
 			err := c.DeleteUserExtensionResource(context.TODO(), tt.userID, tt.extensionID, tt.erdID, tt.erdVersion, tt.resourceID)
 

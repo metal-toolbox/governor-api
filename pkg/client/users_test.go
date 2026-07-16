@@ -8,7 +8,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
-	"golang.org/x/oauth2"
 
 	"github.com/metal-toolbox/governor-api/pkg/api/v1alpha1"
 	"github.com/metal-toolbox/governor-api/pkg/api/v1beta1"
@@ -25,7 +24,7 @@ func TestClient_Users(t *testing.T) {
 	}
 
 	type fields struct {
-		httpClient HTTPDoer
+		transport http.RoundTripper
 	}
 
 	tests := []struct {
@@ -37,7 +36,7 @@ func TestClient_Users(t *testing.T) {
 		{
 			name: "example request",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       testUsersResponse,
 					statusCode: http.StatusOK,
@@ -48,7 +47,7 @@ func TestClient_Users(t *testing.T) {
 		{
 			name: "non-success",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusInternalServerError,
 				},
@@ -58,7 +57,7 @@ func TestClient_Users(t *testing.T) {
 		{
 			name: "bad json response",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 					resp:       []byte(`{`),
@@ -70,11 +69,9 @@ func TestClient_Users(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov/",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.fields.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov/",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.fields.transport},
 			}
 			got, err := c.Users(context.TODO(), false)
 
@@ -100,7 +97,7 @@ func TestClient_UsersV2(t *testing.T) {
 	}
 
 	type fields struct {
-		httpClient HTTPDoer
+		transport http.RoundTripper
 	}
 
 	tests := []struct {
@@ -112,7 +109,7 @@ func TestClient_UsersV2(t *testing.T) {
 		{
 			name: "example request",
 			fields: fields{
-				httpClient: &mockHTTPMultiDoer{
+				transport: &mockMultiTransport{
 					t:          t,
 					resp:       testUsersResponseV2,
 					statusCode: http.StatusOK,
@@ -123,7 +120,7 @@ func TestClient_UsersV2(t *testing.T) {
 		{
 			name: "non-success",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusInternalServerError,
 				},
@@ -133,7 +130,7 @@ func TestClient_UsersV2(t *testing.T) {
 		{
 			name: "bad json response",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 					resp:       []byte(`{`),
@@ -145,11 +142,9 @@ func TestClient_UsersV2(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov/",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.fields.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov/",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.fields.transport},
 			}
 			got, err := c.UsersV2(context.TODO(), map[string][]string{})
 
@@ -175,7 +170,7 @@ func TestClient_User(t *testing.T) {
 	}
 
 	type fields struct {
-		httpClient HTTPDoer
+		transport http.RoundTripper
 	}
 
 	tests := []struct {
@@ -188,7 +183,7 @@ func TestClient_User(t *testing.T) {
 		{
 			name: "example request",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       testUserResponse,
 					statusCode: http.StatusOK,
@@ -200,7 +195,7 @@ func TestClient_User(t *testing.T) {
 		{
 			name: "non-success",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusInternalServerError,
 				},
@@ -211,7 +206,7 @@ func TestClient_User(t *testing.T) {
 		{
 			name: "bad json response",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 					resp:       []byte(`{`),
@@ -223,7 +218,7 @@ func TestClient_User(t *testing.T) {
 		{
 			name: "missing id in request",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 				},
@@ -234,11 +229,9 @@ func TestClient_User(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov/",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.fields.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov/",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.fields.transport},
 			}
 			got, err := c.User(context.TODO(), tt.id, false)
 
@@ -264,7 +257,7 @@ func TestClient_CreateUser(t *testing.T) {
 	}
 
 	type fields struct {
-		httpClient HTTPDoer
+		transport http.RoundTripper
 	}
 
 	tests := []struct {
@@ -277,7 +270,7 @@ func TestClient_CreateUser(t *testing.T) {
 		{
 			name: "example request",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       testUserResponse,
 					statusCode: http.StatusOK,
@@ -293,7 +286,7 @@ func TestClient_CreateUser(t *testing.T) {
 		{
 			name: "example request status accepted",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       testUserResponse,
 					statusCode: http.StatusAccepted,
@@ -309,7 +302,7 @@ func TestClient_CreateUser(t *testing.T) {
 		{
 			name: "non-success",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusInternalServerError,
 				},
@@ -324,7 +317,7 @@ func TestClient_CreateUser(t *testing.T) {
 		{
 			name: "bad json response",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 					resp:       []byte(`{`),
@@ -341,11 +334,9 @@ func TestClient_CreateUser(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov/",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.fields.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov/",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.fields.transport},
 			}
 			got, err := c.CreateUser(context.TODO(), tt.req)
 
@@ -362,7 +353,7 @@ func TestClient_CreateUser(t *testing.T) {
 
 func TestClient_DeleteUser(t *testing.T) {
 	type fields struct {
-		httpClient HTTPDoer
+		transport http.RoundTripper
 	}
 
 	tests := []struct {
@@ -374,7 +365,7 @@ func TestClient_DeleteUser(t *testing.T) {
 		{
 			name: "example request",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       testUserResponse,
 					statusCode: http.StatusOK,
@@ -385,7 +376,7 @@ func TestClient_DeleteUser(t *testing.T) {
 		{
 			name: "example request accepted",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       testUserResponse,
 					statusCode: http.StatusAccepted,
@@ -396,7 +387,7 @@ func TestClient_DeleteUser(t *testing.T) {
 		{
 			name: "non-success",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusInternalServerError,
 				},
@@ -407,7 +398,7 @@ func TestClient_DeleteUser(t *testing.T) {
 		{
 			name: "missing id in request",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 				},
@@ -418,11 +409,9 @@ func TestClient_DeleteUser(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov/",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.fields.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov/",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.fields.transport},
 			}
 			err := c.DeleteUser(context.TODO(), tt.id)
 
@@ -447,7 +436,7 @@ func TestClient_UpdateUser(t *testing.T) {
 	}
 
 	type fields struct {
-		httpClient HTTPDoer
+		transport http.RoundTripper
 	}
 
 	tests := []struct {
@@ -461,7 +450,7 @@ func TestClient_UpdateUser(t *testing.T) {
 		{
 			name: "example request",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       testUserResponse,
 					statusCode: http.StatusOK,
@@ -476,7 +465,7 @@ func TestClient_UpdateUser(t *testing.T) {
 		{
 			name: "example request status accepted",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       testUserResponse,
 					statusCode: http.StatusAccepted,
@@ -491,7 +480,7 @@ func TestClient_UpdateUser(t *testing.T) {
 		{
 			name: "non-success",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusInternalServerError,
 				},
@@ -505,7 +494,7 @@ func TestClient_UpdateUser(t *testing.T) {
 		{
 			name: "bad json response",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 					resp:       []byte(`{`),
@@ -520,7 +509,7 @@ func TestClient_UpdateUser(t *testing.T) {
 		{
 			name: "missing user id",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 				},
@@ -533,7 +522,7 @@ func TestClient_UpdateUser(t *testing.T) {
 		{
 			name: "missing request",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 				},
@@ -545,11 +534,9 @@ func TestClient_UpdateUser(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov/",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.fields.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov/",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.fields.transport},
 			}
 			got, err := c.UpdateUser(context.TODO(), tt.id, tt.req)
 
