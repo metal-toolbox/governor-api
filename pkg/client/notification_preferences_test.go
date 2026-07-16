@@ -9,7 +9,6 @@ import (
 	"github.com/metal-toolbox/governor-api/pkg/api/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
-	"golang.org/x/oauth2"
 )
 
 const (
@@ -70,7 +69,7 @@ func TestClient_NotificationPreferences(t *testing.T) {
 	}
 
 	type fields struct {
-		httpClient HTTPDoer
+		transport http.RoundTripper
 	}
 
 	tests := []struct {
@@ -83,7 +82,7 @@ func TestClient_NotificationPreferences(t *testing.T) {
 		{
 			name: "example request",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testNotificationPreferencesResponse),
 					statusCode: http.StatusOK,
@@ -95,7 +94,7 @@ func TestClient_NotificationPreferences(t *testing.T) {
 		{
 			name: "non-success",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusInternalServerError,
 				},
@@ -106,7 +105,7 @@ func TestClient_NotificationPreferences(t *testing.T) {
 		{
 			name: "bad json response",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 					resp:       []byte(`{`),
@@ -118,7 +117,7 @@ func TestClient_NotificationPreferences(t *testing.T) {
 		{
 			name: "missing user ID",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 				},
@@ -130,11 +129,9 @@ func TestClient_NotificationPreferences(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov/",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.fields.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov/",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.fields.transport},
 			}
 			got, err := c.NotificationPreferences(context.TODO(), "")
 

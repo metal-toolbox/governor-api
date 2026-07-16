@@ -9,7 +9,6 @@ import (
 	"github.com/metal-toolbox/governor-api/pkg/api/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
-	"golang.org/x/oauth2"
 )
 
 const (
@@ -62,7 +61,7 @@ func TestClient_Extensions(t *testing.T) {
 	}
 
 	type fields struct {
-		httpClient HTTPDoer
+		transport http.RoundTripper
 	}
 
 	tests := []struct {
@@ -74,7 +73,7 @@ func TestClient_Extensions(t *testing.T) {
 		{
 			name: "example request",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testExtensionsResponse),
 					statusCode: http.StatusOK,
@@ -85,7 +84,7 @@ func TestClient_Extensions(t *testing.T) {
 		{
 			name: "non-success",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusInternalServerError,
 				},
@@ -95,7 +94,7 @@ func TestClient_Extensions(t *testing.T) {
 		{
 			name: "bad json response",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 					resp:       []byte(`{`),
@@ -106,7 +105,7 @@ func TestClient_Extensions(t *testing.T) {
 		{
 			name: "null response",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 					resp:       []byte(`null`),
@@ -120,11 +119,9 @@ func TestClient_Extensions(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov/",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.fields.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov/",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.fields.transport},
 			}
 			got, err := c.Extensions(context.TODO(), false)
 
@@ -150,7 +147,7 @@ func TestClient_Extension(t *testing.T) {
 	}
 
 	type fields struct {
-		httpClient HTTPDoer
+		transport http.RoundTripper
 	}
 
 	tests := []struct {
@@ -164,7 +161,7 @@ func TestClient_Extension(t *testing.T) {
 			name: "example request",
 			id:   "test-extension-1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testExtensionResponse),
 					statusCode: http.StatusOK,
@@ -176,7 +173,7 @@ func TestClient_Extension(t *testing.T) {
 			name: "non-success",
 			id:   "test-extension-1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusInternalServerError,
 				},
@@ -187,7 +184,7 @@ func TestClient_Extension(t *testing.T) {
 			name: "bad json response",
 			id:   "test-extension-1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 					resp:       []byte(`{`),
@@ -199,7 +196,7 @@ func TestClient_Extension(t *testing.T) {
 			name: "missing id",
 			id:   "test-extension-1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 				},
@@ -211,11 +208,9 @@ func TestClient_Extension(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov/",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.fields.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov/",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.fields.transport},
 			}
 			got, err := c.Extension(context.TODO(), tt.id, false)
 
@@ -243,7 +238,7 @@ func TestClient_CreateExtension(t *testing.T) {
 	enabled := true
 
 	type fields struct {
-		httpClient HTTPDoer
+		transport http.RoundTripper
 	}
 
 	tests := []struct {
@@ -256,7 +251,7 @@ func TestClient_CreateExtension(t *testing.T) {
 		{
 			name: "example request",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testExtensionResponse),
 					statusCode: http.StatusOK,
@@ -272,7 +267,7 @@ func TestClient_CreateExtension(t *testing.T) {
 		{
 			name: "example request status accepted",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testExtensionResponse),
 					statusCode: http.StatusAccepted,
@@ -288,7 +283,7 @@ func TestClient_CreateExtension(t *testing.T) {
 		{
 			name: "non-success",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusInternalServerError,
 				},
@@ -303,7 +298,7 @@ func TestClient_CreateExtension(t *testing.T) {
 		{
 			name: "bad json response",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 					resp:       []byte(`{`),
@@ -321,11 +316,9 @@ func TestClient_CreateExtension(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov/",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.fields.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov/",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.fields.transport},
 			}
 			got, err := c.CreateExtension(context.TODO(), tt.req)
 
@@ -351,7 +344,7 @@ func TestClient_UpdateExtension(t *testing.T) {
 	}
 
 	type fields struct {
-		httpClient HTTPDoer
+		transport http.RoundTripper
 	}
 
 	tests := []struct {
@@ -365,7 +358,7 @@ func TestClient_UpdateExtension(t *testing.T) {
 		{
 			name: "example request",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testExtensionResponse),
 					statusCode: http.StatusOK,
@@ -380,7 +373,7 @@ func TestClient_UpdateExtension(t *testing.T) {
 		{
 			name: "example request status accepted",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testExtensionResponse),
 					statusCode: http.StatusAccepted,
@@ -395,7 +388,7 @@ func TestClient_UpdateExtension(t *testing.T) {
 		{
 			name: "non-success",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusInternalServerError,
 				},
@@ -409,7 +402,7 @@ func TestClient_UpdateExtension(t *testing.T) {
 		{
 			name: "bad json response",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 					resp:       []byte(`{`),
@@ -424,7 +417,7 @@ func TestClient_UpdateExtension(t *testing.T) {
 		{
 			name: "missing id",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testExtensionResponse),
 					statusCode: http.StatusOK,
@@ -440,11 +433,9 @@ func TestClient_UpdateExtension(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov/",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.fields.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov/",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.fields.transport},
 			}
 			got, err := c.UpdateExtension(context.TODO(), tt.id, tt.req)
 
@@ -470,7 +461,7 @@ func TestClient_DeleteExtension(t *testing.T) {
 	}
 
 	type fields struct {
-		httpClient HTTPDoer
+		transport http.RoundTripper
 	}
 
 	tests := []struct {
@@ -484,7 +475,7 @@ func TestClient_DeleteExtension(t *testing.T) {
 			name: "example request",
 			id:   "test-extension-1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testExtensionResponse),
 					statusCode: http.StatusOK,
@@ -496,7 +487,7 @@ func TestClient_DeleteExtension(t *testing.T) {
 			name: "non-success",
 			id:   "test-extension-1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusInternalServerError,
 				},
@@ -506,7 +497,7 @@ func TestClient_DeleteExtension(t *testing.T) {
 		{
 			name: "missing id",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 				},
@@ -518,11 +509,9 @@ func TestClient_DeleteExtension(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov/",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.fields.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov/",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.fields.transport},
 			}
 			err := c.DeleteExtension(context.TODO(), tt.id)
 

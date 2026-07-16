@@ -9,7 +9,6 @@ import (
 	"github.com/metal-toolbox/governor-api/pkg/api/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
-	"golang.org/x/oauth2"
 )
 
 const (
@@ -69,7 +68,7 @@ func TestClient_NotificationTypes(t *testing.T) {
 	}
 
 	type fields struct {
-		httpClient HTTPDoer
+		transport http.RoundTripper
 	}
 
 	tests := []struct {
@@ -81,7 +80,7 @@ func TestClient_NotificationTypes(t *testing.T) {
 		{
 			name: "example request",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testNotificationTypesResponse),
 					statusCode: http.StatusOK,
@@ -92,7 +91,7 @@ func TestClient_NotificationTypes(t *testing.T) {
 		{
 			name: "non-success",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusInternalServerError,
 				},
@@ -102,7 +101,7 @@ func TestClient_NotificationTypes(t *testing.T) {
 		{
 			name: "bad json response",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 					resp:       []byte(`{`),
@@ -113,7 +112,7 @@ func TestClient_NotificationTypes(t *testing.T) {
 		{
 			name: "null response",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 					resp:       []byte(`null`),
@@ -127,11 +126,9 @@ func TestClient_NotificationTypes(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov/",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.fields.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov/",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.fields.transport},
 			}
 			got, err := c.NotificationTypes(context.TODO(), false)
 
@@ -157,7 +154,7 @@ func TestClient_NotificationType(t *testing.T) {
 	}
 
 	type fields struct {
-		httpClient HTTPDoer
+		transport http.RoundTripper
 	}
 
 	tests := []struct {
@@ -171,7 +168,7 @@ func TestClient_NotificationType(t *testing.T) {
 			name: "example request",
 			id:   "21037d41-53ee-4144-b39b-6b2eb5761a30",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testNotificationTypeResponse),
 					statusCode: http.StatusOK,
@@ -183,7 +180,7 @@ func TestClient_NotificationType(t *testing.T) {
 			name: "non-success",
 			id:   "21037d41-53ee-4144-b39b-6b2eb5761a30",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusInternalServerError,
 				},
@@ -194,7 +191,7 @@ func TestClient_NotificationType(t *testing.T) {
 			name: "bad json response",
 			id:   "21037d41-53ee-4144-b39b-6b2eb5761a30",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 					resp:       []byte(`{`),
@@ -206,7 +203,7 @@ func TestClient_NotificationType(t *testing.T) {
 			name: "missing id",
 			id:   "21037d41-53ee-4144-b39b-6b2eb5761a30",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 				},
@@ -218,11 +215,9 @@ func TestClient_NotificationType(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov/",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.fields.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov/",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.fields.transport},
 			}
 			got, err := c.NotificationType(context.TODO(), tt.id, false)
 
@@ -248,7 +243,7 @@ func TestClient_CreateNotificationType(t *testing.T) {
 	}
 
 	type fields struct {
-		httpClient HTTPDoer
+		transport http.RoundTripper
 	}
 
 	tests := []struct {
@@ -261,7 +256,7 @@ func TestClient_CreateNotificationType(t *testing.T) {
 		{
 			name: "example request",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testNotificationTypeResponse),
 					statusCode: http.StatusOK,
@@ -276,7 +271,7 @@ func TestClient_CreateNotificationType(t *testing.T) {
 		{
 			name: "example request status accepted",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testNotificationTypeResponse),
 					statusCode: http.StatusAccepted,
@@ -291,7 +286,7 @@ func TestClient_CreateNotificationType(t *testing.T) {
 		{
 			name: "non-success",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusInternalServerError,
 				},
@@ -305,7 +300,7 @@ func TestClient_CreateNotificationType(t *testing.T) {
 		{
 			name: "bad json response",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 					resp:       []byte(`{`),
@@ -322,11 +317,9 @@ func TestClient_CreateNotificationType(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov/",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.fields.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov/",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.fields.transport},
 			}
 			got, err := c.CreateNotificationType(context.TODO(), tt.req)
 
@@ -352,7 +345,7 @@ func TestClient_UpdateNotificationType(t *testing.T) {
 	}
 
 	type fields struct {
-		httpClient HTTPDoer
+		transport http.RoundTripper
 	}
 
 	tests := []struct {
@@ -366,7 +359,7 @@ func TestClient_UpdateNotificationType(t *testing.T) {
 		{
 			name: "example request",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testNotificationTypeResponse),
 					statusCode: http.StatusOK,
@@ -382,7 +375,7 @@ func TestClient_UpdateNotificationType(t *testing.T) {
 		{
 			name: "example request status accepted",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testNotificationTypeResponse),
 					statusCode: http.StatusAccepted,
@@ -398,7 +391,7 @@ func TestClient_UpdateNotificationType(t *testing.T) {
 		{
 			name: "non-success",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusInternalServerError,
 				},
@@ -413,7 +406,7 @@ func TestClient_UpdateNotificationType(t *testing.T) {
 		{
 			name: "bad json response",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 					resp:       []byte(`{`),
@@ -429,7 +422,7 @@ func TestClient_UpdateNotificationType(t *testing.T) {
 		{
 			name: "missing id",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testNotificationTypeResponse),
 					statusCode: http.StatusOK,
@@ -446,11 +439,9 @@ func TestClient_UpdateNotificationType(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov/",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.fields.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov/",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.fields.transport},
 			}
 			got, err := c.UpdateNotificationType(context.TODO(), tt.id, tt.req)
 
@@ -476,7 +467,7 @@ func TestClient_DeleteNotificationType(t *testing.T) {
 	}
 
 	type fields struct {
-		httpClient HTTPDoer
+		transport http.RoundTripper
 	}
 
 	tests := []struct {
@@ -490,7 +481,7 @@ func TestClient_DeleteNotificationType(t *testing.T) {
 			name: "example request",
 			id:   "21037d41-53ee-4144-b39b-6b2eb5761a30",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testNotificationTypeResponse),
 					statusCode: http.StatusOK,
@@ -502,7 +493,7 @@ func TestClient_DeleteNotificationType(t *testing.T) {
 			name: "non-success",
 			id:   "21037d41-53ee-4144-b39b-6b2eb5761a30",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusInternalServerError,
 				},
@@ -512,7 +503,7 @@ func TestClient_DeleteNotificationType(t *testing.T) {
 		{
 			name: "missing id",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 				},
@@ -524,11 +515,9 @@ func TestClient_DeleteNotificationType(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov/",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.fields.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov/",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.fields.transport},
 			}
 			err := c.DeleteNotificationType(context.TODO(), tt.id)
 

@@ -8,7 +8,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
-	"golang.org/x/oauth2"
 
 	"github.com/metal-toolbox/governor-api/pkg/api/v1alpha1"
 )
@@ -103,14 +102,14 @@ func TestClient_Applications(t *testing.T) {
 	}
 
 	tests := []struct {
-		name       string
-		httpClient HTTPDoer
-		want       []*v1alpha1.Application
-		wantErr    bool
+		name      string
+		transport http.RoundTripper
+		want      []*v1alpha1.Application
+		wantErr   bool
 	}{
 		{
 			name: "example request",
-			httpClient: &mockHTTPDoer{
+			transport: &mockTransport{
 				t:          t,
 				resp:       testApplicationsResponse,
 				statusCode: http.StatusOK,
@@ -119,7 +118,7 @@ func TestClient_Applications(t *testing.T) {
 		},
 		{
 			name: "example request status accepted",
-			httpClient: &mockHTTPDoer{
+			transport: &mockTransport{
 				t:          t,
 				resp:       testApplicationsResponse,
 				statusCode: http.StatusOK,
@@ -128,7 +127,7 @@ func TestClient_Applications(t *testing.T) {
 		},
 		{
 			name: "non-success",
-			httpClient: &mockHTTPDoer{
+			transport: &mockTransport{
 				t:          t,
 				statusCode: http.StatusInternalServerError,
 			},
@@ -136,7 +135,7 @@ func TestClient_Applications(t *testing.T) {
 		},
 		{
 			name: "bad json response",
-			httpClient: &mockHTTPDoer{
+			transport: &mockTransport{
 				t:          t,
 				statusCode: http.StatusOK,
 				resp:       []byte(`{`),
@@ -148,11 +147,9 @@ func TestClient_Applications(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov/",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov/",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.transport},
 			}
 
 			got, err := c.Applications(context.TODO())
@@ -177,60 +174,48 @@ func TestClient_Application(t *testing.T) {
 		return &resp
 	}
 
-	type fields struct {
-		httpClient HTTPDoer
-	}
-
 	tests := []struct {
-		name    string
-		fields  fields
-		id      string
-		want    *v1alpha1.Application
-		wantErr bool
+		name      string
+		transport http.RoundTripper
+		id        string
+		want      *v1alpha1.Application
+		wantErr   bool
 	}{
 		{
 			name: "example request",
-			fields: fields{
-				httpClient: &mockHTTPDoer{
-					t:          t,
-					resp:       testApplicationResponse,
-					statusCode: http.StatusOK,
-				},
+			transport: &mockTransport{
+				t:          t,
+				resp:       testApplicationResponse,
+				statusCode: http.StatusOK,
 			},
 			id:   "14af17ea-6b60-4dd0-8ed4-f16d86756849",
 			want: testResp(testApplicationResponse),
 		},
 		{
 			name: "non-success",
-			fields: fields{
-				httpClient: &mockHTTPDoer{
-					t:          t,
-					statusCode: http.StatusInternalServerError,
-				},
+			transport: &mockTransport{
+				t:          t,
+				statusCode: http.StatusInternalServerError,
 			},
 			id:      "14af17ea-6b60-4dd0-8ed4-f16d86756849",
 			wantErr: true,
 		},
 		{
 			name: "bad json response",
-			fields: fields{
-				httpClient: &mockHTTPDoer{
-					t:          t,
-					statusCode: http.StatusOK,
-					resp:       []byte(`{`),
-				},
+			transport: &mockTransport{
+				t:          t,
+				statusCode: http.StatusOK,
+				resp:       []byte(`{`),
 			},
 			id:      "14af17ea-6b60-4dd0-8ed4-f16d86756849",
 			wantErr: true,
 		},
 		{
 			name: "missing id in request",
-			fields: fields{
-				httpClient: &mockHTTPDoer{
-					t:          t,
-					resp:       testApplicationResponse,
-					statusCode: http.StatusOK,
-				},
+			transport: &mockTransport{
+				t:          t,
+				resp:       testApplicationResponse,
+				statusCode: http.StatusOK,
 			},
 			wantErr: true,
 		},
@@ -239,11 +224,9 @@ func TestClient_Application(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov/",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.fields.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov/",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.transport},
 			}
 
 			got, err := c.Application(context.TODO(), tt.id)
@@ -260,15 +243,15 @@ func TestClient_Application(t *testing.T) {
 
 func TestClient_AddGroupToApplication(t *testing.T) {
 	tests := []struct {
-		name       string
-		groupID    string
-		appID      string
-		httpClient HTTPDoer
-		wantErr    bool
+		name      string
+		groupID   string
+		appID     string
+		transport http.RoundTripper
+		wantErr   bool
 	}{
 		{
 			name: "example ok request",
-			httpClient: &mockHTTPDoer{
+			transport: &mockTransport{
 				t:          t,
 				resp:       testGroupResponse,
 				statusCode: http.StatusOK,
@@ -278,7 +261,7 @@ func TestClient_AddGroupToApplication(t *testing.T) {
 		},
 		{
 			name: "example accepted request",
-			httpClient: &mockHTTPDoer{
+			transport: &mockTransport{
 				t:          t,
 				resp:       testGroupResponse,
 				statusCode: http.StatusAccepted,
@@ -288,7 +271,7 @@ func TestClient_AddGroupToApplication(t *testing.T) {
 		},
 		{
 			name: "example no content request",
-			httpClient: &mockHTTPDoer{
+			transport: &mockTransport{
 				t:          t,
 				resp:       testGroupResponse,
 				statusCode: http.StatusNoContent,
@@ -298,7 +281,7 @@ func TestClient_AddGroupToApplication(t *testing.T) {
 		},
 		{
 			name: "not found",
-			httpClient: &mockHTTPDoer{
+			transport: &mockTransport{
 				t:          t,
 				statusCode: http.StatusNotFound,
 			},
@@ -308,7 +291,7 @@ func TestClient_AddGroupToApplication(t *testing.T) {
 		},
 		{
 			name: "non-success",
-			httpClient: &mockHTTPDoer{
+			transport: &mockTransport{
 				t:          t,
 				statusCode: http.StatusInternalServerError,
 			},
@@ -318,7 +301,7 @@ func TestClient_AddGroupToApplication(t *testing.T) {
 		},
 		{
 			name: "missing groupID in request",
-			httpClient: &mockHTTPDoer{
+			transport: &mockTransport{
 				t:          t,
 				resp:       testGroupResponse,
 				statusCode: http.StatusOK,
@@ -328,7 +311,7 @@ func TestClient_AddGroupToApplication(t *testing.T) {
 		},
 		{
 			name: "missing appID in request",
-			httpClient: &mockHTTPDoer{
+			transport: &mockTransport{
 				t:          t,
 				resp:       testGroupResponse,
 				statusCode: http.StatusOK,
@@ -341,11 +324,9 @@ func TestClient_AddGroupToApplication(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov/",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov/",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.transport},
 			}
 
 			err := c.AddGroupToApplication(context.TODO(), tt.groupID, tt.appID)
@@ -361,15 +342,15 @@ func TestClient_AddGroupToApplication(t *testing.T) {
 
 func TestClient_RemoveGroupFromApplication(t *testing.T) {
 	tests := []struct {
-		name       string
-		groupID    string
-		appID      string
-		httpClient HTTPDoer
-		wantErr    bool
+		name      string
+		groupID   string
+		appID     string
+		transport http.RoundTripper
+		wantErr   bool
 	}{
 		{
 			name: "example ok request",
-			httpClient: &mockHTTPDoer{
+			transport: &mockTransport{
 				t:          t,
 				resp:       testGroupResponse,
 				statusCode: http.StatusOK,
@@ -379,7 +360,7 @@ func TestClient_RemoveGroupFromApplication(t *testing.T) {
 		},
 		{
 			name: "example accepted request",
-			httpClient: &mockHTTPDoer{
+			transport: &mockTransport{
 				t:          t,
 				resp:       testGroupResponse,
 				statusCode: http.StatusAccepted,
@@ -389,7 +370,7 @@ func TestClient_RemoveGroupFromApplication(t *testing.T) {
 		},
 		{
 			name: "example no content request",
-			httpClient: &mockHTTPDoer{
+			transport: &mockTransport{
 				t:          t,
 				resp:       testGroupResponse,
 				statusCode: http.StatusNoContent,
@@ -399,7 +380,7 @@ func TestClient_RemoveGroupFromApplication(t *testing.T) {
 		},
 		{
 			name: "not found",
-			httpClient: &mockHTTPDoer{
+			transport: &mockTransport{
 				t:          t,
 				statusCode: http.StatusNotFound,
 			},
@@ -409,7 +390,7 @@ func TestClient_RemoveGroupFromApplication(t *testing.T) {
 		},
 		{
 			name: "non-success",
-			httpClient: &mockHTTPDoer{
+			transport: &mockTransport{
 				t:          t,
 				statusCode: http.StatusInternalServerError,
 			},
@@ -419,7 +400,7 @@ func TestClient_RemoveGroupFromApplication(t *testing.T) {
 		},
 		{
 			name: "missing groupID in request",
-			httpClient: &mockHTTPDoer{
+			transport: &mockTransport{
 				t:          t,
 				resp:       testGroupResponse,
 				statusCode: http.StatusOK,
@@ -429,7 +410,7 @@ func TestClient_RemoveGroupFromApplication(t *testing.T) {
 		},
 		{
 			name: "missing appID in request",
-			httpClient: &mockHTTPDoer{
+			transport: &mockTransport{
 				t:          t,
 				resp:       testGroupResponse,
 				statusCode: http.StatusOK,
@@ -442,11 +423,9 @@ func TestClient_RemoveGroupFromApplication(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov/",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov/",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.transport},
 			}
 
 			err := c.RemoveGroupFromApplication(context.TODO(), tt.groupID, tt.appID)
@@ -471,14 +450,14 @@ func TestClient_ApplicationTypes(t *testing.T) {
 	}
 
 	tests := []struct {
-		name       string
-		httpClient HTTPDoer
-		want       []*v1alpha1.ApplicationType
-		wantErr    bool
+		name      string
+		transport http.RoundTripper
+		want      []*v1alpha1.ApplicationType
+		wantErr   bool
 	}{
 		{
 			name: "example request",
-			httpClient: &mockHTTPDoer{
+			transport: &mockTransport{
 				t:          t,
 				resp:       testApplicationTypesResponse,
 				statusCode: http.StatusOK,
@@ -487,7 +466,7 @@ func TestClient_ApplicationTypes(t *testing.T) {
 		},
 		{
 			name: "example request status accepted",
-			httpClient: &mockHTTPDoer{
+			transport: &mockTransport{
 				t:          t,
 				resp:       testApplicationTypesResponse,
 				statusCode: http.StatusOK,
@@ -496,7 +475,7 @@ func TestClient_ApplicationTypes(t *testing.T) {
 		},
 		{
 			name: "non-success",
-			httpClient: &mockHTTPDoer{
+			transport: &mockTransport{
 				t:          t,
 				statusCode: http.StatusInternalServerError,
 			},
@@ -504,7 +483,7 @@ func TestClient_ApplicationTypes(t *testing.T) {
 		},
 		{
 			name: "bad json response",
-			httpClient: &mockHTTPDoer{
+			transport: &mockTransport{
 				t:          t,
 				statusCode: http.StatusOK,
 				resp:       []byte(`{`),
@@ -516,11 +495,9 @@ func TestClient_ApplicationTypes(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov/",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov/",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.transport},
 			}
 
 			got, err := c.ApplicationTypes(context.TODO())
@@ -545,60 +522,48 @@ func TestClient_ApplicationType(t *testing.T) {
 		return &resp
 	}
 
-	type fields struct {
-		httpClient HTTPDoer
-	}
-
 	tests := []struct {
-		name    string
-		fields  fields
-		id      string
-		want    *v1alpha1.ApplicationType
-		wantErr bool
+		name      string
+		transport http.RoundTripper
+		id        string
+		want      *v1alpha1.ApplicationType
+		wantErr   bool
 	}{
 		{
 			name: "example request",
-			fields: fields{
-				httpClient: &mockHTTPDoer{
-					t:          t,
-					resp:       testApplicationTypeResponse,
-					statusCode: http.StatusOK,
-				},
+			transport: &mockTransport{
+				t:          t,
+				resp:       testApplicationTypeResponse,
+				statusCode: http.StatusOK,
 			},
 			id:   "bed9edd4-b44a-4dc6-ba41-902138f37bd6",
 			want: testResp(testApplicationTypeResponse),
 		},
 		{
 			name: "non-success",
-			fields: fields{
-				httpClient: &mockHTTPDoer{
-					t:          t,
-					statusCode: http.StatusInternalServerError,
-				},
+			transport: &mockTransport{
+				t:          t,
+				statusCode: http.StatusInternalServerError,
 			},
 			id:      "bed9edd4-b44a-4dc6-ba41-902138f37bd6",
 			wantErr: true,
 		},
 		{
 			name: "bad json response",
-			fields: fields{
-				httpClient: &mockHTTPDoer{
-					t:          t,
-					statusCode: http.StatusOK,
-					resp:       []byte(`{`),
-				},
+			transport: &mockTransport{
+				t:          t,
+				statusCode: http.StatusOK,
+				resp:       []byte(`{`),
 			},
 			id:      "bed9edd4-b44a-4dc6-ba41-902138f37bd6",
 			wantErr: true,
 		},
 		{
 			name: "missing id in request",
-			fields: fields{
-				httpClient: &mockHTTPDoer{
-					t:          t,
-					resp:       testApplicationTypeResponse,
-					statusCode: http.StatusOK,
-				},
+			transport: &mockTransport{
+				t:          t,
+				resp:       testApplicationTypeResponse,
+				statusCode: http.StatusOK,
 			},
 			wantErr: true,
 		},
@@ -607,11 +572,9 @@ func TestClient_ApplicationType(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov/",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.fields.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov/",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.transport},
 			}
 
 			got, err := c.ApplicationType(context.TODO(), tt.id)

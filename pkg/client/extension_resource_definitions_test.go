@@ -9,7 +9,6 @@ import (
 	"github.com/metal-toolbox/governor-api/pkg/api/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
-	"golang.org/x/oauth2"
 )
 
 const (
@@ -80,7 +79,7 @@ func TestClient_ExtensionResourceDefinitions(t *testing.T) {
 	}
 
 	type fields struct {
-		httpClient HTTPDoer
+		transport http.RoundTripper
 	}
 
 	tests := []struct {
@@ -93,7 +92,7 @@ func TestClient_ExtensionResourceDefinitions(t *testing.T) {
 		{
 			name: "example request",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testERDsResponse),
 					statusCode: http.StatusOK,
@@ -105,7 +104,7 @@ func TestClient_ExtensionResourceDefinitions(t *testing.T) {
 		{
 			name: "non-success",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusInternalServerError,
 				},
@@ -116,7 +115,7 @@ func TestClient_ExtensionResourceDefinitions(t *testing.T) {
 		{
 			name: "bad json response",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 					resp:       []byte(`{`),
@@ -127,7 +126,7 @@ func TestClient_ExtensionResourceDefinitions(t *testing.T) {
 		{
 			name: "null response",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 					resp:       []byte(`null`),
@@ -139,7 +138,7 @@ func TestClient_ExtensionResourceDefinitions(t *testing.T) {
 		{
 			name: "extension not found",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusNotFound,
 					resp:       []byte(`{"error":"extension not found: sql: no rows in result set"}`),
@@ -154,11 +153,9 @@ func TestClient_ExtensionResourceDefinitions(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.fields.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.fields.transport},
 			}
 			got, err := c.ExtensionResourceDefinitions(context.TODO(), "test-extension-1", false)
 
@@ -187,7 +184,7 @@ func TestClient_ExtensionResourceDefinition(t *testing.T) {
 	}
 
 	type fields struct {
-		httpClient *mockHTTPDoer
+		transport *mockTransport
 	}
 
 	tests := []struct {
@@ -207,7 +204,7 @@ func TestClient_ExtensionResourceDefinition(t *testing.T) {
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testERDResponse),
 					statusCode: http.StatusOK,
@@ -222,7 +219,7 @@ func TestClient_ExtensionResourceDefinition(t *testing.T) {
 			extensionID: "test-extension-1",
 			erdID:       "a82a34a5-db1f-464f-af9c-76086e79f715",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testERDResponse),
 					statusCode: http.StatusOK,
@@ -238,7 +235,7 @@ func TestClient_ExtensionResourceDefinition(t *testing.T) {
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusInternalServerError,
 				},
@@ -252,7 +249,7 @@ func TestClient_ExtensionResourceDefinition(t *testing.T) {
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 					resp:       []byte(`{`),
@@ -266,7 +263,7 @@ func TestClient_ExtensionResourceDefinition(t *testing.T) {
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 				},
@@ -280,7 +277,7 @@ func TestClient_ExtensionResourceDefinition(t *testing.T) {
 			erdID:       "",
 			erdVersion:  "v1alpha1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 				},
@@ -294,7 +291,7 @@ func TestClient_ExtensionResourceDefinition(t *testing.T) {
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusNotFound,
 					resp:       []byte(`{"error":"extension does not exist"}`),
@@ -309,7 +306,7 @@ func TestClient_ExtensionResourceDefinition(t *testing.T) {
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusNotFound,
 					resp:       []byte(`{"error":"ERD does not exist"}`),
@@ -323,11 +320,9 @@ func TestClient_ExtensionResourceDefinition(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.fields.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.fields.transport},
 			}
 			got, err := c.ExtensionResourceDefinition(context.TODO(), tt.extensionID, tt.erdID, tt.erdVersion, false)
 
@@ -343,7 +338,7 @@ func TestClient_ExtensionResourceDefinition(t *testing.T) {
 			assert.Equal(t, tt.expected, got)
 
 			if tt.expectedPath != "" {
-				assert.Equal(t, tt.expectedPath, tt.fields.httpClient.Request().URL.Path)
+				assert.Equal(t, tt.expectedPath, tt.fields.transport.Request().URL.Path)
 			}
 		})
 	}
@@ -362,7 +357,7 @@ func TestClient_CreateExtensionResourceDefinition(t *testing.T) {
 	enabled := true
 
 	type fields struct {
-		httpClient HTTPDoer
+		transport http.RoundTripper
 	}
 
 	tests := []struct {
@@ -378,7 +373,7 @@ func TestClient_CreateExtensionResourceDefinition(t *testing.T) {
 			name:        "example request",
 			extensionID: "test-extension-1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testERDResponse),
 					statusCode: http.StatusOK,
@@ -401,7 +396,7 @@ func TestClient_CreateExtensionResourceDefinition(t *testing.T) {
 			name:        "example request status accepted",
 			extensionID: "test-extension-1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testERDResponse),
 					statusCode: http.StatusAccepted,
@@ -424,7 +419,7 @@ func TestClient_CreateExtensionResourceDefinition(t *testing.T) {
 			name:        "non-success",
 			extensionID: "test-extension-1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusInternalServerError,
 				},
@@ -437,7 +432,7 @@ func TestClient_CreateExtensionResourceDefinition(t *testing.T) {
 			name:        "bad json response",
 			extensionID: "test-extension-1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 					resp:       []byte(`{`),
@@ -450,7 +445,7 @@ func TestClient_CreateExtensionResourceDefinition(t *testing.T) {
 			name:        "extension ID missing",
 			extensionID: "",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testERDResponse),
 					statusCode: http.StatusOK,
@@ -464,7 +459,7 @@ func TestClient_CreateExtensionResourceDefinition(t *testing.T) {
 			name:        "extension not found",
 			extensionID: "test-extension-1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(`{"error":"extension not found: sql: no rows in result set"}`),
 					statusCode: http.StatusNotFound,
@@ -479,11 +474,9 @@ func TestClient_CreateExtensionResourceDefinition(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov/",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.fields.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov/",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.fields.transport},
 			}
 			got, err := c.CreateExtensionResourceDefinition(context.TODO(), tt.extensionID, tt.req)
 
@@ -512,7 +505,7 @@ func TestClient_UpdateExtensionResourceDefinition(t *testing.T) {
 	}
 
 	type fields struct {
-		httpClient *mockHTTPDoer
+		transport *mockTransport
 	}
 
 	tests := []struct {
@@ -534,7 +527,7 @@ func TestClient_UpdateExtensionResourceDefinition(t *testing.T) {
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testERDResponse),
 					statusCode: http.StatusOK,
@@ -552,7 +545,7 @@ func TestClient_UpdateExtensionResourceDefinition(t *testing.T) {
 			extensionID: "test-extension-1",
 			erdID:       "a82a34a5-db1f-464f-af9c-76086e79f715",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testERDResponse),
 					statusCode: http.StatusOK,
@@ -571,7 +564,7 @@ func TestClient_UpdateExtensionResourceDefinition(t *testing.T) {
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testERDResponse),
 					statusCode: http.StatusAccepted,
@@ -590,7 +583,7 @@ func TestClient_UpdateExtensionResourceDefinition(t *testing.T) {
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusInternalServerError,
 				},
@@ -608,7 +601,7 @@ func TestClient_UpdateExtensionResourceDefinition(t *testing.T) {
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 					resp:       []byte(`{`),
@@ -625,7 +618,7 @@ func TestClient_UpdateExtensionResourceDefinition(t *testing.T) {
 			erdID:      "erd-1",
 			erdVersion: "v1alpha1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(""),
 					statusCode: http.StatusOK,
@@ -642,7 +635,7 @@ func TestClient_UpdateExtensionResourceDefinition(t *testing.T) {
 			extensionID: "test-extension-1",
 			erdVersion:  "v1alpha1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(""),
 					statusCode: http.StatusOK,
@@ -660,7 +653,7 @@ func TestClient_UpdateExtensionResourceDefinition(t *testing.T) {
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(`{"error":"extension does not exist"}`),
 					statusCode: http.StatusNotFound,
@@ -678,7 +671,7 @@ func TestClient_UpdateExtensionResourceDefinition(t *testing.T) {
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(`{"error":"ERD does not exist"}`),
 					statusCode: http.StatusNotFound,
@@ -695,11 +688,9 @@ func TestClient_UpdateExtensionResourceDefinition(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.fields.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.fields.transport},
 			}
 			got, err := c.UpdateExtensionResourceDefinition(context.TODO(), tt.extensionID, tt.erdID, tt.erdVersion, tt.req)
 
@@ -715,7 +706,7 @@ func TestClient_UpdateExtensionResourceDefinition(t *testing.T) {
 			assert.Equal(t, tt.expected, got)
 
 			if tt.expectedPath != "" {
-				assert.Equal(t, tt.expectedPath, tt.fields.httpClient.Request().URL.Path)
+				assert.Equal(t, tt.expectedPath, tt.fields.transport.Request().URL.Path)
 			}
 		})
 	}
@@ -723,7 +714,7 @@ func TestClient_UpdateExtensionResourceDefinition(t *testing.T) {
 
 func TestClient_DeleteExtensionResourceDefinition(t *testing.T) {
 	type fields struct {
-		httpClient *mockHTTPDoer
+		transport *mockTransport
 	}
 
 	tests := []struct {
@@ -742,7 +733,7 @@ func TestClient_DeleteExtensionResourceDefinition(t *testing.T) {
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testERDResponse),
 					statusCode: http.StatusOK,
@@ -756,7 +747,7 @@ func TestClient_DeleteExtensionResourceDefinition(t *testing.T) {
 			extensionID: "test-extension-1",
 			erdID:       "a82a34a5-db1f-464f-af9c-76086e79f715",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       []byte(testERDResponse),
 					statusCode: http.StatusOK,
@@ -771,7 +762,7 @@ func TestClient_DeleteExtensionResourceDefinition(t *testing.T) {
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusInternalServerError,
 				},
@@ -784,7 +775,7 @@ func TestClient_DeleteExtensionResourceDefinition(t *testing.T) {
 			erdID:      "erd-1",
 			erdVersion: "v1alpha1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 				},
@@ -796,7 +787,7 @@ func TestClient_DeleteExtensionResourceDefinition(t *testing.T) {
 			name:        "missing ERD id",
 			extensionID: "test-extension-1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 				},
@@ -810,7 +801,7 @@ func TestClient_DeleteExtensionResourceDefinition(t *testing.T) {
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusNotFound,
 					resp:       []byte(`{"error":"extension does not exist"}`),
@@ -825,7 +816,7 @@ func TestClient_DeleteExtensionResourceDefinition(t *testing.T) {
 			erdID:       "erd-1",
 			erdVersion:  "v1alpha1",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusNotFound,
 					resp:       []byte(`{"error":"ERD does not exist"}`),
@@ -839,11 +830,9 @@ func TestClient_DeleteExtensionResourceDefinition(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.fields.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.fields.transport},
 			}
 			err := c.DeleteExtensionResourceDefinition(context.TODO(), tt.extensionID, tt.erdID, tt.erdVersion)
 
@@ -858,7 +847,7 @@ func TestClient_DeleteExtensionResourceDefinition(t *testing.T) {
 			assert.NoError(t, err)
 
 			if tt.expectedPath != "" {
-				assert.Equal(t, tt.expectedPath, tt.fields.httpClient.Request().URL.Path)
+				assert.Equal(t, tt.expectedPath, tt.fields.transport.Request().URL.Path)
 			}
 		})
 	}

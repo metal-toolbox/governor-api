@@ -10,7 +10,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
-	"golang.org/x/oauth2"
 )
 
 var (
@@ -247,7 +246,7 @@ func TestClient_Organization(t *testing.T) {
 	}
 
 	type fields struct {
-		httpClient HTTPDoer
+		transport http.RoundTripper
 	}
 
 	tests := []struct {
@@ -260,7 +259,7 @@ func TestClient_Organization(t *testing.T) {
 		{
 			name: "example request",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       testOrganizationResponse,
 					statusCode: http.StatusOK,
@@ -272,7 +271,7 @@ func TestClient_Organization(t *testing.T) {
 		{
 			name: "non-success",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusInternalServerError,
 				},
@@ -283,7 +282,7 @@ func TestClient_Organization(t *testing.T) {
 		{
 			name: "bad json response",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 					resp:       []byte(`{`),
@@ -295,7 +294,7 @@ func TestClient_Organization(t *testing.T) {
 		{
 			name: "missing id in request",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       testOrganizationResponse,
 					statusCode: http.StatusOK,
@@ -307,11 +306,9 @@ func TestClient_Organization(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov/",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.fields.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov/",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.fields.transport},
 			}
 			got, err := c.Organization(context.TODO(), tt.id)
 
@@ -337,14 +334,14 @@ func TestClient_Organizations(t *testing.T) {
 	}
 
 	tests := []struct {
-		name       string
-		httpClient HTTPDoer
-		want       []*v1alpha1.Organization
-		wantErr    bool
+		name      string
+		transport http.RoundTripper
+		want      []*v1alpha1.Organization
+		wantErr   bool
 	}{
 		{
 			name: "example request",
-			httpClient: &mockHTTPDoer{
+			transport: &mockTransport{
 				t:          t,
 				resp:       testOrganizationsResponse,
 				statusCode: http.StatusOK,
@@ -353,7 +350,7 @@ func TestClient_Organizations(t *testing.T) {
 		},
 		{
 			name: "example request status accepted",
-			httpClient: &mockHTTPDoer{
+			transport: &mockTransport{
 				t:          t,
 				resp:       testOrganizationsResponse,
 				statusCode: http.StatusOK,
@@ -362,7 +359,7 @@ func TestClient_Organizations(t *testing.T) {
 		},
 		{
 			name: "non-success",
-			httpClient: &mockHTTPDoer{
+			transport: &mockTransport{
 				t:          t,
 				statusCode: http.StatusInternalServerError,
 			},
@@ -370,7 +367,7 @@ func TestClient_Organizations(t *testing.T) {
 		},
 		{
 			name: "bad json response",
-			httpClient: &mockHTTPDoer{
+			transport: &mockTransport{
 				t:          t,
 				statusCode: http.StatusOK,
 				resp:       []byte(`{`),
@@ -382,11 +379,9 @@ func TestClient_Organizations(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov/",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov/",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.transport},
 			}
 			got, err := c.Organizations(context.TODO())
 
@@ -412,7 +407,7 @@ func TestClient_OrganizationGroups(t *testing.T) {
 	}
 
 	type fields struct {
-		httpClient HTTPDoer
+		transport http.RoundTripper
 	}
 
 	tests := []struct {
@@ -425,7 +420,7 @@ func TestClient_OrganizationGroups(t *testing.T) {
 		{
 			name: "example request",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					resp:       testOrganizationGroupsResponse,
 					statusCode: http.StatusOK,
@@ -437,7 +432,7 @@ func TestClient_OrganizationGroups(t *testing.T) {
 		{
 			name: "non-success",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusInternalServerError,
 				},
@@ -448,7 +443,7 @@ func TestClient_OrganizationGroups(t *testing.T) {
 		{
 			name: "bad json response",
 			fields: fields{
-				httpClient: &mockHTTPDoer{
+				transport: &mockTransport{
 					t:          t,
 					statusCode: http.StatusOK,
 					resp:       []byte(`{`),
@@ -462,11 +457,9 @@ func TestClient_OrganizationGroups(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				url:                    "https://the.gov/",
-				logger:                 zap.NewNop(),
-				httpClient:             tt.fields.httpClient,
-				clientCredentialConfig: &mockTokener{t: t},
-				token:                  &oauth2.Token{AccessToken: "topSekret"},
+				url:        "https://the.gov/",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: tt.fields.transport},
 			}
 			got, err := c.OrganizationGroups(context.TODO(), tt.id)
 
