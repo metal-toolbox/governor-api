@@ -87,14 +87,19 @@ func NewClient(opts ...Option) (*Client, error) {
 	}
 
 	if client.ts != nil {
-		if _, err := client.ts.Token(); err != nil {
+		ts := oauth2.ReuseTokenSource(nil, client.ts)
+
+		if _, err := ts.Token(); err != nil {
 			return nil, err
 		}
 
-		client.httpClient.Transport = &oauth2.Transport{
-			Source: client.ts,
-			Base:   client.httpClient.Transport,
+		c := *client.httpClient
+		c.Transport = &oauth2.Transport{
+			Source: ts,
+			Base:   c.Transport,
 		}
+
+		client.httpClient = &c
 	}
 
 	return &client, nil
