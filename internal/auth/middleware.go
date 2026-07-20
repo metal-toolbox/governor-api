@@ -1,8 +1,7 @@
 package auth
 
 import (
-	"io"
-
+	"github.com/metal-toolbox/auditevent"
 	"github.com/metal-toolbox/hollow-toolbox/ginauth"
 	"github.com/metal-toolbox/hollow-toolbox/ginjwt"
 	"go.uber.org/zap"
@@ -20,10 +19,14 @@ import (
 // first success, so a token from a Cedar-authorized issuer succeeds via its
 // Cedar verifier while tokens from scope-gated issuers succeed via their own
 // ginjwt verifiers.
+//
+// auditWriter, when non-nil, is the same auditevent.EventWriter the caller uses
+// for its HTTP audit log, so Cedar authorization decisions land in that log as
+// ordinary auditevent.AuditEvent records rather than a separate ad hoc format.
 func MultiTokenMiddlewareFromConfigs(
 	auths []configs.Auth,
 	logger *zap.Logger,
-	auditWriter io.Writer,
+	auditWriter *auditevent.EventWriter,
 ) (*ginauth.MultiTokenMiddleware, error) {
 	if logger == nil {
 		logger = zap.NewNop()
@@ -60,7 +63,7 @@ func MultiTokenMiddlewareFromConfigs(
 
 // verifierFromAuth returns the single verifier for one provider: a Cedar
 // verifier when cedar is enabled, otherwise the plain ginjwt verifier.
-func verifierFromAuth(a configs.Auth, logger *zap.Logger, aw io.Writer) (ginauth.GenericAuthMiddleware, error) {
+func verifierFromAuth(a configs.Auth, logger *zap.Logger, aw *auditevent.EventWriter) (ginauth.GenericAuthMiddleware, error) {
 	jwtMW, err := ginjwt.NewAuthMiddleware(a.AuthConfig)
 	if err != nil {
 		return nil, err
@@ -70,12 +73,16 @@ func verifierFromAuth(a configs.Auth, logger *zap.Logger, aw io.Writer) (ginauth
 		return jwtMW, nil
 	}
 
-	decider := cedar.NewDecider(
-		a.Cedar.URL,
-		a.Cedar.TimeoutOrDefault(),
-		cedar.WithLogger(logger),
-		cedar.WithAuditWriter(aw),
-	)
+	opts := []cedar.Option{cedar.WithLogger(logger)}
+
+	// aw is a concrete *auditevent.EventWriter: only pass it on when non-nil, so
+	// a nil writer isn't wrapped into a non-nil cedar.AuditEventWriter interface
+	// value (which would defeat the decider's own nil check).
+	if aw != nil {
+		opts = append(opts, cedar.WithAuditWriter(aw))
+	}
+
+	decider := cedar.NewDecider(a.Cedar.URL, a.Cedar.TimeoutOrDefault(), opts...)
 
 	return authz.NewVerifier(jwtMW, decider), nil
 }

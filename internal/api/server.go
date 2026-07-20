@@ -11,6 +11,7 @@ import (
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
+	"github.com/metal-toolbox/auditevent"
 	"github.com/metal-toolbox/auditevent/ginaudit"
 	"github.com/metal-toolbox/hollow-toolbox/ginauth"
 	ginprometheus "github.com/zsais/go-gin-prometheus"
@@ -86,7 +87,10 @@ func (s *Server) setup() *gin.Engine {
 	router := gin.New()
 
 	s.Conf.Logger.Sugar().Info("Setting up AuditLogWriter")
-	s.aumdw = ginaudit.NewJSONMiddleware("governor-api", s.AuditLogWriter)
+	// Shared with the auth middleware below so Cedar authorization decisions
+	// land in this same audit log as ordinary auditevent.AuditEvent records.
+	auditEventWriter := auditevent.NewDefaultAuditEventWriter(s.AuditLogWriter)
+	s.aumdw = ginaudit.NewMiddleware("governor-api", auditEventWriter)
 
 	router.Use(cors.New(cors.Config{
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"},
@@ -98,7 +102,7 @@ func (s *Server) setup() *gin.Engine {
 
 	s.Conf.Logger.Sugar().Info("Setting up auth middleware")
 
-	authMW, err := auth.MultiTokenMiddlewareFromConfigs(s.Conf.AuthConf, s.Conf.Logger, s.AuditLogWriter)
+	authMW, err := auth.MultiTokenMiddlewareFromConfigs(s.Conf.AuthConf, s.Conf.Logger, auditEventWriter)
 	if err != nil {
 		s.Conf.Logger.Sugar().Fatal("failed to initialize auth middleware", "error", err)
 	}

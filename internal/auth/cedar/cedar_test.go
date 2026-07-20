@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/metal-toolbox/auditevent"
 	"github.com/metal-toolbox/governor-api/internal/auth/authz"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -141,4 +142,87 @@ func TestSidecarDecider_Eval_sendsCedarRequest(t *testing.T) {
 	assert.Equal(t, `Workload::"wl-principal"`, got.Principal)
 	assert.Equal(t, `Action::"create:governor:users"`, got.Action)
 	assert.Equal(t, resourcePlaceholder, got.Resource)
+}
+
+// fakeAuditEventWriter is an AuditEventWriter for tests.
+type fakeAuditEventWriter struct {
+	events []*auditevent.AuditEvent
+}
+
+func (f *fakeAuditEventWriter) Write(e *auditevent.AuditEvent) error {
+	f.events = append(f.events, e)
+	return nil
+}
+
+func TestSidecarDecider_Eval_writesAuditEvent(t *testing.T) {
+	t.Run("allow", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			_, _ = io.WriteString(w, `{"decision":"Allow"}`)
+		}))
+		defer srv.Close()
+
+		aw := &fakeAuditEventWriter{}
+		d := NewDecider(srv.URL, testTimeout, WithAuditWriter(aw))
+
+		allow, err := d.Eval(context.Background(), authz.AuthzRequest{Principal: "wl-principal", Scope: "create:governor:users"})
+		require.NoError(t, err)
+		assert.True(t, allow)
+
+		require.Len(t, aw.events, 1)
+		e := aw.events[0]
+		assert.Equal(t, auditEventType, e.Type)
+		assert.Equal(t, defaultComponent, e.Component)
+		assert.Equal(t, auditevent.OutcomeSucceeded, e.Outcome)
+		assert.Equal(t, "wl-principal", e.Subjects["principal"])
+		assert.Equal(t, "create:governor:users", e.Target["scope"])
+		assert.Equal(t, "Allow", e.Target["detail"])
+	})
+
+	t.Run("deny", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			_, _ = io.WriteString(w, `{"decision":"Deny"}`)
+		}))
+		defer srv.Close()
+
+		aw := &fakeAuditEventWriter{}
+		d := NewDecider(srv.URL, testTimeout, WithAuditWriter(aw))
+
+		allow, err := d.Eval(context.Background(), authz.AuthzRequest{Principal: "wl-principal", Scope: "create:governor:users"})
+		require.NoError(t, err)
+		assert.False(t, allow)
+
+		require.Len(t, aw.events, 1)
+		assert.Equal(t, auditevent.OutcomeDenied, aw.events[0].Outcome)
+	})
+
+	t.Run("failure", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusInternalServerError)
+		}))
+		defer srv.Close()
+
+		aw := &fakeAuditEventWriter{}
+		d := NewDecider(srv.URL, testTimeout, WithAuditWriter(aw), WithComponent("custom-component"))
+
+		_, err := d.Eval(context.Background(), authz.AuthzRequest{Principal: "wl-principal", Scope: "create:governor:users"})
+		require.Error(t, err)
+
+		require.Len(t, aw.events, 1)
+		e := aw.events[0]
+		assert.Equal(t, auditevent.OutcomeFailed, e.Outcome)
+		assert.Equal(t, "custom-component", e.Component)
+		assert.Contains(t, e.Target["detail"], ErrCedarUnexpectedStatus.Error())
+	})
+
+	t.Run("no writer configured is a no-op", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			_, _ = io.WriteString(w, `{"decision":"Allow"}`)
+		}))
+		defer srv.Close()
+
+		d := NewDecider(srv.URL, testTimeout)
+
+		_, err := d.Eval(context.Background(), authz.AuthzRequest{Principal: "p", Scope: "read:governor:users"})
+		require.NoError(t, err)
+	})
 }
