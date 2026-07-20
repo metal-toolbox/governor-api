@@ -10,6 +10,8 @@ import (
 	"github.com/metal-toolbox/hollow-toolbox/ginjwt"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/metal-toolbox/governor-api/pkg/configs"
 )
 
 func TestAPILivenessCheck(t *testing.T) {
@@ -17,12 +19,14 @@ func TestAPILivenessCheck(t *testing.T) {
 
 	apiserver := Server{
 		Conf: &Conf{
-			AuthConf: []ginjwt.AuthConfig{
+			AuthConf: []configs.Auth{
 				{
-					Enabled:  false,
-					Audience: "audience",
-					Issuer:   "issuer",
-					JWKSURI:  "jwksuri",
+					AuthConfig: ginjwt.AuthConfig{
+						Enabled:  false,
+						Audience: "audience",
+						Issuer:   "issuer",
+						JWKSURI:  "jwksuri",
+					},
 				},
 			},
 		},
@@ -58,12 +62,14 @@ func TestAPILivenessCheck(t *testing.T) {
 func TestAPIHealthzCheck(t *testing.T) {
 	apiserver := Server{
 		Conf: &Conf{
-			AuthConf: []ginjwt.AuthConfig{
+			AuthConf: []configs.Auth{
 				{
-					Enabled:  false,
-					Audience: "audience",
-					Issuer:   "issuer",
-					JWKSURI:  "jwksuri",
+					AuthConfig: ginjwt.AuthConfig{
+						Enabled:  false,
+						Audience: "audience",
+						Issuer:   "issuer",
+						JWKSURI:  "jwksuri",
+					},
 				},
 			},
 		},

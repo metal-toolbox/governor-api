@@ -12,6 +12,7 @@ import (
 	"github.com/metal-toolbox/hollow-toolbox/ginjwt"
 
 	"github.com/metal-toolbox/governor-api/internal/eventbus"
+	"github.com/metal-toolbox/governor-api/pkg/configs"
 )
 
 const (
@@ -25,7 +26,7 @@ type Router struct {
 	AuditLogWriter io.Writer
 	AuditMW        *ginaudit.Middleware
 	AuthMW         *ginauth.MultiTokenMiddleware
-	AuthConf       []ginjwt.AuthConfig
+	AuthConf       []configs.Auth
 	DB             *sqlx.DB
 	EventBus       *eventbus.Client
 	Logger         *zap.Logger

@@ -13,15 +13,16 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/metal-toolbox/auditevent/ginaudit"
 	"github.com/metal-toolbox/hollow-toolbox/ginauth"
-	"github.com/metal-toolbox/hollow-toolbox/ginjwt"
 	ginprometheus "github.com/zsais/go-gin-prometheus"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 
+	"github.com/metal-toolbox/governor-api/internal/auth"
 	"github.com/metal-toolbox/governor-api/internal/eventbus"
 	v1alpha "github.com/metal-toolbox/governor-api/pkg/api/v1alpha1"
 	v1beta "github.com/metal-toolbox/governor-api/pkg/api/v1beta1"
+	"github.com/metal-toolbox/governor-api/pkg/configs"
 )
 
 var (
@@ -33,7 +34,7 @@ var (
 // Conf allows other packages to compose their api configuration and use our NewAPI factor to put it together for them
 type Conf struct {
 	AdminGroups []string
-	AuthConf    []ginjwt.AuthConfig
+	AuthConf    []configs.Auth
 	Debug       bool
 	Listen      string
 	Logger      *zap.Logger
@@ -97,7 +98,7 @@ func (s *Server) setup() *gin.Engine {
 
 	s.Conf.Logger.Sugar().Info("Setting up auth middleware")
 
-	authMW, err := ginjwt.NewMultiTokenMiddlewareFromConfigs(s.Conf.AuthConf...)
+	authMW, err := auth.MultiTokenMiddlewareFromConfigs(s.Conf.AuthConf, s.Conf.Logger, s.AuditLogWriter)
 	if err != nil {
 		s.Conf.Logger.Sugar().Fatal("failed to initialize auth middleware", "error", err)
 	}
