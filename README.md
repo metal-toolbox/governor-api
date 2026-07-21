@@ -98,6 +98,35 @@ Reload the UI and you should be a site admin now.
 
 To create data for your local governor instance, while your cockroach instance is running, run `make test-local-init`. This will wipe your old data (except your governor admin data) and create some test data to use when testing locally.
 
+### Authentication and authorization
+
+Requests authenticate against the OIDC providers listed under `oidc` in the
+config. By default a provider authorizes callers by their governor scopes
+(`read:governor:groups`, `create:governor:users`, …).
+
+A provider may optionally delegate authorization to an external
+[Cedar](https://www.cedarpolicy.com/) decision engine instead of the scope
+check — useful for callers that carry identity but no governor scopes (e.g.
+workload identity tokens). Add a `cedar` block to that provider:
+
+```yaml
+oidc:
+  - issuer: "https://sts.example.com"
+    audience: "cloud:example"
+    jwksuri: "https://sts.example.com/jwks"
+    enabled: true
+    cedar:
+      enabled: true            # off by default; when off the provider is scope-gated
+      url: "http://127.0.0.1:8180"   # local cedar-agent sidecar
+      timeout: 250ms           # decision requests fail closed on timeout
+```
+
+When `cedar.enabled` is set, governor authenticates the token against that
+issuer and then asks the sidecar to authorize the principal for the route's
+scope (rendered as a Cedar action); the token's scopes are not consulted.
+Cedar decisions fail closed and are emitted to the audit log. Providers without
+a `cedar` block are unaffected.
+
 ### Models in Governor
 
 We model database tables with `sqlboiler`, you can find the repo with docs [here](https://github.com/aarondl/sqlboiler).

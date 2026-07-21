@@ -49,8 +49,8 @@ func startAPI(ctx context.Context) error {
 	RunMigration(db.DB)
 
 	// NOTE: oidc config only works when loading from config file, not env variables,
-	// since GetAuthConfigsFromFlags expects a slice of oidc structs
-	authcfgs, err := ginjwt.GetAuthConfigsFromFlags(viper.GetViper())
+	// since GetAuthFromFlags expects a slice of oidc structs
+	authcfgs, err := configs.GetAuthFromFlags(viper.GetViper())
 	if err != nil {
 		logger.Fatalw("failed getting JWT configurations", "error", err)
 	}
@@ -72,6 +72,7 @@ func startAPI(ctx context.Context) error {
 			"JWKSURI", ac.JWKSURI,
 			"RolesClaim", ac.RolesClaim,
 			"UsernameClaim", ac.UsernameClaim,
+			"CedarEnabled", ac.Cedar.Enabled,
 		)
 	}
 

@@ -8,7 +8,7 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 	jose "github.com/go-jose/go-jose/v4"
 	"github.com/go-jose/go-jose/v4/jwt"
-	"github.com/metal-toolbox/hollow-toolbox/ginjwt"
+	"github.com/metal-toolbox/governor-api/pkg/configs"
 	"golang.org/x/oauth2"
 )
 
@@ -32,7 +32,7 @@ type OIDCUserInfo struct {
 
 // UserInfoFromJWT tries to retrieve the user info (id token claims) using the given jwt token. It will
 // use the oidc provider matching the issuer in the access token
-func UserInfoFromJWT(ctx context.Context, rawToken string, oidcConfigs []ginjwt.AuthConfig) (*OIDCUserInfo, error) {
+func UserInfoFromJWT(ctx context.Context, rawToken string, oidcConfigs []configs.Auth) (*OIDCUserInfo, error) {
 	var userInfo *oidc.UserInfo
 
 	accessToken, err := jwt.ParseSigned(rawToken, []jose.SignatureAlgorithm{jose.RS256, jose.HS256})
