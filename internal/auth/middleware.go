@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"fmt"
+
 	"github.com/metal-toolbox/auditevent"
 	"github.com/metal-toolbox/hollow-toolbox/ginauth"
 	"github.com/metal-toolbox/hollow-toolbox/ginjwt"
@@ -66,7 +68,7 @@ func MultiTokenMiddlewareFromConfigs(
 func verifierFromAuth(a configs.Auth, logger *zap.Logger, aw *auditevent.EventWriter) (ginauth.GenericAuthMiddleware, error) {
 	jwtMW, err := ginjwt.NewAuthMiddleware(a.AuthConfig)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", ErrBadConfig, err)
 	}
 
 	if !a.Cedar.Enabled {
