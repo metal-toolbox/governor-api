@@ -130,13 +130,32 @@ func TestVerifier_VerifyTokenWithScopes(t *testing.T) {
 }
 
 func TestVerifier_SetMetadata(t *testing.T) {
-	claims := ginauth.ClaimMetadata{Subject: "s", User: "u", Roles: []string{"r"}}
-	v := NewVerifier(stubVerifier{}, &stubDecider{})
-	c := newTestContext()
+	// SetMetadata is the error-path call: it sets non-empty subject/user but
+	// never roles, so a failed verifier cannot clobber a sibling's identity on
+	// the shared gin.Context.
+	t.Run("non-empty claims set subject and user but not roles", func(t *testing.T) {
+		claims := ginauth.ClaimMetadata{Subject: "s", User: "u", Roles: []string{"r"}}
+		v := NewVerifier(stubVerifier{}, &stubDecider{})
+		c := newTestContext()
 
-	v.SetMetadata(c, claims)
+		v.SetMetadata(c, claims)
 
-	assert.Equal(t, "s", c.GetString(contextKeySubject))
-	assert.Equal(t, "u", c.GetString(contextKeyUser))
-	assert.Equal(t, []string{"r"}, c.GetStringSlice(contextKeyRoles))
+		assert.Equal(t, "s", c.GetString(contextKeySubject))
+		assert.Equal(t, "u", c.GetString(contextKeyUser))
+		assert.Empty(t, c.GetStringSlice(contextKeyRoles))
+	})
+
+	t.Run("empty claims do not clobber existing context", func(t *testing.T) {
+		v := NewVerifier(stubVerifier{}, &stubDecider{})
+		c := newTestContext()
+		c.Set(contextKeySubject, "winner-sub")
+		c.Set(contextKeyUser, "winner-user")
+		c.Set(contextKeyRoles, []string{"openid"})
+
+		v.SetMetadata(c, ginauth.ClaimMetadata{})
+
+		assert.Equal(t, "winner-sub", c.GetString(contextKeySubject))
+		assert.Equal(t, "winner-user", c.GetString(contextKeyUser))
+		assert.Equal(t, []string{"openid"}, c.GetStringSlice(contextKeyRoles))
+	})
 }

@@ -74,10 +74,21 @@ func (v *Verifier) VerifyTokenWithScopes(c *gin.Context, scopes []string) (ginau
 	return cm, nil
 }
 
-// SetMetadata is called by the MultiTokenMiddleware on the error path. Kept for
-// interface parity with ginjwt; the success path sets context inline above.
+// SetMetadata is called by the MultiTokenMiddleware only on the error path, so
+// cm is the (typically empty) claims of a token this verifier failed to verify.
+// The MultiTokenMiddleware runs every verifier concurrently against a shared
+// gin.Context, so this must not clobber identity a sibling verifier already set
+// on success. Mirror ginjwt's defensive semantics: write subject/user only when
+// non-empty and never touch roles here. The success path populates context via
+// setContext instead.
 func (v *Verifier) SetMetadata(c *gin.Context, cm ginauth.ClaimMetadata) {
-	v.setContext(c, cm)
+	if cm.Subject != "" {
+		c.Set(contextKeySubject, cm.Subject)
+	}
+
+	if cm.User != "" {
+		c.Set(contextKeyUser, cm.User)
+	}
 }
 
 func (v *Verifier) setContext(c *gin.Context, cm ginauth.ClaimMetadata) {
