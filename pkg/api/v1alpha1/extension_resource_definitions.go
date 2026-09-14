@@ -50,6 +50,7 @@ type ExtensionResourceDefinitionReq struct {
 	Schema       json.RawMessage                  `json:"schema"`
 	Enabled      *bool                            `json:"enabled"`
 	AdminGroup   string                           `json:"admin_group"`
+	RestrictRead *bool                            `json:"restrict_read"`
 }
 
 func isValidSlug(s string) bool {
@@ -233,6 +234,7 @@ func (r *Router) createExtensionResourceDefinition(c *gin.Context) {
 		Schema:       []byte(schema),
 		Enabled:      *req.Enabled,
 		AdminGroup:   null.NewString(req.AdminGroup, req.AdminGroup != ""),
+		RestrictRead: req.RestrictRead != nil && *req.RestrictRead,
 	}
 
 	var extensionQM qm.QueryMod
@@ -536,6 +538,10 @@ func (r *Router) updateExtensionResourceDefinition(c *gin.Context) {
 	}
 
 	erd.AdminGroup = null.NewString(req.AdminGroup, req.AdminGroup != "")
+
+	if req.RestrictRead != nil {
+		erd.RestrictRead = *req.RestrictRead
+	}
 
 	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
 	if err != nil {

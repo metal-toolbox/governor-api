@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -175,6 +176,46 @@ func mwExtensionResourceGroupAuth(checkFn resourceOwnershipCheckFn, db *sqlx.DB)
 
 		span.SetAttributes(attribute.Bool("owner-group-member", true))
 	}
+}
+
+// requireExtensionResourceReadAccess decides whether a user may read resources
+// belonging to erd when erd.RestrictRead is set. It writes nothing to the response;
+// the caller maps the result to a status code: err != nil is a 500, !ok (with err
+// == nil) is a 404 (deny without revealing why), and ok is a green light to proceed.
+// Callers should skip calling this entirely for gov-admins, who bypass this check.
+//
+// A nil user (e.g. an unauthenticated caller, or a client type that skips the usual
+// user-in-context middleware) is treated as "deny" rather than an error - it isn't
+// this function's job to decide that's a 401 vs a 404, and denying is always safe.
+func requireExtensionResourceReadAccess(
+	ctx context.Context, db *sqlx.DB,
+	erd *models.ExtensionResourceDefinition, user *models.User,
+) (ok bool, err error) {
+	if !erd.RestrictRead {
+		return true, nil
+	}
+
+	if user == nil {
+		return false, nil
+	}
+
+	if !erd.AdminGroup.Valid || erd.AdminGroup.String == "" {
+		// restricted with no admin group configured means nobody but gov-admins can read it
+		return false, nil
+	}
+
+	enumeratedMemberships, err := dbtools.GetMembershipsForUser(ctx, db.DB, user.ID, false)
+	if err != nil {
+		return false, fmt.Errorf("error getting enumerated groups: %w", err)
+	}
+
+	for _, m := range enumeratedMemberships {
+		if m.GroupID == erd.AdminGroup.String {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 // extResourceGroupAuthDBFetch is a resource ownership check function that fetches the

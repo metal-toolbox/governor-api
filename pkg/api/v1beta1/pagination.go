@@ -89,7 +89,7 @@ func parsePagination(c *gin.Context) (PaginationParams, error) {
 	if sortBy, ok := c.GetQuery("sort_by"); ok {
 		p.SortBy = sortBy
 
-		if sortOrder, ok := c.GetQuery(("sort_order")); ok {
+		if sortOrder, ok := c.GetQuery("sort_order"); ok {
 			if strings.EqualFold(sortOrder, asc) && strings.EqualFold(sortOrder, desc) {
 				return PaginationParams{}, invalidQueryParameterValue("sort_order, " + sortOrder)
 			}

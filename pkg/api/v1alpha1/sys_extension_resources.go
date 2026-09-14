@@ -218,6 +218,23 @@ func (r *Router) listSystemExtensionResources(c *gin.Context) {
 		return
 	}
 
+	admin := getCtxAdmin(c)
+	user := getCtxUser(c)
+
+	// has user and not admin, check if user has read access to the extension resource
+	if (admin == nil || !*admin) && user != nil {
+		ok, err := requireExtensionResourceReadAccess(c.Request.Context(), r.DB, erd, user)
+		if err != nil {
+			sendError(c, http.StatusInternalServerError, "error checking extension resource read access: "+err.Error())
+			return
+		}
+
+		if !ok {
+			sendError(c, http.StatusNotFound, "resource not found")
+			return
+		}
+	}
+
 	uriQueries := map[string]string{}
 	if err := c.BindQuery(&uriQueries); err != nil {
 		sendError(
@@ -291,6 +308,22 @@ func (r *Router) getSystemExtensionResource(c *gin.Context) {
 		)
 
 		return
+	}
+
+	admin := getCtxAdmin(c)
+	user := getCtxUser(c)
+
+	if (admin == nil || !*admin) && user != nil {
+		ok, err := requireExtensionResourceReadAccess(c.Request.Context(), r.DB, erd, user)
+		if err != nil {
+			sendError(c, http.StatusInternalServerError, "error checking extension resource read access: "+err.Error())
+			return
+		}
+
+		if !ok {
+			sendError(c, http.StatusNotFound, "resource not found")
+			return
+		}
 	}
 
 	qms := []qm.QueryMod{
