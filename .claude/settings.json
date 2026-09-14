@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /Users/bahe -name \"main.md\" 2>/dev/null | head -10)",
+      "Read(//Users/bahe/**)",
+      "mcp__governor__getGroupMembershipsAll",
+      "mcp__governor__getGroupHierarchiesAll",
+      "mcp__governor__searchGroups"
+    ]
+  }
+}

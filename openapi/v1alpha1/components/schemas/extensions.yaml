@@ -82,6 +82,9 @@ ExtensionResourceDefinition:
       type: [string, "null"]
       format: uuid
       description: ID of the group that administers this resource type
+    restrict_read:
+      type: boolean
+      description: When true, only gov-admins and members of admin_group may read resources of this type; others get a 404
     created_at:
       type: string
       format: date-time

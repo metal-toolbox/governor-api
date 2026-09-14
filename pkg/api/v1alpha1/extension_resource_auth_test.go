@@ -87,12 +87,19 @@ func (s *ExtensionResourcesGroupAuthTestSuite) seedTestDB() error {
 		'{"$id": "v1.person.test-ex-1","$schema": "https://json-schema.org/draft/2020-12/schema","title": "Person","type": "object","required": ["firstName", "lastName"],"properties": {"firstName": {"type": "string","description": "The person''s first name.","ui": {"hide": true}},"lastName": {"type": "string","description": "The person''s last name."},"age": {"description": "Age in years which must be equal to or greater than zero.","type": "integer","minimum": 0}}}'::jsonb,
 		'00000001-0000-0000-0000-000000000001');
 		`,
-		// ERD with admin group
+		// ERD with admin group, read-restricted to that admin group
 		`
-		INSERT INTO extension_resource_definitions (id, name, description, enabled, slug_singular, slug_plural, version, scope, schema, extension_id, admin_group) 
+		INSERT INTO extension_resource_definitions (id, name, description, enabled, slug_singular, slug_plural, version, scope, schema, extension_id, admin_group, restrict_read)
 		VALUES ('00000004-0000-0000-0000-000000000002', 'Admin Resource', 'admin-resource-description', true, 'admin-resource', 'admin-resources', 'v1', 'system',
 		'{"$id": "v1.person.test-ex-1","$schema": "https://json-schema.org/draft/2020-12/schema","title": "Person","type": "object","required": ["firstName", "lastName"],"properties": {"firstName": {"type": "string","description": "The person''s first name.","ui": {"hide": true}},"lastName": {"type": "string","description": "The person''s last name."},"age": {"description": "Age in years which must be equal to or greater than zero.","type": "integer","minimum": 0}}}'::jsonb,
-		'00000001-0000-0000-0000-000000000001', '00000002-0000-0000-0000-000000000002');
+		'00000001-0000-0000-0000-000000000001', '00000002-0000-0000-0000-000000000002', true);
+		`,
+		// ERD read-restricted with no admin group configured - nobody but gov-admins can read it
+		`
+		INSERT INTO extension_resource_definitions (id, name, description, enabled, slug_singular, slug_plural, version, scope, schema, extension_id, restrict_read)
+		VALUES ('00000004-0000-0000-0000-000000000003', 'Locked Resource', 'locked-resource-description', true, 'locked-resource', 'locked-resources', 'v1', 'system',
+		'{"$id": "v1.person.test-ex-1","$schema": "https://json-schema.org/draft/2020-12/schema","title": "Person","type": "object","required": ["firstName", "lastName"],"properties": {"firstName": {"type": "string","description": "The person''s first name.","ui": {"hide": true}},"lastName": {"type": "string","description": "The person''s last name."},"age": {"description": "Age in years which must be equal to or greater than zero.","type": "integer","minimum": 0}}}'::jsonb,
+		'00000001-0000-0000-0000-000000000001', true);
 		`,
 
 		// ERs - resources without owner
@@ -144,6 +151,11 @@ func (s *ExtensionResourcesGroupAuthTestSuite) seedTestDB() error {
 		`
 		INSERT INTO system_extension_resources (id, extension_resource_definition_id, resource)
 		VALUES ('00000005-0000-0000-0000-000000000011', '00000004-0000-0000-0000-000000000001', '{"firstName": "delete", "lastName": "test"}'::jsonb);
+		`,
+		// ER - resource under the locked (restrict_read, no admin_group) ERD
+		`
+		INSERT INTO system_extension_resources (id, extension_resource_definition_id, resource)
+		VALUES ('00000005-0000-0000-0000-000000000012', '00000004-0000-0000-0000-000000000003', '{"firstName": "locked", "lastName": "resource"}'::jsonb);
 		`,
 	}
 
@@ -340,6 +352,13 @@ func (s *ExtensionResourcesGroupAuthTestSuite) mwForgeUser(u *models.User, isAdm
 	}
 }
 
+// mwForgeAnonymous simulates a service-to-service token that has a resource scope but
+// no openid scope: mwUserAuthRequired never runs setCtxUser for such a token, so
+// getCtxUser(c) is nil by the time the handler runs.
+func (s *ExtensionResourcesGroupAuthTestSuite) mwForgeAnonymous() gin.HandlerFunc {
+	return func(_ *gin.Context) {}
+}
+
 func (s *ExtensionResourcesGroupAuthTestSuite) updateERD(ctx context.Context, payload string) error {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -374,11 +393,14 @@ func (s *ExtensionResourcesGroupAuthTestSuite) updateERD(ctx context.Context, pa
 
 func (s *ExtensionResourcesGroupAuthTestSuite) TestGetResources() {
 	tt := []struct {
-		name       string
-		resourceID string
-		user       *models.User
-		admin      bool
-		respcode   int
+		name        string
+		erdSlug     string // defaults to "some-resources" (not read-restricted)
+		resourceID  string
+		user        *models.User
+		admin       bool
+		anonymous   bool // simulates an M2M caller with no resolved user in context
+		respcode    int
+		description string
 	}{
 		{
 			name:       "admin-get-resources",
@@ -394,14 +416,99 @@ func (s *ExtensionResourcesGroupAuthTestSuite) TestGetResources() {
 			admin:      false,
 			user:       s.johnUser,
 		},
+
+		// restrict_read + admin_group scenarios (admin-resources ERD, admin group is ext-admin)
+		{
+			name:        "restricted-erd-gov-admin-can-read",
+			erdSlug:     "admin-resources",
+			resourceID:  "00000005-0000-0000-0000-000000000006",
+			admin:       true,
+			user:        s.haroladAdmin,
+			respcode:    http.StatusOK,
+			description: "gov-admins bypass restrict_read",
+		},
+		{
+			name:        "restricted-erd-admin-group-member-can-read",
+			erdSlug:     "admin-resources",
+			resourceID:  "00000005-0000-0000-0000-000000000006",
+			admin:       false,
+			user:        s.johnUser,
+			respcode:    http.StatusOK,
+			description: "ext-admin members can read resources under their restricted ERD",
+		},
+		{
+			name:        "restricted-erd-resource-owner-without-admin-group-cannot-read",
+			erdSlug:     "admin-resources",
+			resourceID:  "00000005-0000-0000-0000-000000000007",
+			admin:       false,
+			user:        s.aliceOwner,
+			respcode:    http.StatusNotFound,
+			description: "restrict_read is gated on admin_group membership, not resource ownership",
+		},
+		{
+			name:        "restricted-erd-non-member-cannot-read",
+			erdSlug:     "admin-resources",
+			resourceID:  "00000005-0000-0000-0000-000000000006",
+			admin:       false,
+			user:        s.bobRegular,
+			respcode:    http.StatusNotFound,
+			description: "users outside the ERD admin group are denied without revealing why",
+		},
+		{
+			name:        "restricted-erd-anonymous-m2m-bypasses-check",
+			erdSlug:     "admin-resources",
+			resourceID:  "00000005-0000-0000-0000-000000000006",
+			anonymous:   true,
+			respcode:    http.StatusOK,
+			description: "a caller with no resolved user (M2M token without openid scope) skips the restrict_read check entirely",
+		},
+
+		// restrict_read with no admin_group configured (locked-resources ERD)
+		{
+			name:        "locked-erd-gov-admin-can-read",
+			erdSlug:     "locked-resources",
+			resourceID:  "00000005-0000-0000-0000-000000000012",
+			admin:       true,
+			user:        s.haroladAdmin,
+			respcode:    http.StatusOK,
+			description: "gov-admins can always read, even with no admin_group configured",
+		},
+		{
+			name:        "locked-erd-non-admin-cannot-read",
+			erdSlug:     "locked-resources",
+			resourceID:  "00000005-0000-0000-0000-000000000012",
+			admin:       false,
+			user:        s.johnUser,
+			respcode:    http.StatusNotFound,
+			description: "with no admin_group configured, only gov-admins can read",
+		},
+		{
+			name:        "locked-erd-anonymous-m2m-bypasses-check",
+			erdSlug:     "locked-resources",
+			resourceID:  "00000005-0000-0000-0000-000000000012",
+			anonymous:   true,
+			respcode:    http.StatusOK,
+			description: "M2M callers bypass restrict_read regardless of admin_group configuration",
+		},
 	}
 
 	s.T().Parallel()
 
 	for _, tc := range tt {
+		erdSlug := tc.erdSlug
+		if erdSlug == "" {
+			erdSlug = "some-resources"
+		}
+
 		r := gin.New()
 		rg := r.Group("/api/v1alpha1")
-		rg.Use(s.mwForgeUser(tc.user, tc.admin))
+
+		if tc.anonymous {
+			rg.Use(s.mwForgeAnonymous())
+		} else {
+			rg.Use(s.mwForgeUser(tc.user, tc.admin))
+		}
+
 		extResAuthTestRoutes(rg, s.v1alpha1)
 
 		s.T().Run(tc.name, func(_ *testing.T) {
@@ -411,7 +518,8 @@ func (s *ExtensionResourcesGroupAuthTestSuite) TestGetResources() {
 				context.Background(),
 				http.MethodGet,
 				fmt.Sprintf(
-					"/api/v1alpha1/extension-resources/test-extension-1/some-resources/v1/%s",
+					"/api/v1alpha1/extension-resources/test-extension-1/%s/v1/%s",
+					erdSlug,
 					tc.resourceID,
 				),
 				nil,
@@ -419,17 +527,23 @@ func (s *ExtensionResourcesGroupAuthTestSuite) TestGetResources() {
 			s.Assert().NoError(err)
 
 			r.ServeHTTP(w, req)
-			s.Assert().Equal(tc.respcode, w.Code, fmt.Sprintf("expected %d, got %d", tc.respcode, w.Code))
+			s.Assert().Equal(
+				tc.respcode, w.Code,
+				fmt.Sprintf("%s: expected %d, got %d: resp: %s", tc.description, tc.respcode, w.Code, w.Body.String()),
+			)
 		})
 	}
 }
 
 func (s *ExtensionResourcesGroupAuthTestSuite) TestListResources() {
 	tt := []struct {
-		name     string
-		user     *models.User
-		admin    bool
-		respcode int
+		name        string
+		erdSlug     string // defaults to "some-resources" (not read-restricted)
+		user        *models.User
+		admin       bool
+		anonymous   bool // simulates an M2M caller with no resolved user in context
+		respcode    int
+		description string
 	}{
 		{
 			name:     "admin-list-resources",
@@ -443,14 +557,76 @@ func (s *ExtensionResourcesGroupAuthTestSuite) TestListResources() {
 			admin:    false,
 			user:     s.johnUser,
 		},
+
+		// restrict_read + admin_group scenarios (admin-resources ERD, admin group is ext-admin)
+		{
+			name:        "restricted-erd-gov-admin-can-list",
+			erdSlug:     "admin-resources",
+			admin:       true,
+			user:        s.haroladAdmin,
+			respcode:    http.StatusOK,
+			description: "gov-admins bypass restrict_read",
+		},
+		{
+			name:        "restricted-erd-admin-group-member-can-list",
+			erdSlug:     "admin-resources",
+			admin:       false,
+			user:        s.johnUser,
+			respcode:    http.StatusOK,
+			description: "ext-admin members can list resources under their restricted ERD",
+		},
+		{
+			name:        "restricted-erd-non-member-cannot-list",
+			erdSlug:     "admin-resources",
+			admin:       false,
+			user:        s.bobRegular,
+			respcode:    http.StatusNotFound,
+			description: "users outside the ERD admin group are denied without revealing why",
+		},
+		{
+			name:        "restricted-erd-anonymous-m2m-bypasses-check",
+			erdSlug:     "admin-resources",
+			anonymous:   true,
+			respcode:    http.StatusOK,
+			description: "a caller with no resolved user (M2M token without openid scope) skips the restrict_read check entirely",
+		},
+
+		// restrict_read with no admin_group configured (locked-resources ERD)
+		{
+			name:        "locked-erd-gov-admin-can-list",
+			erdSlug:     "locked-resources",
+			admin:       true,
+			user:        s.haroladAdmin,
+			respcode:    http.StatusOK,
+			description: "gov-admins can always list, even with no admin_group configured",
+		},
+		{
+			name:        "locked-erd-non-admin-cannot-list",
+			erdSlug:     "locked-resources",
+			admin:       false,
+			user:        s.johnUser,
+			respcode:    http.StatusNotFound,
+			description: "with no admin_group configured, only gov-admins can list",
+		},
 	}
 
 	s.T().Parallel()
 
 	for _, tc := range tt {
+		erdSlug := tc.erdSlug
+		if erdSlug == "" {
+			erdSlug = "some-resources"
+		}
+
 		r := gin.New()
 		rg := r.Group("/api/v1alpha1")
-		rg.Use(s.mwForgeUser(tc.user, tc.admin))
+
+		if tc.anonymous {
+			rg.Use(s.mwForgeAnonymous())
+		} else {
+			rg.Use(s.mwForgeUser(tc.user, tc.admin))
+		}
+
 		extResAuthTestRoutes(rg, s.v1alpha1)
 
 		s.T().Run(tc.name, func(_ *testing.T) {
@@ -459,13 +635,16 @@ func (s *ExtensionResourcesGroupAuthTestSuite) TestListResources() {
 			req, err := http.NewRequestWithContext(
 				context.Background(),
 				http.MethodGet,
-				"/api/v1alpha1/extension-resources/test-extension-1/some-resources/v1",
+				fmt.Sprintf("/api/v1alpha1/extension-resources/test-extension-1/%s/v1", erdSlug),
 				nil,
 			)
 			s.Assert().NoError(err)
 
 			r.ServeHTTP(w, req)
-			s.Assert().Equal(tc.respcode, w.Code, fmt.Sprintf("expected %d, got %d", tc.respcode, w.Code))
+			s.Assert().Equal(
+				tc.respcode, w.Code,
+				fmt.Sprintf("%s: expected %d, got %d: resp: %s", tc.description, tc.respcode, w.Code, w.Body.String()),
+			)
 		})
 	}
 }

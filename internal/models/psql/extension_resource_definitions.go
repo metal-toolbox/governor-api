@@ -39,6 +39,7 @@ type ExtensionResourceDefinition struct {
 	DeletedAt    null.Time   `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
 	ExtensionID  string      `boil:"extension_id" json:"extension_id" toml:"extension_id" yaml:"extension_id"`
 	AdminGroup   null.String `boil:"admin_group" json:"admin_group,omitempty" toml:"admin_group" yaml:"admin_group,omitempty"`
+	RestrictRead bool        `boil:"restrict_read" json:"restrict_read" toml:"restrict_read" yaml:"restrict_read"`
 
 	R *extensionResourceDefinitionR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L extensionResourceDefinitionL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -59,6 +60,7 @@ var ExtensionResourceDefinitionColumns = struct {
 	DeletedAt    string
 	ExtensionID  string
 	AdminGroup   string
+	RestrictRead string
 }{
 	ID:           "id",
 	Name:         "name",
@@ -74,6 +76,7 @@ var ExtensionResourceDefinitionColumns = struct {
 	DeletedAt:    "deleted_at",
 	ExtensionID:  "extension_id",
 	AdminGroup:   "admin_group",
+	RestrictRead: "restrict_read",
 }
 
 var ExtensionResourceDefinitionTableColumns = struct {
@@ -91,6 +94,7 @@ var ExtensionResourceDefinitionTableColumns = struct {
 	DeletedAt    string
 	ExtensionID  string
 	AdminGroup   string
+	RestrictRead string
 }{
 	ID:           "extension_resource_definitions.id",
 	Name:         "extension_resource_definitions.name",
@@ -106,6 +110,7 @@ var ExtensionResourceDefinitionTableColumns = struct {
 	DeletedAt:    "extension_resource_definitions.deleted_at",
 	ExtensionID:  "extension_resource_definitions.extension_id",
 	AdminGroup:   "extension_resource_definitions.admin_group",
+	RestrictRead: "extension_resource_definitions.restrict_read",
 }
 
 // Generated where
@@ -155,6 +160,7 @@ var ExtensionResourceDefinitionWhere = struct {
 	DeletedAt    whereHelpernull_Time
 	ExtensionID  whereHelperstring
 	AdminGroup   whereHelpernull_String
+	RestrictRead whereHelperbool
 }{
 	ID:           whereHelperstring{field: "\"extension_resource_definitions\".\"id\""},
 	Name:         whereHelperstring{field: "\"extension_resource_definitions\".\"name\""},
@@ -170,6 +176,7 @@ var ExtensionResourceDefinitionWhere = struct {
 	DeletedAt:    whereHelpernull_Time{field: "\"extension_resource_definitions\".\"deleted_at\""},
 	ExtensionID:  whereHelperstring{field: "\"extension_resource_definitions\".\"extension_id\""},
 	AdminGroup:   whereHelpernull_String{field: "\"extension_resource_definitions\".\"admin_group\""},
+	RestrictRead: whereHelperbool{field: "\"extension_resource_definitions\".\"restrict_read\""},
 }
 
 // ExtensionResourceDefinitionRels is where relationship names are stored.
@@ -266,9 +273,9 @@ func (r *extensionResourceDefinitionR) GetUserExtensionResources() UserExtension
 type extensionResourceDefinitionL struct{}
 
 var (
-	extensionResourceDefinitionAllColumns            = []string{"id", "name", "description", "enabled", "slug_singular", "slug_plural", "version", "scope", "schema", "created_at", "updated_at", "deleted_at", "extension_id", "admin_group"}
+	extensionResourceDefinitionAllColumns            = []string{"id", "name", "description", "enabled", "slug_singular", "slug_plural", "version", "scope", "schema", "created_at", "updated_at", "deleted_at", "extension_id", "admin_group", "restrict_read"}
 	extensionResourceDefinitionColumnsWithoutDefault = []string{"name", "description", "slug_singular", "slug_plural", "version", "scope", "schema", "extension_id"}
-	extensionResourceDefinitionColumnsWithDefault    = []string{"id", "enabled", "created_at", "updated_at", "deleted_at", "admin_group"}
+	extensionResourceDefinitionColumnsWithDefault    = []string{"id", "enabled", "created_at", "updated_at", "deleted_at", "admin_group", "restrict_read"}
 	extensionResourceDefinitionPrimaryKeyColumns     = []string{"id"}
 	extensionResourceDefinitionGeneratedColumns      = []string{}
 )
