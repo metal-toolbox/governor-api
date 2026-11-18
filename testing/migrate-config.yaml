@@ -1,0 +1,14 @@
+---
+# Config for `migrate up` in the Makefile test-database and ci-test targets.
+# migrate needs an oidc provider with identity.enabled: migration 00007 binds
+# the existing users.external_id values to its issuer. migrate never verifies a
+# token, so the issuer and JWKS URI are never contacted. The database URI comes
+# from GOVERNOR_DB_URI.
+oidc:
+  - name: "migrate test"
+    enabled: true
+    audience: "governor-test"
+    issuer: "https://idp.example.com/"
+    jwksuri: "https://idp.example.com/jwks"
+    identity:
+      enabled: true

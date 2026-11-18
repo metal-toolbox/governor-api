@@ -63,7 +63,7 @@ dev-hydra: |
 test-database: | vendor
 	psql ${PG_STRING} -c "drop database if exists ${DB_NAME}_test"
 	psql ${PG_STRING} -c "create database ${DB_NAME}_test"
-	GOVERNOR_DB_URI="${TEST_DB}" go run main.go migrate up
+	GOVERNOR_DB_URI="${TEST_DB}" go run main.go --config testing/migrate-config.yaml migrate up
 
 generate-models:
 	$(MAKE) test-database
@@ -91,4 +91,4 @@ clean:
 	@go clean -testcache
 
 ci-test: | test
-	go run main.go migrate up
+	go run main.go --config testing/migrate-config.yaml migrate up
