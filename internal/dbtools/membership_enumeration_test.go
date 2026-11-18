@@ -8,8 +8,6 @@ import (
 	"testing"
 
 	"github.com/aarondl/null/v8"
-	dbm "github.com/metal-toolbox/governor-api/db/psql"
-	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -25,9 +23,7 @@ type MembershipEnumerationTestSuite struct {
 func (s *MembershipEnumerationTestSuite) SetupSuite() {
 	s.db = NewPGTestServer(s.T())
 
-	goose.SetBaseFS(dbm.Migrations)
-
-	if err := goose.Up(s.db, "migrations"); err != nil {
+	if err := migrateTestDB(s.db); err != nil {
 		panic("migration failed - could not set up test db")
 	}
 

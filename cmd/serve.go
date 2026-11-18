@@ -51,7 +51,9 @@ func startAPI(ctx context.Context) error {
 	}
 
 	// Run the embedded migration in the event that this is the first run or first run since a new migration was added.
-	RunMigration(db.DB)
+	if err := RunMigration(ctx, db.DB, authcfgs); err != nil {
+		return err
+	}
 
 	logger.Debugf("loaded %d oidc config(s)", len(authcfgs))
 

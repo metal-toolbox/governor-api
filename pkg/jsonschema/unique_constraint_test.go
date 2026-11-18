@@ -9,10 +9,8 @@ import (
 
 	"github.com/aarondl/sqlboiler/v4/boil"
 	"github.com/aarondl/sqlboiler/v4/queries/qm"
-	dbm "github.com/metal-toolbox/governor-api/db/psql"
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	models "github.com/metal-toolbox/governor-api/internal/models/psql"
-	"github.com/pressly/goose/v3"
 	jsonschemav6 "github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -53,9 +51,7 @@ func (s *UniqueConstrainTestSuite) seedTestDB() error {
 func (s *UniqueConstrainTestSuite) SetupSuite() {
 	s.db = dbtools.NewPGTestServer(s.T())
 
-	goose.SetBaseFS(dbm.Migrations)
-
-	if err := goose.Up(s.db, "migrations"); err != nil {
+	if err := migrateTestDB(s.db); err != nil {
 		panic("migration failed - could not set up test db")
 	}
 

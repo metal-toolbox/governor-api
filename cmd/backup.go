@@ -60,11 +60,14 @@ var (
 			}
 
 			if viper.GetBool("restore.migrate") {
-				if _, err := loadAuthConfigs(viper.GetViper()); err != nil {
+				auths, err := loadAuthConfigs(viper.GetViper())
+				if err != nil {
 					return err
 				}
 
-				RunMigration(db.DB)
+				if err := RunMigration(cmd.Context(), db.DB, auths); err != nil {
+					return err
+				}
 			}
 
 			// Perform restore operations using the db connection

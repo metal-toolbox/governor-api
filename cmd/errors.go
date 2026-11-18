@@ -9,4 +9,11 @@ var (
 	ErrMissingNATSTokenURL = errors.New("workload identity federation token URL is required")
 	// ErrNoOIDCConfig is returned when no enabled oidc provider is configured
 	ErrNoOIDCConfig = errors.New("no oidc auth configs found")
+	// ErrUnsupportedMigrateCommand is returned for a migrate command the PostgreSQL
+	// migration Provider does not run
+	ErrUnsupportedMigrateCommand = errors.New("unsupported migrate command")
+	// ErrMigrateVersionRequired is returned when up-to or down-to has no VERSION argument
+	ErrMigrateVersionRequired = errors.New("migrate command needs a VERSION argument")
+	// ErrUnsupportedDBDriver is returned for a db.driver other than postgres or crdb
+	ErrUnsupportedDBDriver = errors.New("unsupported database driver")
 )
