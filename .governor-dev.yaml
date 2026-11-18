@@ -33,6 +33,8 @@ oidc:
     claims:
       roles: scp
       username: uid
+    identity:
+      enabled: true
 
 logging:
   debug: true
