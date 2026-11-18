@@ -1,5 +1,10 @@
 package configs
 
+import (
+	"fmt"
+	"strings"
+)
+
 // IdentityConfig controls how a sign-in from this provider maps to a governor user.
 type IdentityConfig struct {
 	// Enabled marks a provider whose tokens identify governor users. At least one
@@ -10,7 +15,7 @@ type IdentityConfig struct {
 	// whose email equals the OIDC userinfo email. Used only when Enabled. Default false.
 	AutoLink bool `mapstructure:"autoLink"`
 	// AutoRegister creates a user for an unknown sign-in that matches no user.
-	// Used only when Enabled. nil means true, which keeps today's behaviour.
+	// Used only when Enabled. nil means true: an unknown sign-in creates a user.
 	AutoRegister *bool `mapstructure:"autoRegister"`
 }
 
@@ -47,13 +52,30 @@ func IdentityIssuers(auths []Auth) []string {
 }
 
 // ValidateIdentityProviders returns ErrNoIdentityProvider when no provider has
-// Identity.Enabled.
+// Identity.Enabled. The error lists the configured issuers, so the operator
+// can pick the one to flag.
 func ValidateIdentityProviders(auths []Auth) error {
-	if len(IdentityIssuers(auths)) == 0 {
-		return ErrNoIdentityProvider
+	if len(IdentityIssuers(auths)) > 0 {
+		return nil
 	}
 
-	return nil
+	issuers := []string{}
+	seen := make(map[string]struct{}, len(auths))
+
+	for _, a := range auths {
+		if _, ok := seen[a.Issuer]; ok {
+			continue
+		}
+
+		seen[a.Issuer] = struct{}{}
+		issuers = append(issuers, a.Issuer)
+	}
+
+	if len(issuers) == 0 {
+		return fmt.Errorf("%w (no oidc provider configured)", ErrNoIdentityProvider)
+	}
+
+	return fmt.Errorf("%w (configured issuers: %s)", ErrNoIdentityProvider, strings.Join(issuers, ", "))
 }
 
 // PrimaryIdentityIssuer returns the issuer of the first provider with

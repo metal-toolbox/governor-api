@@ -17,6 +17,8 @@ func TestLoadAuthConfigs(t *testing.T) {
 		cfg         string
 		wantIssuers []string
 		wantErr     error
+		// wantErrText lists what the operator must read in the error.
+		wantErrText []string
 	}{
 		{
 			name: "one provider with identity enabled",
@@ -41,10 +43,19 @@ oidc:
 oidc:
   - enabled: true
     audience: api
+    issuer: https://hydra
+    jwksuri: https://hydra/jwks
+  - enabled: true
+    audience: api
     issuer: https://okta
     jwksuri: https://okta/jwks
 `,
 			wantErr: configs.ErrNoIdentityProvider,
+			wantErrText: []string{
+				"set identity.enabled: true on the provider that issued the existing user IDs",
+				"https://hydra",
+				"https://okta",
+			},
 		},
 		{
 			name: "no enabled provider",
@@ -69,6 +80,10 @@ oidc:
 
 			auths, err := loadAuthConfigs(v)
 			assert.ErrorIs(t, err, tt.wantErr)
+
+			for _, text := range tt.wantErrText {
+				assert.ErrorContains(t, err, text)
+			}
 
 			var issuers []string
 			for _, a := range auths {
