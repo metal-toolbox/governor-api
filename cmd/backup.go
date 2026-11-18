@@ -88,9 +88,25 @@ var (
 
 // restoreWithMigration migrates db up to the version before the
 // users.external_id backfill, runs restore, then applies the remaining
-// migrations. The backfill then copies the restored users' external IDs; run
-// on the empty database first, it would record itself with nothing copied.
+// migrations, so the backfill copies the restored users' external IDs. A
+// database that is already at the backfill version or later cannot backfill
+// restored users any more, so it returns ErrRestoreAfterBackfill and loads
+// nothing.
 func restoreWithMigration(ctx context.Context, db *sql.DB, auths []configs.Auth, restore func(context.Context) error) error {
+	p, err := psqlmigrations.NewProvider(db, configs.IdentityIssuers(auths))
+	if err != nil {
+		return fmt.Errorf("build migration provider: %w", err)
+	}
+
+	version, err := p.GetDBVersion(ctx)
+	if err != nil {
+		return fmt.Errorf("read database version: %w", err)
+	}
+
+	if version >= psqlmigrations.BackfillVersion {
+		return fmt.Errorf("%w: the database is at version %d", ErrRestoreAfterBackfill, version)
+	}
+
 	if err := migrateTo(ctx, db, auths, "restoreWithMigration", psqlmigrations.BackfillVersion-1); err != nil {
 		return err
 	}

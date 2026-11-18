@@ -330,6 +330,26 @@ func TestRestoreWithMigration(t *testing.T) {
 	}
 }
 
+func TestRestoreWithMigrationAfterBackfill(t *testing.T) {
+	ctx := context.Background()
+	db := migratedTestDB(t, psqlmigrations.BackfillVersion)
+	auths := []configs.Auth{{
+		AuthConfig: ginjwt.AuthConfig{Enabled: true, Issuer: testIdentityIssuer},
+		Identity:   configs.IdentityConfig{Enabled: true},
+	}}
+
+	restored := false
+	restore := func(context.Context) error {
+		restored = true
+		return nil
+	}
+
+	err := restoreWithMigration(ctx, db, auths, restore)
+	assert.ErrorIs(t, err, ErrRestoreAfterBackfill)
+	assert.False(t, restored, "no data may load once the backfill has run")
+	assert.Equal(t, int64(psqlmigrations.BackfillVersion), testDBVersion(t, db))
+}
+
 func TestPrintStatus(t *testing.T) {
 	out := &bytes.Buffer{}
 

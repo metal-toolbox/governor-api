@@ -16,4 +16,8 @@ var (
 	ErrMigrateVersionRequired = errors.New("migrate command needs a VERSION argument")
 	// ErrUnsupportedDBDriver is returned for a db.driver other than postgres or crdb
 	ErrUnsupportedDBDriver = errors.New("unsupported database driver")
+	// ErrRestoreAfterBackfill is returned by restore --migrate when the database
+	// has already run migration 00007, which would leave the restored users
+	// without identity records
+	ErrRestoreAfterBackfill = errors.New("restore --migrate needs a database that has not run migration 00007 (the users.external_id backfill); restore into a new database")
 )
