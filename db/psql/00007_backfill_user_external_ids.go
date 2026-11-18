@@ -82,7 +82,11 @@ func newBackfillMigration(identityIssuers []string, logger *zap.Logger) *goose.M
 		return nil
 	}
 
-	return goose.NewGoMigration(backfillVersion, &goose.GoFunc{RunTx: up}, &goose.GoFunc{RunTx: down})
+	m := goose.NewGoMigration(backfillVersion, &goose.GoFunc{RunTx: up}, &goose.GoFunc{RunTx: down})
+	// goose prints Source in migration results; without it the line names no file.
+	m.Source = "00007_backfill_user_external_ids.go"
+
+	return m
 }
 
 // soleIssuer returns the only identity issuer. The check does not depend on

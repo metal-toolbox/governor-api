@@ -15,6 +15,7 @@ const testIssuer = "https://okta.example.com/oauth2/default"
 type sourceRef struct {
 	Version int64
 	Type    goose.MigrationType
+	Path    string
 }
 
 func TestNewProviderSources(t *testing.T) {
@@ -34,16 +35,16 @@ func TestNewProviderSources(t *testing.T) {
 
 	got := []sourceRef{}
 	for _, s := range p.ListSources() {
-		got = append(got, sourceRef{Version: s.Version, Type: s.Type})
+		got = append(got, sourceRef{Version: s.Version, Type: s.Type, Path: s.Path})
 	}
 
 	assert.Equal(t, []sourceRef{
-		{Version: 1, Type: goose.TypeSQL},
-		{Version: 2, Type: goose.TypeSQL},
-		{Version: 3, Type: goose.TypeSQL},
-		{Version: 4, Type: goose.TypeSQL},
-		{Version: 5, Type: goose.TypeSQL},
-		{Version: 6, Type: goose.TypeSQL},
-		{Version: 7, Type: goose.TypeGo},
+		{Version: 1, Type: goose.TypeSQL, Path: "00001_initial.sql"},
+		{Version: 2, Type: goose.TypeSQL, Path: "00002_add_unique_user_group_request_constraint.sql"},
+		{Version: 3, Type: goose.TypeSQL, Path: "00003_extension_resource_owners.sql"},
+		{Version: 4, Type: goose.TypeSQL, Path: "00004_group_metadata.sql"},
+		{Version: 5, Type: goose.TypeSQL, Path: "00005_extension_resource_annotations.sql"},
+		{Version: 6, Type: goose.TypeSQL, Path: "00006_user_external_ids.sql"},
+		{Version: 7, Type: goose.TypeGo, Path: "00007_backfill_user_external_ids.go"},
 	}, got)
 }
