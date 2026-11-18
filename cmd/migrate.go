@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"io"
+	"math"
 	"strconv"
 	"time"
 
@@ -14,6 +15,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 
 	crdbmigrations "github.com/metal-toolbox/governor-api/db/crdb"
 	psqlmigrations "github.com/metal-toolbox/governor-api/db/psql"
@@ -60,9 +64,15 @@ func migrate(ctx context.Context, command string, args []string, out io.Writer) 
 
 	defer db.Close()
 
-	switch driver := viper.GetString("db.driver"); driver {
+	return runMigrate(ctx, db, viper.GetViper(), command, args, out)
+}
+
+// runMigrate runs a migrate command against db with the driver and oidc
+// providers configured in v.
+func runMigrate(ctx context.Context, db *sql.DB, v *viper.Viper, command string, args []string, out io.Writer) error {
+	switch driver := v.GetString("db.driver"); driver {
 	case "postgres":
-		return migratePostgres(ctx, db, command, args, out)
+		return migratePostgres(ctx, db, v, command, args, out)
 	case "crdb":
 		goose.SetBaseFS(crdbmigrations.Migrations)
 
@@ -74,17 +84,18 @@ func migrate(ctx context.Context, command string, args []string, out io.Writer) 
 
 // migratePostgres runs a migrate command on PostgreSQL. Commands that apply or
 // inspect migrations go through psqlmigrations.NewProvider, so they always
-// include Go migration 00007.
-func migratePostgres(ctx context.Context, db *sql.DB, command string, args []string, out io.Writer) error {
-	auths, err := loadAuthConfigs(viper.GetViper())
-	if err != nil {
-		return err
-	}
-
+// include Go migration 00007, and need an oidc provider with identity.enabled.
+// create and fix only write migration files, so they need no oidc config.
+func migratePostgres(ctx context.Context, db *sql.DB, v *viper.Viper, command string, args []string, out io.Writer) error {
 	if isFileCommand(command) {
 		goose.SetBaseFS(psqlmigrations.Migrations)
 
 		return runGooseCommand(ctx, db, command, args)
+	}
+
+	auths, err := loadAuthConfigs(v)
+	if err != nil {
+		return err
 	}
 
 	p, err := psqlmigrations.NewProvider(db, configs.IdentityIssuers(auths), psqlmigrations.WithLogger(logger.Desugar()))
@@ -109,21 +120,10 @@ func isFileCommand(command string) bool {
 	return command == "create" || command == "fix"
 }
 
-// migrationProvider is the part of *goose.Provider that the migrate command calls.
-type migrationProvider interface {
-	Up(ctx context.Context) ([]*goose.MigrationResult, error)
-	UpByOne(ctx context.Context) (*goose.MigrationResult, error)
-	UpTo(ctx context.Context, version int64) ([]*goose.MigrationResult, error)
-	Down(ctx context.Context) (*goose.MigrationResult, error)
-	DownTo(ctx context.Context, version int64) ([]*goose.MigrationResult, error)
-	Status(ctx context.Context) ([]*goose.MigrationStatus, error)
-	GetDBVersion(ctx context.Context) (int64, error)
-}
-
 // runProviderCommand maps a goose CLI command to the Provider call and prints
 // the result to out. It returns ErrUnsupportedMigrateCommand for any command
 // that is not a Provider call, including create and fix.
-func runProviderCommand(ctx context.Context, p migrationProvider, command string, args []string, out io.Writer) error {
+func runProviderCommand(ctx context.Context, p *goose.Provider, command string, args []string, out io.Writer) error {
 	switch command {
 	case "up":
 		results, err := p.Up(ctx)
@@ -233,17 +233,24 @@ func printStatus(out io.Writer, statuses []*goose.MigrationStatus) {
 // at start-up. auths are the oidc providers; migration 00007 needs exactly one
 // of them with identity.enabled when it is still pending.
 func RunMigration(ctx context.Context, db *sql.DB, auths []configs.Auth) error {
-	ctx, span := otel.GetTracerProvider().Tracer("github.com/metal-toolbox/governor-api/cmd").Start(ctx, "RunMigration")
+	return migrateTo(ctx, db, auths, "RunMigration", math.MaxInt64)
+}
+
+// migrateTo applies the pending PostgreSQL migrations up to and including
+// version in a span named spanName, and logs each applied migration.
+func migrateTo(ctx context.Context, db *sql.DB, auths []configs.Auth, spanName string, version int64) error {
+	ctx, span := otel.GetTracerProvider().Tracer("github.com/metal-toolbox/governor-api/cmd").Start(ctx, spanName,
+		trace.WithAttributes(attribute.Int64("migration.target_version", version)))
 	defer span.End()
 
 	p, err := psqlmigrations.NewProvider(db, configs.IdentityIssuers(auths), psqlmigrations.WithLogger(logger.Desugar()))
 	if err != nil {
-		return fmt.Errorf("build migration provider: %w", err)
+		return spanError(span, fmt.Errorf("build migration provider: %w", err))
 	}
 
-	results, err := p.Up(ctx)
+	results, err := p.UpTo(ctx, version)
 	if err != nil {
-		return fmt.Errorf("run migrations: %w", err)
+		return spanError(span, fmt.Errorf("run migrations: %w", err))
 	}
 
 	for _, r := range results {
@@ -251,4 +258,12 @@ func RunMigration(ctx context.Context, db *sql.DB, auths []configs.Auth) error {
 	}
 
 	return nil
+}
+
+// spanError records err on span, marks the span failed and returns err.
+func spanError(span trace.Span, err error) error {
+	span.RecordError(err)
+	span.SetStatus(codes.Error, err.Error())
+
+	return err
 }

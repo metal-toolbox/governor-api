@@ -3,10 +3,14 @@ package psql
 import (
 	"context"
 	"database/sql"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"go.uber.org/zap/zaptest/observer"
 
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
 )
@@ -184,6 +188,38 @@ func TestBackfillMigrationUp(t *testing.T) {
 			wantVersion: 7,
 			wantRows:    []externalIDRow{},
 		},
+		{
+			name: "active user with an external ID longer than 256 characters",
+			users: append([]seedUser{
+				{email: "long@example.com", externalID: sql.NullString{String: strings.Repeat("x", 257), Valid: true}},
+			}, backfillSeed...),
+			issuers:     []string{testIssuer},
+			wantErr:     ErrExternalIDLength,
+			wantVersion: 6,
+			wantRows:    []externalIDRow{},
+		},
+		{
+			name: "active user with an empty external ID",
+			users: append([]seedUser{
+				{email: "empty@example.com", externalID: sql.NullString{String: "", Valid: true}},
+			}, backfillSeed...),
+			issuers:     []string{testIssuer},
+			wantErr:     ErrExternalIDLength,
+			wantVersion: 6,
+			wantRows:    []externalIDRow{},
+		},
+		{
+			name: "soft-deleted user with a long external ID is skipped",
+			users: append([]seedUser{
+				{email: "long@example.com", externalID: sql.NullString{String: strings.Repeat("x", 257), Valid: true}, deleted: true},
+			}, backfillSeed...),
+			issuers:     []string{testIssuer},
+			wantVersion: 7,
+			wantRows: []externalIDRow{
+				{Email: "alice@example.com", Iss: testIssuer, ExternalID: "okta-alice"},
+				{Email: "bob@example.com", Iss: testIssuer, ExternalID: "okta-bob"},
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -203,9 +239,13 @@ func TestBackfillMigrationUp(t *testing.T) {
 }
 
 func TestBackfillMigrationDown(t *testing.T) {
+	// After the backfill, alice also signs in through Ping and erin registers
+	// through Ping only. Their Ping records are not the down step's to touch.
 	migrated := []externalIDRow{
 		{Email: "alice@example.com", Iss: testIssuer, ExternalID: "okta-alice"},
+		{Email: "alice@example.com", Iss: pingIssuer, ExternalID: "ping-alice"},
 		{Email: "bob@example.com", Iss: testIssuer, ExternalID: "okta-bob"},
+		{Email: "erin@example.com", Iss: pingIssuer, ExternalID: "ping-erin"},
 	}
 
 	cleared := []userExternalID{
@@ -213,6 +253,7 @@ func TestBackfillMigrationDown(t *testing.T) {
 		{Email: "bob@example.com"},
 		{Email: "carol@example.com"},
 		{Email: "dave@example.com"},
+		{Email: "erin@example.com"},
 	}
 
 	tests := []struct {
@@ -240,32 +281,45 @@ func TestBackfillMigrationDown(t *testing.T) {
 			wantUsers:   cleared,
 		},
 		{
-			name:        "one flagged provider refills the column and removes its records",
+			name:        "one flagged provider refills the column from its own records only",
 			issuers:     []string{testIssuer},
 			wantVersion: 6,
-			wantRows:    []externalIDRow{},
+			wantRows: []externalIDRow{
+				{Email: "alice@example.com", Iss: pingIssuer, ExternalID: "ping-alice"},
+				{Email: "erin@example.com", Iss: pingIssuer, ExternalID: "ping-erin"},
+			},
 			wantUsers: []userExternalID{
 				{Email: "alice@example.com", ExternalID: sql.NullString{String: "okta-alice", Valid: true}},
 				{Email: "bob@example.com", ExternalID: sql.NullString{String: "okta-bob", Valid: true}},
 				{Email: "carol@example.com"},
 				{Email: "dave@example.com"},
+				{Email: "erin@example.com"},
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			db := migratedTo(t, 7, backfillSeed)
+			ctx := context.Background()
+			db := migratedTo(t, 7, append(backfillSeed, seedUser{email: "erin@example.com"}))
+
+			_, err := db.ExecContext(ctx,
+				`INSERT INTO user_external_ids (user_id, iss, external_id)
+				SELECT id, $1, 'ping-' || split_part(email, '@', 1) FROM users
+				WHERE email IN ('alice@example.com', 'erin@example.com')`,
+				pingIssuer,
+			)
+			require.NoError(t, err)
 
 			// The down step of the column drop re-adds users.external_id empty;
 			// clear it so the refill is what the assertions see.
-			_, err := db.ExecContext(context.Background(), `UPDATE users SET external_id = NULL`)
+			_, err = db.ExecContext(ctx, `UPDATE users SET external_id = NULL`)
 			require.NoError(t, err)
 
 			p, err := NewProvider(db, tt.issuers)
 			require.NoError(t, err)
 
-			_, err = p.DownTo(context.Background(), 6)
+			_, err = p.DownTo(ctx, 6)
 			assert.ErrorIs(t, err, tt.wantErr)
 
 			assert.Equal(t, tt.wantVersion, dbVersion(t, db))
@@ -273,4 +327,76 @@ func TestBackfillMigrationDown(t *testing.T) {
 			assert.Equal(t, tt.wantUsers, userExternalIDs(t, db))
 		})
 	}
+}
+
+func TestBackfillMigrationLogsRowCount(t *testing.T) {
+	tests := []struct {
+		name  string
+		users []seedUser
+		want  []map[string]any
+	}{
+		{
+			name:  "users with external IDs",
+			users: backfillSeed,
+			want:  []map[string]any{{"backfilled_rows": int64(2), "iss": testIssuer}},
+		},
+		{
+			name: "no users with external IDs",
+			want: []map[string]any{{"backfilled_rows": int64(0), "iss": testIssuer}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db := migratedTo(t, 6, tt.users)
+
+			core, logs := observer.New(zapcore.DebugLevel)
+
+			p, err := NewProvider(db, []string{testIssuer}, WithLogger(zap.New(core)))
+			require.NoError(t, err)
+
+			_, err = p.UpTo(context.Background(), 7)
+			require.NoError(t, err)
+
+			got := []map[string]any{}
+			for _, e := range logs.FilterMessage("backfilled user external ids").FilterLevelExact(zapcore.InfoLevel).All() {
+				got = append(got, e.ContextMap())
+			}
+
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestSoleIssuer(t *testing.T) {
+	tests := []struct {
+		name    string
+		issuers []string
+		wantErr string
+	}{
+		{
+			name:    "no issuer",
+			issuers: nil,
+			wantErr: "migration 00007 needs exactly one oidc provider with identity.enabled, found 0",
+		},
+		{
+			name:    "two issuers",
+			issuers: []string{testIssuer, pingIssuer},
+			wantErr: "migration 00007 needs exactly one oidc provider with identity.enabled, found 2: " + testIssuer + ", " + pingIssuer,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := soleIssuer(tt.issuers)
+			assert.ErrorIs(t, err, ErrIdentityProviderCount)
+			assert.EqualError(t, err, tt.wantErr)
+		})
+	}
+}
+
+func TestSoleIssuerOne(t *testing.T) {
+	iss, err := soleIssuer([]string{testIssuer})
+	assert.NoError(t, err)
+	assert.Equal(t, testIssuer, iss)
 }

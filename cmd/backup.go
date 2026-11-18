@@ -10,7 +10,9 @@ import (
 	_ "github.com/cockroachdb/cockroach-go/v2/crdb/crdbpgx" // crdb retries and postgres interface
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
+	psqlmigrations "github.com/metal-toolbox/governor-api/db/psql"
 	"github.com/metal-toolbox/governor-api/internal/backupper"
+	"github.com/metal-toolbox/governor-api/pkg/configs"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -59,28 +61,46 @@ var (
 				driver = backupper.DBDriverPostgres
 			}
 
-			if viper.GetBool("restore.migrate") {
-				auths, err := loadAuthConfigs(viper.GetViper())
-				if err != nil {
-					return err
-				}
-
-				if err := RunMigration(cmd.Context(), db.DB, auths); err != nil {
-					return err
-				}
-			}
-
 			// Perform restore operations using the db connection
 			r := backupper.New(db, driver, backupper.WithLogger(logger.Desugar()))
 
-			if err := r.Restore(cmd.Context(), inputReader()); err != nil {
-				return fmt.Errorf("restore governor: %w", err)
+			restore := func(ctx context.Context) error {
+				if err := r.Restore(ctx, inputReader()); err != nil {
+					return fmt.Errorf("restore governor: %w", err)
+				}
+
+				return nil
 			}
 
-			return nil
+			if !viper.GetBool("restore.migrate") {
+				return restore(cmd.Context())
+			}
+
+			auths, err := loadAuthConfigs(viper.GetViper())
+			if err != nil {
+				return err
+			}
+
+			return restoreWithMigration(cmd.Context(), db.DB, auths, restore)
 		},
 	}
 )
+
+// restoreWithMigration migrates db up to the version before the
+// users.external_id backfill, runs restore, then applies the remaining
+// migrations. The backfill then copies the restored users' external IDs; run
+// on the empty database first, it would record itself with nothing copied.
+func restoreWithMigration(ctx context.Context, db *sql.DB, auths []configs.Auth, restore func(context.Context) error) error {
+	if err := migrateTo(ctx, db, auths, "restoreWithMigration", psqlmigrations.BackfillVersion-1); err != nil {
+		return err
+	}
+
+	if err := restore(ctx); err != nil {
+		return err
+	}
+
+	return RunMigration(ctx, db, auths)
+}
 
 func outputWriter() io.Writer {
 	if viper.GetString("backup.output") == "stdout" {
