@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"io"
 	"os"
 
@@ -46,7 +47,7 @@ var (
 		Use:   "restore",
 		Short: "Restore the system",
 		Long:  `Restore governor system data`,
-		Run: func(cmd *cobra.Command, _ []string) {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			driverstr := viper.GetString("restore.driver")
 			conn := viper.GetString("db.uri")
 
@@ -59,16 +60,21 @@ var (
 			}
 
 			if viper.GetBool("restore.migrate") {
+				if _, err := loadAuthConfigs(viper.GetViper()); err != nil {
+					return err
+				}
+
 				RunMigration(db.DB)
 			}
 
 			// Perform restore operations using the db connection
 			r := backupper.New(db, driver, backupper.WithLogger(logger.Desugar()))
 
-			err := r.Restore(cmd.Context(), inputReader())
-			if err != nil {
-				logger.Fatal("failed to restore governor", zap.Error(err))
+			if err := r.Restore(cmd.Context(), inputReader()); err != nil {
+				return fmt.Errorf("restore governor: %w", err)
 			}
+
+			return nil
 		},
 	}
 )
