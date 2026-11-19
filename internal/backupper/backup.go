@@ -389,6 +389,14 @@ func (b *Backupper) backupPSQL(ctx context.Context) (*BackupPSQL, error) {
 
 	b.logger.Info("getting users", zap.Int("count", len(thewholething.Users)))
 
+	thewholething.UserExternalIDs, err = psqlmodels.UserExternalIds().All(ctx, b.db)
+	if err != nil {
+		b.logger.Error("Failed to backup user external ids", zap.Error(err))
+		return nil, err
+	}
+
+	b.logger.Info("getting user external ids", zap.Int("count", len(thewholething.UserExternalIDs)))
+
 	// Extension data
 	thewholething.ExtensionResourceDefinitions, err = psqlmodels.ExtensionResourceDefinitions(qm.WithDeleted()).All(ctx, b.db)
 	if err != nil {

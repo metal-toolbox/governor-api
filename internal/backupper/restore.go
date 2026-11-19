@@ -36,6 +36,7 @@ func (b *Backupper) Restore(ctx context.Context, reader io.Reader) error {
 			{name: "application types", data: toInsertable(data.ApplicationTypes)},
 			{name: "groups", data: toInsertable(sorted)},
 			{name: "users", data: toInsertable(data.Users)},
+			{name: "user external ids", data: toInsertable(data.UserExternalIDs)},
 			{name: "extensions", data: toInsertable(data.Extensions)},
 			{name: "notification targets", data: toInsertable(data.NotificationTargets)},
 			{name: "notification types", data: toInsertable(data.NotificationTypes)},
