@@ -86,7 +86,7 @@ func TestPostgresRestoreRefusesBackupWithoutExternalIDs(t *testing.T) {
 		"metadata": {}}]}`
 
 	err := New(target, DBDriverPostgres).Restore(ctx, strings.NewReader(legacy))
-	require.ErrorIs(t, err, ErrBackupWithoutExternalIDs)
+	assert.ErrorIs(t, err, ErrBackupWithoutExternalIDs)
 
 	var users int
 

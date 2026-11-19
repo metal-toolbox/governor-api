@@ -12,7 +12,9 @@ import (
 	"go.uber.org/zap"
 )
 
-// Restore restores the database from a backup
+// Restore restores the database from a backup. A PostgreSQL backup without a
+// user_external_ids key returns ErrBackupWithoutExternalIDs, and nothing is
+// restored.
 func (b *Backupper) Restore(ctx context.Context, reader io.Reader) error {
 	databytes, err := io.ReadAll(reader)
 	if err != nil {
