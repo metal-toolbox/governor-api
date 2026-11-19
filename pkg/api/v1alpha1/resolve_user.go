@@ -131,7 +131,7 @@ func (r *Router) resolveUser(c *gin.Context, autoProvision bool, mods ...qm.Quer
 
 	// No provider setting lets this sign-in create or link a user, so the
 	// userinfo call is skipped.
-	if !mayProvision(ac.Identity) {
+	if !shouldProvision(ac.Identity) {
 		observe(metrics.OutcomeRejectedUnregistered)
 		sendError(c, http.StatusUnauthorized, "user not registered")
 
@@ -248,19 +248,21 @@ func (r *Router) handleProvisionError(
 	return nil, false
 }
 
-// mayProvision reports whether a provider's identity settings let an unknown
-// sign-in link or create a user.
-func mayProvision(id configs.IdentityConfig) bool {
-	return mayLink(id) || mayRegister(id)
+// shouldProvision reports whether the resolver tries to link or create a user
+// for an unknown sign-in through a provider with the identity settings id.
+func shouldProvision(id configs.IdentityConfig) bool {
+	return shouldLink(id) || shouldRegister(id)
 }
 
-// mayLink reports whether an unknown sign-in may be linked by email to an existing user.
-func mayLink(id configs.IdentityConfig) bool {
+// shouldLink reports whether the resolver tries to link an unknown sign-in by
+// email to an existing user.
+func shouldLink(id configs.IdentityConfig) bool {
 	return id.Enabled && id.AutoLink
 }
 
-// mayRegister reports whether an unknown sign-in may create a user.
-func mayRegister(id configs.IdentityConfig) bool {
+// shouldRegister reports whether the resolver creates a user for an unknown
+// sign-in that it did not link.
+func shouldRegister(id configs.IdentityConfig) bool {
 	return id.Enabled && id.AutoRegisterOrDefault()
 }
 
@@ -343,7 +345,7 @@ func (r *Router) provisionUser(
 		linked bool
 	)
 
-	if mayLink(ac.Identity) {
+	if shouldLink(ac.Identity) {
 		p, linked, err = linkUser(ctx, tx, auditID, pair, userInfo.Email)
 		if err != nil {
 			return nil, err
@@ -351,7 +353,7 @@ func (r *Router) provisionUser(
 	}
 
 	if !linked {
-		if !mayRegister(ac.Identity) {
+		if !shouldRegister(ac.Identity) {
 			return nil, errNotRegistered
 		}
 
