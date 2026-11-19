@@ -22,6 +22,28 @@ func (a *Auth) Validate() error {
 	return a.Cedar.Validate()
 }
 
+// AuthConfigs is the list of configured OIDC providers, in config order. A
+// plain []Auth converts to it implicitly.
+type AuthConfigs []Auth
+
+// Issuers returns the issuer of every provider, in config order. Providers
+// that share an issuer and differ only by audience appear once.
+func (auths AuthConfigs) Issuers() []string {
+	issuers := []string{}
+	seen := make(map[string]struct{}, len(auths))
+
+	for _, a := range auths {
+		if _, ok := seen[a.Issuer]; ok {
+			continue
+		}
+
+		seen[a.Issuer] = struct{}{}
+		issuers = append(issuers, a.Issuer)
+	}
+
+	return issuers
+}
+
 // GetAuthFromFlags builds the auth providers from flags/config. It reuses
 // ginjwt.GetAuthConfigsFromFlags for OIDC parsing, enabled-filtering, and
 // validation, then augments each returned provider with its (optional) Cedar

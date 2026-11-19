@@ -99,7 +99,7 @@ func migratePostgres(ctx context.Context, db *sql.DB, v *viper.Viper, command st
 			return err
 		}
 
-		identityIssuers = configs.IdentityIssuers(auths)
+		identityIssuers = auths.IdentityIssuers()
 	}
 
 	err := psqlmigrations.RunContext(ctx, db, identityIssuers, command, args, psqlmigrations.WithLogger(logger.Desugar()))
@@ -119,18 +119,18 @@ func isFileCommand(command string) bool {
 // RunMigration applies every pending PostgreSQL migration, as the service does
 // at start-up. auths are the oidc providers; migration 00007 needs exactly one
 // of them with identity.enabled when it is still pending.
-func RunMigration(ctx context.Context, db *sql.DB, auths []configs.Auth) error {
+func RunMigration(ctx context.Context, db *sql.DB, auths configs.AuthConfigs) error {
 	return migrateTo(ctx, db, auths, "RunMigration", math.MaxInt64)
 }
 
 // migrateTo applies the pending PostgreSQL migrations up to and including
 // version in a span named spanName, and logs each applied migration.
-func migrateTo(ctx context.Context, db *sql.DB, auths []configs.Auth, spanName string, version int64) error {
+func migrateTo(ctx context.Context, db *sql.DB, auths configs.AuthConfigs, spanName string, version int64) error {
 	ctx, span := otel.GetTracerProvider().Tracer("github.com/metal-toolbox/governor-api/cmd").Start(ctx, spanName,
 		trace.WithAttributes(attribute.Int64("migration.target_version", version)))
 	defer span.End()
 
-	p, err := psqlmigrations.NewProvider(db, configs.IdentityIssuers(auths), psqlmigrations.WithLogger(logger.Desugar()))
+	p, err := psqlmigrations.NewProvider(db, auths.IdentityIssuers(), psqlmigrations.WithLogger(logger.Desugar()))
 	if err != nil {
 		return spanError(span, fmt.Errorf("build migration provider: %w", err))
 	}

@@ -30,7 +30,7 @@ type Router struct {
 	AuditLogWriter io.Writer
 	AuditMW        *ginaudit.Middleware
 	AuthMW         *ginauth.MultiTokenMiddleware
-	AuthConf       []configs.Auth
+	AuthConf       configs.AuthConfigs
 	DB             *sqlx.DB
 	EventBus       *eventbus.Client
 	Logger         *zap.Logger

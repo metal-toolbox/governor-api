@@ -88,7 +88,7 @@ var (
 // restoreWithMigration applies the pending PostgreSQL migrations to db, then
 // runs restore. A failed restore leaves db migrated and empty, so the command
 // can run again with another backup.
-func restoreWithMigration(ctx context.Context, db *sql.DB, auths []configs.Auth, restore func(context.Context) error) error {
+func restoreWithMigration(ctx context.Context, db *sql.DB, auths configs.AuthConfigs, restore func(context.Context) error) error {
 	if err := RunMigration(ctx, db, auths); err != nil {
 		return err
 	}

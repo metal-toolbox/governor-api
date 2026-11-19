@@ -37,10 +37,10 @@ func authFor(issuer, audience string, enabled bool) Auth {
 	}
 }
 
-func TestIdentityProviders(t *testing.T) {
+func TestAuthConfigsIdentity(t *testing.T) {
 	tests := []struct {
 		name          string
-		auths         []Auth
+		auths         AuthConfigs
 		wantIssuers   []string
 		wantPrimary   string
 		wantPrimaryOK bool
@@ -149,13 +149,46 @@ func TestIdentityProviders(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.wantIssuers, IdentityIssuers(tt.auths))
+			assert.Equal(t, tt.wantIssuers, tt.auths.IdentityIssuers())
 
-			primary, ok := PrimaryIdentityIssuer(tt.auths)
+			primary, ok := tt.auths.PrimaryIdentityIssuer()
 			assert.Equal(t, tt.wantPrimary, primary)
 			assert.Equal(t, tt.wantPrimaryOK, ok)
 
-			assert.ErrorIs(t, ValidateIdentityProviders(tt.auths), tt.wantErr)
+			assert.ErrorIs(t, tt.auths.Validate(), tt.wantErr)
+		})
+	}
+}
+
+func TestAuthConfigsIssuers(t *testing.T) {
+	tests := []struct {
+		name  string
+		auths AuthConfigs
+		want  []string
+	}{
+		{name: "no providers", auths: nil, want: []string{}},
+		{
+			name: "every provider in config order, flagged or not",
+			auths: AuthConfigs{
+				authFor("https://hydra", "api", false),
+				authFor("https://okta", "api", true),
+			},
+			want: []string{"https://hydra", "https://okta"},
+		},
+		{
+			name: "an issuer shared by two audiences counts once",
+			auths: AuthConfigs{
+				authFor("https://okta", "web", true),
+				authFor("https://hydra", "api", false),
+				authFor("https://okta", "cli", true),
+			},
+			want: []string{"https://okta", "https://hydra"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, tt.auths.Issuers())
 		})
 	}
 }

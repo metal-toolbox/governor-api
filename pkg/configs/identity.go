@@ -31,7 +31,7 @@ func (i IdentityConfig) AutoRegisterOrDefault() bool {
 // IdentityIssuers returns the issuers of every provider with Identity.Enabled,
 // in config order. Providers that share an issuer and differ only by audience
 // are one identity provider, so each issuer appears once.
-func IdentityIssuers(auths []Auth) []string {
+func (auths AuthConfigs) IdentityIssuers() []string {
 	issuers := []string{}
 	seen := make(map[string]struct{}, len(auths))
 
@@ -51,32 +51,20 @@ func IdentityIssuers(auths []Auth) []string {
 	return issuers
 }
 
-// ValidateIdentityProviders returns an error matching
-// ErrConflictingIdentityConfig when providers that share an issuer have
-// different identity settings, and ErrNoIdentityProvider when no provider has
-// Identity.Enabled. The second error lists the configured issuers, so the
-// operator can pick the one to flag.
-func ValidateIdentityProviders(auths []Auth) error {
+// Validate returns an error matching ErrConflictingIdentityConfig when
+// providers that share an issuer have different identity settings, and
+// ErrNoIdentityProvider when no provider has Identity.Enabled. The second
+// error lists the configured issuers, so the operator can pick the one to flag.
+func (auths AuthConfigs) Validate() error {
 	if err := validateIssuerIdentity(auths); err != nil {
 		return err
 	}
 
-	if len(IdentityIssuers(auths)) > 0 {
+	if len(auths.IdentityIssuers()) > 0 {
 		return nil
 	}
 
-	issuers := []string{}
-	seen := make(map[string]struct{}, len(auths))
-
-	for _, a := range auths {
-		if _, ok := seen[a.Issuer]; ok {
-			continue
-		}
-
-		seen[a.Issuer] = struct{}{}
-		issuers = append(issuers, a.Issuer)
-	}
-
+	issuers := auths.Issuers()
 	if len(issuers) == 0 {
 		return fmt.Errorf("%w (no oidc provider configured)", ErrNoIdentityProvider)
 	}
@@ -86,8 +74,8 @@ func ValidateIdentityProviders(auths []Auth) error {
 
 // PrimaryIdentityIssuer returns the issuer of the first provider with
 // Identity.Enabled. ok is false when no provider has it.
-func PrimaryIdentityIssuer(auths []Auth) (issuer string, ok bool) {
-	issuers := IdentityIssuers(auths)
+func (auths AuthConfigs) PrimaryIdentityIssuer() (issuer string, ok bool) {
+	issuers := auths.IdentityIssuers()
 	if len(issuers) == 0 {
 		return "", false
 	}
@@ -108,7 +96,7 @@ func settingsOf(i IdentityConfig) identitySettings {
 // validateIssuerIdentity returns ErrConflictingIdentityConfig, with the
 // issuer, when two providers with the same issuer have different identity
 // settings.
-func validateIssuerIdentity(auths []Auth) error {
+func validateIssuerIdentity(auths AuthConfigs) error {
 	first := make(map[string]identitySettings, len(auths))
 
 	for _, a := range auths {

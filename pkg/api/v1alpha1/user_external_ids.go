@@ -15,7 +15,6 @@ import (
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	models "github.com/metal-toolbox/governor-api/internal/models/psql"
 	apitypes "github.com/metal-toolbox/governor-api/pkg/api/types"
-	"github.com/metal-toolbox/governor-api/pkg/configs"
 )
 
 const (
@@ -47,7 +46,7 @@ func (r *Router) requestedExternalIDs(req *UserReq) (pairs []dbtools.ExternalIDP
 		return nil, false, nil
 	}
 
-	if err := validateExternalIDs(pairs, r.configuredIssuers()); err != nil {
+	if err := validateExternalIDs(pairs, r.AuthConf.Issuers()); err != nil {
 		return nil, false, err
 	}
 
@@ -60,7 +59,7 @@ func (r *Router) requestedExternalIDs(req *UserReq) (pairs []dbtools.ExternalIDP
 // sign in, so it cannot be added or changed, but an unchanged one may be sent
 // back so that a full-set update keeps it.
 func (r *Router) checkIdentityIssuers(pairs, current []dbtools.ExternalIDPair) error {
-	identityIssuers := configs.IdentityIssuers(r.AuthConf)
+	identityIssuers := r.AuthConf.IdentityIssuers()
 
 	for _, p := range pairs {
 		if slices.Contains(identityIssuers, p.Iss) || slices.Contains(current, p) {
@@ -73,20 +72,10 @@ func (r *Router) checkIdentityIssuers(pairs, current []dbtools.ExternalIDPair) e
 	return nil
 }
 
-// configuredIssuers returns the issuers of the configured oidc providers.
-func (r *Router) configuredIssuers() []string {
-	issuers := make([]string, 0, len(r.AuthConf))
-	for _, ac := range r.AuthConf {
-		issuers = append(issuers, ac.Issuer)
-	}
-
-	return issuers
-}
-
 // allConfiguredIssuers reports whether every issuer in issuers is the issuer
 // of a configured oidc provider.
 func (r *Router) allConfiguredIssuers(issuers []string) bool {
-	configured := r.configuredIssuers()
+	configured := r.AuthConf.Issuers()
 
 	for _, iss := range issuers {
 		if !slices.Contains(configured, iss) {

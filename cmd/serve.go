@@ -153,7 +153,7 @@ func startAPI(ctx context.Context) error {
 //
 // NOTE: oidc config only works when loading from config file, not env variables,
 // since GetAuthFromFlags expects a slice of oidc structs
-func loadAuthConfigs(v *viper.Viper) ([]configs.Auth, error) {
+func loadAuthConfigs(v *viper.Viper) (configs.AuthConfigs, error) {
 	authcfgs, err := configs.GetAuthFromFlags(v)
 	if err != nil {
 		return nil, fmt.Errorf("load oidc config: %w", err)
@@ -165,9 +165,10 @@ func loadAuthConfigs(v *viper.Viper) ([]configs.Auth, error) {
 		return nil, ErrNoOIDCConfig
 	}
 
-	if err := configs.ValidateIdentityProviders(authcfgs); err != nil {
+	auths := configs.AuthConfigs(authcfgs)
+	if err := auths.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid oidc config: %w", err)
 	}
 
-	return authcfgs, nil
+	return auths, nil
 }

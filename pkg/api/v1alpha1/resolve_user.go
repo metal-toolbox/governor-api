@@ -53,7 +53,7 @@ type provisioned struct {
 }
 
 // authConfigFor returns the first configured provider whose issuer is iss.
-// configs.ValidateIdentityProviders rejects at startup any config whose
+// configs.AuthConfigs.Validate rejects at startup any config whose
 // entries for one issuer have different identity settings, so the first entry
 // stands for all of them.
 func (r *Router) authConfigFor(iss string) (configs.Auth, bool) {

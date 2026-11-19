@@ -37,7 +37,7 @@ var (
 // Conf allows other packages to compose their api configuration and use our NewAPI factor to put it together for them
 type Conf struct {
 	AdminGroups []string
-	AuthConf    []configs.Auth
+	AuthConf    configs.AuthConfigs
 	Debug       bool
 	Listen      string
 	Logger      *zap.Logger
@@ -69,7 +69,7 @@ func (s *Server) setupRoutes(router *gin.Engine) {
 
 // routers returns the v1alpha1 and v1beta1 routers for the server's config.
 func (s *Server) routers() (*v1alpha.Router, *v1beta.Router) {
-	primaryIssuer, _ := configs.PrimaryIdentityIssuer(s.Conf.AuthConf)
+	primaryIssuer, _ := s.Conf.AuthConf.PrimaryIdentityIssuer()
 
 	v1alphaRtr := &v1alpha.Router{
 		AdminGroups:           s.Conf.AdminGroups,
