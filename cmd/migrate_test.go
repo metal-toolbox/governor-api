@@ -16,6 +16,10 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	"go.uber.org/zap"
 
 	psqlmigrations "github.com/metal-toolbox/governor-api/db/psql"
@@ -195,6 +199,62 @@ func TestRunMigratePostgresTwoIdentityProviders(t *testing.T) {
 	err := runMigrate(context.Background(), db, configFor(t, "postgres", cfg), "up", nil)
 	assert.ErrorIs(t, err, psqlmigrations.ErrIdentityProviderCount)
 	assert.Equal(t, int64(6), testDBVersion(t, db))
+}
+
+// spanResult is the part of a recorded span that the tests compare.
+type spanResult struct {
+	Name    string
+	Command string
+	Status  codes.Code
+}
+
+func TestRunMigratePostgresSpan(t *testing.T) {
+	tests := []struct {
+		name string
+		cfg  string
+		want []spanResult
+	}{
+		{
+			name: "command succeeds",
+			cfg:  identityOIDCConfig,
+			want: []spanResult{{Name: "migratePostgres", Command: "version", Status: codes.Unset}},
+		},
+		{
+			name: "oidc config is refused",
+			cfg:  noIdentityOIDCConfig,
+			want: []spanResult{{Name: "migratePostgres", Command: "version", Status: codes.Error}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			captureGooseLog(t)
+
+			spans := tracetest.NewSpanRecorder()
+			prev := otel.GetTracerProvider()
+
+			otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(spans)))
+			t.Cleanup(func() { otel.SetTracerProvider(prev) })
+
+			_ = runMigrate(context.Background(), migratedTestDB(t, 6), configFor(t, "postgres", tt.cfg), "version", nil)
+
+			got := []spanResult{}
+
+			for _, s := range spans.Ended() {
+				r := spanResult{Name: s.Name(), Status: s.Status().Code}
+
+				for _, a := range s.Attributes() {
+					if a.Key == "migration.command" {
+						r.Command = a.Value.AsString()
+					}
+				}
+
+				got = append(got, r)
+			}
+
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }
 
 func TestRunMigratePostgresChecksIdentityProviders(t *testing.T) {

@@ -21,6 +21,9 @@ import (
 	"github.com/metal-toolbox/governor-api/pkg/configs"
 )
 
+// cmdTracerName names the tracer of the migration spans.
+const cmdTracerName = "github.com/metal-toolbox/governor-api/cmd"
+
 // migrateCmd represents the migrate command
 var migrateCmd = &cobra.Command{
 	Use:   "migrate <command> [args]",
@@ -91,12 +94,16 @@ func runMigrate(ctx context.Context, db *sql.DB, v *viper.Viper, command string,
 // that apply or inspect migrations need an oidc provider with identity.enabled;
 // create and fix only write migration files, so they need no oidc config.
 func migratePostgres(ctx context.Context, db *sql.DB, v *viper.Viper, command string, args []string) error {
+	ctx, span := otel.GetTracerProvider().Tracer(cmdTracerName).Start(ctx, "migratePostgres",
+		trace.WithAttributes(attribute.String("migration.command", command)))
+	defer span.End()
+
 	var identityIssuers []string
 
 	if !isFileCommand(command) {
 		auths, err := loadAuthConfigs(v)
 		if err != nil {
-			return err
+			return spanError(span, err)
 		}
 
 		identityIssuers = auths.IdentityIssuers()
@@ -104,7 +111,7 @@ func migratePostgres(ctx context.Context, db *sql.DB, v *viper.Viper, command st
 
 	err := psqlmigrations.RunContext(ctx, db, identityIssuers, command, args, psqlmigrations.WithLogger(logger.Desugar()))
 	if err != nil {
-		return fmt.Errorf("migrate %s: %w", command, err)
+		return spanError(span, fmt.Errorf("migrate %s: %w", command, err))
 	}
 
 	return nil
@@ -126,7 +133,7 @@ func RunMigration(ctx context.Context, db *sql.DB, auths configs.AuthConfigs) er
 // migrateTo applies the pending PostgreSQL migrations up to and including
 // version in a span named spanName, and logs each applied migration.
 func migrateTo(ctx context.Context, db *sql.DB, auths configs.AuthConfigs, spanName string, version int64) error {
-	ctx, span := otel.GetTracerProvider().Tracer("github.com/metal-toolbox/governor-api/cmd").Start(ctx, spanName,
+	ctx, span := otel.GetTracerProvider().Tracer(cmdTracerName).Start(ctx, spanName,
 		trace.WithAttributes(attribute.Int64("migration.target_version", version)))
 	defer span.End()
 
