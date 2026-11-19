@@ -234,20 +234,31 @@ func serve(mw gin.HandlerFunc, cl claims, token, groupID string) resolveResult {
 
 // serveCtx is serve with ctx as the request context.
 func serveCtx(ctx context.Context, mw gin.HandlerFunc, cl claims, token, groupID string) resolveResult {
+	return serveRoles(ctx, mw, cl, token, groupID, []string{oidcScope})
+}
+
+// serveRoles is serveCtx with roles as the token scopes. The response email is
+// "" when mw put no user in the gin context.
+func serveRoles(ctx context.Context, mw gin.HandlerFunc, cl claims, token, groupID string, roles []string) resolveResult {
 	gin.SetMode(gin.TestMode)
 
 	engine := gin.New()
 	engine.GET("/user/:id",
 		func(c *gin.Context) {
 			c.Set(ginaudit.AuditIDContextKey, resolveAuditID)
-			c.Set("jwt.roles", []string{oidcScope})
+			c.Set("jwt.roles", roles)
 			c.Set("jwt.user", cl.user)
 			c.Set("jwt.subject", cl.subject)
 			c.Set("jwt.issuer", cl.iss)
 		},
 		mw,
 		func(c *gin.Context) {
-			c.JSON(http.StatusOK, gin.H{"email": getCtxUser(c).Email})
+			email := ""
+			if u := getCtxUser(c); u != nil {
+				email = u.Email
+			}
+
+			c.JSON(http.StatusOK, gin.H{"email": email})
 		},
 	)
 
@@ -820,6 +831,50 @@ func (s *ResolveUserTestSuite) TestGroupAuthRequiredResolvesWithoutRegistering()
 			s.Equal(tt.want, got)
 			s.Equal(map[string]int{}, s.auditActions())
 			s.Empty(s.linkedEmail(s.okta.srv.URL, "new-sub"))
+		})
+	}
+}
+
+// TestWorkloadTokenSkipsUserResolution sends a token without the openid scope
+// for an identity that a user token would register: the request passes with no
+// governor user, and nothing is looked up, written or counted.
+func (s *ResolveUserTestSuite) TestWorkloadTokenSkipsUserResolution() {
+	tests := []struct {
+		name string
+		mw   func(r *Router) gin.HandlerFunc
+	}{
+		{
+			name: "user middleware",
+			mw:   func(r *Router) gin.HandlerFunc { return r.mwUserAuthRequired(AuthRoleUser) },
+		},
+		{
+			name: "admin middleware",
+			mw:   func(r *Router) gin.HandlerFunc { return r.mwUserAuthRequired(AuthRoleAdmin) },
+		},
+		{
+			name: "group middleware",
+			mw:   func(r *Router) gin.HandlerFunc { return r.mwGroupAuthRequired(AuthRoleGroupMember) },
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			s.reset()
+
+			reg := prometheus.NewRegistry()
+			r := s.router(reg, configs.IdentityConfig{Enabled: true, AutoLink: true}, configs.IdentityConfig{})
+			s.okta.respond(http.StatusOK, "Workload", "workload@example.com", "workload-sub")
+
+			spansBefore := len(s.spans.Ended())
+			cl := claims{s.okta.srv.URL, "workload-sub", "workload@example.com"}
+			got := serveRoles(context.Background(), tt.mw(r), cl, s.okta.token(s.T(), cl.subject), resolveGroupID, []string{"read", "write"})
+
+			s.Equal(resolveResult{Status: http.StatusOK}, got)
+			s.Equal(map[string]float64{}, outcomes(s.T(), reg))
+			s.Empty(s.linkedEmail(s.okta.srv.URL, "workload-sub"))
+			s.Equal(map[string]int{}, s.auditActions())
+			s.Empty(s.publishedAction())
+			s.Len(s.spans.Ended(), spansBefore, "no resolveUser span")
 		})
 	}
 }
