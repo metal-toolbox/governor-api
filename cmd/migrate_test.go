@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
-	"errors"
 	"log"
 	"os"
 	"path/filepath"
@@ -13,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/metal-toolbox/hollow-toolbox/ginjwt"
 	"github.com/pressly/goose/v3"
 	"github.com/spf13/viper"
@@ -21,6 +21,7 @@ import (
 	"go.uber.org/zap"
 
 	psqlmigrations "github.com/metal-toolbox/governor-api/db/psql"
+	"github.com/metal-toolbox/governor-api/internal/backupper"
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	"github.com/metal-toolbox/governor-api/pkg/configs"
 )
@@ -274,76 +275,92 @@ func TestRunMigratePostgresFix(t *testing.T) {
 	assert.Equal(t, []string{"00001_initial.sql", "00002_add_foo.sql"}, names)
 }
 
+// restoreUser is the JSON of one user in a backup, without the closing brace.
+const restoreUser = `{"id": "00000005-0000-0000-0000-000000000001", "name": "Alice", "email": "alice@example.com",
+	"created_at": "2026-01-01T00:00:00Z", "updated_at": "2026-01-01T00:00:00Z", "metadata": {}`
+
+// identityBackup is a backup that holds the user's identity in user_external_ids.
+const identityBackup = `{"users": [` + restoreUser + `}], "user_external_ids": [{
+	"id": "00000005-0000-0000-0000-000000000002", "user_id": "00000005-0000-0000-0000-000000000001",
+	"iss": "` + testIdentityIssuer + `", "external_id": "okta-alice",
+	"created_at": "2026-01-01T00:00:00Z", "updated_at": "2026-01-01T00:00:00Z"}]}`
+
+// legacyBackup is a backup written before user_external_ids existed: the
+// user's identity is the external_id field of the user.
+const legacyBackup = `{"users": [` + restoreUser + `, "external_id": "okta-alice"}]}`
+
 func TestRestoreWithMigration(t *testing.T) {
 	tests := []struct {
-		name        string
-		restoreErr  error
-		wantVersion int64
-		wantRows    int
+		name           string
+		db             func(t *testing.T) *sql.DB
+		backup         string
+		wantErr        error
+		wantUsers      int
+		wantIdentities []string
 	}{
 		{
-			name:        "restored users are backfilled",
-			wantVersion: 8,
-			wantRows:    1,
+			name:           "backup with identities into an empty database",
+			db:             dbtools.NewPGTestServer,
+			backup:         identityBackup,
+			wantUsers:      1,
+			wantIdentities: []string{testIdentityIssuer + " okta-alice"},
 		},
 		{
-			name:        "a failed restore stops before the backfill",
-			restoreErr:  errors.New("restore broke"), //nolint:err113 // any restore failure
-			wantVersion: psqlmigrations.BackfillVersion - 1,
-			wantRows:    0,
+			name:           "backup with identities into a migrated database",
+			db:             func(t *testing.T) *sql.DB { return migratedTestDB(t, 8) },
+			backup:         identityBackup,
+			wantUsers:      1,
+			wantIdentities: []string{testIdentityIssuer + " okta-alice"},
+		},
+		{
+			name:    "backup without user_external_ids is refused",
+			db:      dbtools.NewPGTestServer,
+			backup:  legacyBackup,
+			wantErr: backupper.ErrBackupWithoutExternalIDs,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
-			db := dbtools.NewPGTestServer(t)
+			db := tt.db(t)
 			auths := []configs.Auth{{
 				AuthConfig: ginjwt.AuthConfig{Enabled: true, Issuer: testIdentityIssuer},
 				Identity:   configs.IdentityConfig{Enabled: true},
 			}}
 
+			r := backupper.New(sqlx.NewDb(db, "postgres"), backupper.DBDriverPostgres)
 			restore := func(ctx context.Context) error {
-				_, err := db.ExecContext(ctx,
-					`INSERT INTO users (name, email, external_id, created_at, updated_at)
-					VALUES ('Alice', 'alice@example.com', 'okta-alice', now(), now())`)
-				require.NoError(t, err)
-
-				return tt.restoreErr
+				return r.Restore(ctx, strings.NewReader(tt.backup))
 			}
 
 			err := restoreWithMigration(ctx, db, auths, restore)
-			assert.ErrorIs(t, err, tt.restoreErr)
-			assert.Equal(t, tt.wantVersion, testDBVersion(t, db))
+			assert.ErrorIs(t, err, tt.wantErr)
+			assert.Equal(t, int64(8), testDBVersion(t, db))
 
-			var rows int
+			var users int
 
-			require.NoError(t, db.QueryRowContext(ctx,
-				`SELECT count(*) FROM user_external_ids WHERE iss = $1 AND external_id = 'okta-alice'`,
-				testIdentityIssuer).Scan(&rows))
-			assert.Equal(t, tt.wantRows, rows)
+			require.NoError(t, db.QueryRowContext(ctx, `SELECT count(*) FROM users`).Scan(&users))
+			assert.Equal(t, tt.wantUsers, users)
+
+			var identities []string
+
+			rows, err := db.QueryContext(ctx, `SELECT iss || ' ' || external_id FROM user_external_ids ORDER BY 1`)
+			require.NoError(t, err)
+
+			defer rows.Close()
+
+			for rows.Next() {
+				var id string
+				require.NoError(t, rows.Scan(&id))
+
+				identities = append(identities, id)
+			}
+
+			require.NoError(t, rows.Err())
+			assert.Equal(t, tt.wantIdentities, identities)
 		})
 	}
-}
-
-func TestRestoreWithMigrationAfterBackfill(t *testing.T) {
-	ctx := context.Background()
-	db := migratedTestDB(t, psqlmigrations.BackfillVersion)
-	auths := []configs.Auth{{
-		AuthConfig: ginjwt.AuthConfig{Enabled: true, Issuer: testIdentityIssuer},
-		Identity:   configs.IdentityConfig{Enabled: true},
-	}}
-
-	restored := false
-	restore := func(context.Context) error {
-		restored = true
-		return nil
-	}
-
-	err := restoreWithMigration(ctx, db, auths, restore)
-	assert.ErrorIs(t, err, ErrRestoreAfterBackfill)
-	assert.False(t, restored, "no data may load once the backfill has run")
-	assert.Equal(t, int64(psqlmigrations.BackfillVersion), testDBVersion(t, db))
 }
 
 // TestRestoreMigrateWithoutIdentityProvider runs restore --migrate against an

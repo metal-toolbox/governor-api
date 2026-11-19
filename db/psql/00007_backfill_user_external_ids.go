@@ -12,8 +12,6 @@ import (
 )
 
 // BackfillVersion is the goose version of the users.external_id backfill.
-// A database at BackfillVersion-1 has the user_external_ids table and still
-// reads users.external_id, so data loaded at that version is backfilled.
 const BackfillVersion = 7
 
 // maxExternalIDLength matches the user_external_ids_external_id_len check in 00006.

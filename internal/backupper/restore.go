@@ -29,6 +29,18 @@ func (b *Backupper) Restore(ctx context.Context, reader io.Reader) error {
 			return err
 		}
 
+		// A backup that predates user_external_ids carries the identities only
+		// in users[].external_id, which no longer decodes into a user.
+		var keys map[string]json.RawMessage
+
+		if err := json.Unmarshal(databytes, &keys); err != nil {
+			return err
+		}
+
+		if _, ok := keys["user_external_ids"]; !ok {
+			return ErrBackupWithoutExternalIDs
+		}
+
 		sortableGroups := b.psqlGroupsToSortable(data.Groups)
 		sorted := b.sortPSQLGroups(sortableGroups)
 

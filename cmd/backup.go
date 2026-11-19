@@ -10,7 +10,6 @@ import (
 	_ "github.com/cockroachdb/cockroach-go/v2/crdb/crdbpgx" // crdb retries and postgres interface
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
-	psqlmigrations "github.com/metal-toolbox/governor-api/db/psql"
 	"github.com/metal-toolbox/governor-api/internal/backupper"
 	"github.com/metal-toolbox/governor-api/pkg/configs"
 	"github.com/spf13/cobra"
@@ -86,36 +85,15 @@ var (
 	}
 )
 
-// restoreWithMigration migrates db up to the version before the
-// users.external_id backfill, runs restore, then applies the remaining
-// migrations, so the backfill copies the restored users' external IDs. A
-// database that is already at the backfill version or later cannot backfill
-// restored users any more, so it returns ErrRestoreAfterBackfill and loads
-// nothing.
+// restoreWithMigration applies the pending PostgreSQL migrations to db, then
+// runs restore. A failed restore leaves db migrated and empty, so the command
+// can run again with another backup.
 func restoreWithMigration(ctx context.Context, db *sql.DB, auths []configs.Auth, restore func(context.Context) error) error {
-	p, err := psqlmigrations.NewProvider(db, configs.IdentityIssuers(auths))
-	if err != nil {
-		return fmt.Errorf("build migration provider: %w", err)
-	}
-
-	version, err := p.GetDBVersion(ctx)
-	if err != nil {
-		return fmt.Errorf("read database version: %w", err)
-	}
-
-	if version >= psqlmigrations.BackfillVersion {
-		return fmt.Errorf("%w: the database is at version %d", ErrRestoreAfterBackfill, version)
-	}
-
-	if err := migrateTo(ctx, db, auths, "restoreWithMigration", psqlmigrations.BackfillVersion-1); err != nil {
+	if err := RunMigration(ctx, db, auths); err != nil {
 		return err
 	}
 
-	if err := restore(ctx); err != nil {
-		return err
-	}
-
-	return RunMigration(ctx, db, auths)
+	return restore(ctx)
 }
 
 func outputWriter() io.Writer {

@@ -3,6 +3,7 @@ package backupper
 import (
 	"bytes"
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/jmoiron/sqlx"
@@ -74,4 +75,21 @@ func TestPostgresBackupRestoresUserExternalIDs(t *testing.T) {
 		{UserID: testUserID, Iss: testOktaIssuer, ExternalID: "okta-alice"},
 		{UserID: testUserID, Iss: testPingIssuer, ExternalID: "ping-alice"},
 	}, identities(t, target))
+}
+
+func TestPostgresRestoreRefusesBackupWithoutExternalIDs(t *testing.T) {
+	ctx := context.Background()
+	target := migratedDB(t)
+
+	legacy := `{"users": [{"id": "` + testUserID + `", "name": "Alice", "email": "alice@example.com",
+		"external_id": "okta-alice", "created_at": "2026-01-01T00:00:00Z", "updated_at": "2026-01-01T00:00:00Z",
+		"metadata": {}}]}`
+
+	err := New(target, DBDriverPostgres).Restore(ctx, strings.NewReader(legacy))
+	require.ErrorIs(t, err, ErrBackupWithoutExternalIDs)
+
+	var users int
+
+	require.NoError(t, target.GetContext(ctx, &users, `SELECT count(*) FROM users`))
+	assert.Zero(t, users, "nothing is restored")
 }
