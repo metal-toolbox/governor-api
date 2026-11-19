@@ -324,7 +324,7 @@ func (s *ExternalIDsTestSuite) TestReplaceUserExternalIDsConflict() {
 	tx, err := s.db.BeginTx(context.Background(), nil)
 	s.Require().NoError(err)
 
-	defer func() { _ = tx.Rollback() }()
+	defer func() { s.NoError(tx.Rollback()) }()
 
 	_, _, err = ReplaceUserExternalIDs(context.Background(), tx, extIDUser2,
 		[]ExternalIDPair{{Iss: testIdentityIssuer, ID: "sub-one"}})

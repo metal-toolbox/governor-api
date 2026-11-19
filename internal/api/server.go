@@ -58,9 +58,20 @@ type Server struct {
 func (s *Server) setupRoutes(router *gin.Engine) {
 	s.Conf.Logger.Sugar().Info("Setting up routes")
 
+	v1alphaRtr, v1betaRtr := s.routers()
+
+	v1alpha1 := router.Group("/api/v1alpha1")
+	v1alphaRtr.Routes(v1alpha1)
+
+	v1beta1 := router.Group("/api/v1beta1")
+	v1betaRtr.Routes(v1beta1)
+}
+
+// routers returns the v1alpha1 and v1beta1 routers for the server's config.
+func (s *Server) routers() (*v1alpha.Router, *v1beta.Router) {
 	primaryIssuer, _ := configs.PrimaryIdentityIssuer(s.Conf.AuthConf)
 
-	v1alphaRtr := v1alpha.Router{
+	v1alphaRtr := &v1alpha.Router{
 		AdminGroups:           s.Conf.AdminGroups,
 		AuthMW:                s.AuthMW,
 		AuditMW:               s.aumdw,
@@ -72,10 +83,7 @@ func (s *Server) setupRoutes(router *gin.Engine) {
 		UserResolution:        s.userResolution,
 	}
 
-	v1alpha1 := router.Group("/api/v1alpha1")
-	v1alphaRtr.Routes(v1alpha1)
-
-	v1betaRtr := v1beta.Router{
+	v1betaRtr := &v1beta.Router{
 		AdminGroups:           s.Conf.AdminGroups,
 		AuthMW:                s.AuthMW,
 		AuditMW:               s.aumdw,
@@ -86,8 +94,7 @@ func (s *Server) setupRoutes(router *gin.Engine) {
 		PrimaryIdentityIssuer: primaryIssuer,
 	}
 
-	v1beta1 := router.Group("/api/v1beta1")
-	v1betaRtr.Routes(v1beta1)
+	return v1alphaRtr, v1betaRtr
 }
 
 // setup builds our api router and expects that an AuthConf exists on the api.Conf object

@@ -145,7 +145,9 @@ func (r *Router) listUsers(c *gin.Context) {
 
 	externalIDs, err := dbtools.ListUserExternalIDs(c.Request.Context(), r.DB, ids)
 	if err != nil {
-		sendError(c, http.StatusInternalServerError, "error fetching users: "+err.Error())
+		r.Logger.Error("error fetching user external ids", zap.Error(err))
+		sendError(c, http.StatusBadRequest, "error fetching users: "+err.Error())
+
 		return
 	}
 

@@ -9,6 +9,7 @@ import (
 
 	"github.com/aarondl/null/v8"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
@@ -556,7 +557,7 @@ func TestClient_UpdateUser(t *testing.T) {
 
 func TestUserResponseExternalIDs(t *testing.T) {
 	var u v1alpha1.User
-	assert.NoError(t, json.Unmarshal(testUserResponse, &u))
+	require.NoError(t, json.Unmarshal(testUserResponse, &u))
 
 	assert.Equal(t, []dbtools.ExternalIDPair{
 		{Iss: "https://sso.example.com/oauth2/default", ID: "000016"},

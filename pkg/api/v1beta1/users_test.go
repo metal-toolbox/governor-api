@@ -8,12 +8,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/aarondl/null/v8"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/metal-toolbox/hollow-toolbox/ginjwt"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 
@@ -27,6 +29,8 @@ const (
 	// migrated with, and the primary identity issuer of the test router.
 	testIdentityIssuer = "https://idp.example.com"
 	testPingIssuer     = "https://ping.example.com"
+
+	deprecationLink = `<https://github.com/metal-toolbox/governor-api/blob/main/docs/multi-idp-user-identities-lld.md>; rel="deprecation"`
 
 	usersAliceID = "00000005-0000-0000-0000-000000000001"
 	usersBobID   = "00000005-0000-0000-0000-000000000002"
@@ -85,13 +89,13 @@ type listedUser struct {
 }
 
 // listUsers runs listUsers with query and returns the status, the error
-// message, and the listed users by email.
-func (s *UsersTestSuite) listUsers(query string) (int, string, map[string]listedUser, string) {
+// message, the listed users by email, and the Deprecation and Link headers.
+func (s *UsersTestSuite) listUsers(query string) (int, string, map[string]listedUser, []string) {
 	s.T().Helper()
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	c.Request, _ = http.NewRequest(http.MethodGet, "/api/v1beta1/users?"+query, nil)
+	c.Request = httptest.NewRequest(http.MethodGet, "/api/v1beta1/users?"+query, nil)
 
 	s.router().listUsers(c)
 
@@ -102,7 +106,7 @@ func (s *UsersTestSuite) listUsers(query string) (int, string, map[string]listed
 
 		s.Require().NoError(json.Unmarshal(w.Body.Bytes(), &e))
 
-		return w.Code, e.Error, nil, ""
+		return w.Code, e.Error, nil, nil
 	}
 
 	var resp PaginationResponse[*User]
@@ -113,7 +117,7 @@ func (s *UsersTestSuite) listUsers(query string) (int, string, map[string]listed
 		got[u.Email] = listedUser{ExternalIDs: u.ExternalIDs, ExternalID: u.ExternalID}
 	}
 
-	return w.Code, "", got, w.Header().Get("Deprecation")
+	return w.Code, "", got, []string{w.Header().Get("Deprecation"), w.Header().Get("Link")}
 }
 
 var (
@@ -171,10 +175,10 @@ func (s *UsersTestSuite) TestListUsersExternalIDs() {
 
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
-			code, msg, got, deprecation := s.listUsers(tt.query)
+			code, msg, got, headers := s.listUsers(tt.query)
 			s.Equal(http.StatusOK, code, msg)
 			s.Equal(tt.want, got)
-			s.Equal("true", deprecation)
+			s.Equal([]string{"true", deprecationLink}, headers)
 		})
 	}
 }
@@ -195,6 +199,49 @@ func (s *UsersTestSuite) TestListUsersUnknownIssuer() {
 			s.Equal("invalid iss: not a configured issuer", msg)
 		})
 	}
+}
+
+func (s *UsersTestSuite) TestListUsersDatabaseError() {
+	tests := []struct {
+		name  string
+		query string
+		setup func(t *testing.T)
+	}{
+		{
+			// the cursor is compared after the count, so only the users query fails
+			name:  "users query fails",
+			query: "next_cursor=not-a-uuid",
+			setup: func(*testing.T) {},
+		},
+		{
+			name:  "external ids query fails",
+			setup: s.hideExternalIDsTable,
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			tt.setup(s.T())
+
+			code, msg, _, _ := s.listUsers(tt.query)
+			s.Equal(http.StatusBadRequest, code)
+			s.True(strings.HasPrefix(msg, "error fetching users: "), msg)
+		})
+	}
+}
+
+// hideExternalIDsTable renames user_external_ids until the test ends, so that
+// every query of it fails.
+func (s *UsersTestSuite) hideExternalIDsTable(t *testing.T) {
+	t.Helper()
+
+	_, err := s.db.Exec(`ALTER TABLE user_external_ids RENAME TO user_external_ids_hidden`)
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		_, err := s.db.Exec(`ALTER TABLE user_external_ids_hidden RENAME TO user_external_ids`)
+		require.NoError(t, err)
+	})
 }
 
 func TestUsersSuite(t *testing.T) {

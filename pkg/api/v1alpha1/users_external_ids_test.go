@@ -3,8 +3,8 @@ package v1alpha1
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -76,8 +76,7 @@ func serveUserRequest(handler gin.HandlerFunc, method, id, body string, setup ..
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 
-	req, _ := http.NewRequest(method, "/api/v1alpha1/users", io.NopCloser(bytes.NewBufferString(body)))
-	c.Request = req
+	c.Request = httptest.NewRequest(method, "/api/v1alpha1/users", bytes.NewBufferString(body))
 	c.Params = gin.Params{{Key: "id", Value: id}}
 	c.Set(ginaudit.AuditIDContextKey, "10000001-0000-0000-0000-000000000001")
 
@@ -176,6 +175,7 @@ func (s *UserTestSuite) TestCreateUserExternalIDs() {
 		payload   string
 		wantResp  identityResponse
 		wantAudit map[string]int
+		wantEvent string
 	}{
 		{
 			name: "external ids at two issuers",
@@ -190,6 +190,22 @@ func (s *UserTestSuite) TestCreateUserExternalIDs() {
 				Link:        deprecationLink,
 			},
 			wantAudit: map[string]int{"user.created": 1, "user.external_id.added": 2},
+			wantEvent: events.GovernorEventCreate,
+		},
+		{
+			name: "ids of 256 and 1 characters",
+			payload: `{"name": "New User", "email": "new@example.com", "external_ids": [
+				{"iss": "` + testIdentityIssuer + `", "id": "` + strings.Repeat("a", 256) + `"}, {"iss": "` + usersPingIssuer + `", "id": "b"}]}`,
+			wantResp: identityResponse{
+				Email:       "new@example.com",
+				Status:      UserStatusActive,
+				ExternalIDs: []dbtools.ExternalIDPair{{Iss: testIdentityIssuer, ID: strings.Repeat("a", 256)}, {Iss: usersPingIssuer, ID: "b"}},
+				ExternalID:  null.StringFrom(strings.Repeat("a", 256)),
+				Deprecation: "true",
+				Link:        deprecationLink,
+			},
+			wantAudit: map[string]int{"user.created": 1, "user.external_id.added": 2},
+			wantEvent: events.GovernorEventCreate,
 		},
 		{
 			name:    "deprecated external id maps to the primary issuer",
@@ -203,6 +219,7 @@ func (s *UserTestSuite) TestCreateUserExternalIDs() {
 				Link:        deprecationLink,
 			},
 			wantAudit: map[string]int{"user.created": 1, "user.external_id.added": 1},
+			wantEvent: events.GovernorEventCreate,
 		},
 		{
 			name:    "a user without external ids is pending",
@@ -240,6 +257,7 @@ func (s *UserTestSuite) TestCreateUserExternalIDs() {
 			s.Equal(tt.wantResp, decodeIdentity(s.T(), w))
 			s.Equal(tt.wantResp.ExternalIDs, s.storedPairs("new@example.com"))
 			s.Equal(tt.wantAudit, s.auditActions())
+			s.Equal(tt.wantEvent, s.publishedAction())
 		})
 	}
 }
@@ -637,6 +655,45 @@ func (s *UserTestSuite) TestUpdateAuthenticatedUserExternalIDs() {
 	}, decodeIdentity(s.T(), w))
 }
 
+func (s *UserTestSuite) TestUpdateAuthenticatedUserIgnoresExternalIDs() {
+	tests := []struct {
+		name    string
+		payload string
+	}{
+		{
+			name:    "external ids at another issuer",
+			payload: `{"github_username": "metadata-gh", "external_ids": [{"iss": "` + usersPingIssuer + `", "id": "ping-new"}]}`,
+		},
+		{
+			name:    "empty external ids",
+			payload: `{"github_username": "metadata-gh", "external_ids": []}`,
+		},
+		{
+			name:    "deprecated external id",
+			payload: `{"github_username": "metadata-gh", "external_id": "okta-new"}`,
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			s.resetExternalIDs()
+
+			user, err := models.FindUser(s.T().Context(), s.db, usersMetadataUser)
+			s.Require().NoError(err)
+
+			w := serveUserRequest(s.identityRouter(testIdentityIssuer).updateAuthenticatedUser, http.MethodPut, "",
+				tt.payload, func(c *gin.Context) {
+					c.Set(contextKeyUser, user)
+				})
+			s.Require().Equal(http.StatusAccepted, w.Code, w.Body.String())
+
+			s.Equal(metadataUserPairs, decodeIdentity(s.T(), w).ExternalIDs)
+			s.Equal(metadataUserPairs, s.storedPairs("metadata@example.com"))
+			s.Equal(map[string]int{"user.updated": 1}, s.auditActions())
+		})
+	}
+}
+
 func (s *UserTestSuite) TestListUsersExternalIDs() {
 	tests := []struct {
 		name  string
@@ -685,7 +742,7 @@ func (s *UserTestSuite) TestListUsersExternalIDs() {
 
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
-			c.Request, _ = http.NewRequest(http.MethodGet, "/api/v1alpha1/users?"+tt.query, nil)
+			c.Request = httptest.NewRequest(http.MethodGet, "/api/v1alpha1/users?"+tt.query, nil)
 
 			s.identityRouter(testIdentityIssuer).listUsers(c)
 			s.Require().Equal(http.StatusOK, w.Code, w.Body.String())
@@ -699,7 +756,7 @@ func (s *UserTestSuite) TestListUsersExternalIDs() {
 			}
 
 			s.Equal(tt.want, got)
-			s.Equal("true", w.Header().Get("Deprecation"))
+			s.Equal([]string{"true", deprecationLink}, []string{w.Header().Get("Deprecation"), w.Header().Get("Link")})
 		})
 	}
 }
@@ -718,12 +775,226 @@ func (s *UserTestSuite) TestListUsersUnknownIssuer() {
 		s.Run(tt.name, func() {
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
-			c.Request, _ = http.NewRequest(http.MethodGet, "/api/v1alpha1/users?"+tt.query, nil)
+			c.Request = httptest.NewRequest(http.MethodGet, "/api/v1alpha1/users?"+tt.query, nil)
 
 			s.identityRouter(testIdentityIssuer).listUsers(c)
 
 			s.Equal(http.StatusUnprocessableEntity, w.Code)
 			s.JSONEq(`{"error": "invalid iss: not a configured issuer"}`, w.Body.String())
+		})
+	}
+}
+
+func (s *UserTestSuite) TestListUsersWithoutMatchIsEmptyArray() {
+	tests := []struct {
+		name  string
+		query string
+	}{
+		{name: "unknown external id", query: "external_id=unknown"},
+		{name: "external id at another issuer", query: "external_id=ping-metadata&iss=" + url.QueryEscape(testIdentityIssuer)},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			s.resetExternalIDs()
+
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Request = httptest.NewRequest(http.MethodGet, "/api/v1alpha1/users?"+tt.query, nil)
+
+			s.identityRouter(testIdentityIssuer).listUsers(c)
+
+			s.Equal(http.StatusOK, w.Code)
+			s.Equal("[]", w.Body.String())
+		})
+	}
+}
+
+// errorMessage returns the error of an error response.
+func errorMessage(t *testing.T, w *httptest.ResponseRecorder) string {
+	t.Helper()
+
+	var e struct {
+		Error string `json:"error"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &e), w.Body.String())
+
+	return e.Error
+}
+
+// hideExternalIDsTable renames user_external_ids until the test ends, so that
+// every query of it fails.
+func (s *UserTestSuite) hideExternalIDsTable(t *testing.T) {
+	t.Helper()
+
+	_, err := s.db.Exec(`ALTER TABLE user_external_ids RENAME TO user_external_ids_hidden`)
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		_, err := s.db.Exec(`ALTER TABLE user_external_ids_hidden RENAME TO user_external_ids`)
+		require.NoError(t, err)
+	})
+}
+
+func (s *UserTestSuite) TestListUsersDatabaseError() {
+	canceled, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	tests := []struct {
+		name  string
+		ctx   context.Context
+		setup func(t *testing.T)
+	}{
+		{
+			name:  "users query fails",
+			ctx:   canceled,
+			setup: func(*testing.T) {},
+		},
+		{
+			name:  "external ids query fails",
+			ctx:   context.Background(),
+			setup: s.hideExternalIDsTable,
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			s.resetExternalIDs()
+			tt.setup(s.T())
+
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Request = httptest.NewRequest(http.MethodGet, "/api/v1alpha1/users", nil).WithContext(tt.ctx)
+
+			s.identityRouter(testIdentityIssuer).listUsers(c)
+
+			s.Equal(http.StatusBadRequest, w.Code)
+			s.True(strings.HasPrefix(errorMessage(s.T(), w), "error fetching users: "), w.Body.String())
+		})
+	}
+}
+
+// failExternalIDInserts makes every insert into user_external_ids fail with
+// an error that is not a unique violation, until the test ends.
+func (s *UserTestSuite) failExternalIDInserts(t *testing.T) {
+	t.Helper()
+
+	stmts := []string{
+		`CREATE FUNCTION fail_user_external_id_insert() RETURNS trigger AS $$
+		BEGIN RAISE EXCEPTION 'user_external_ids insert refused'; END $$ LANGUAGE plpgsql`,
+		`CREATE TRIGGER fail_user_external_id_insert BEFORE INSERT ON user_external_ids
+		FOR EACH ROW EXECUTE FUNCTION fail_user_external_id_insert()`,
+	}
+	for _, q := range stmts {
+		_, err := s.db.Exec(q)
+		require.NoError(t, err, q)
+	}
+
+	t.Cleanup(func() {
+		_, err := s.db.Exec(`DROP FUNCTION fail_user_external_id_insert() CASCADE`)
+		require.NoError(t, err)
+	})
+}
+
+func (s *UserTestSuite) TestExternalIDWriteFailure() {
+	tests := []struct {
+		name       string
+		handler    func(r *Router) gin.HandlerFunc
+		method     string
+		userID     string
+		payload    string
+		wantPrefix string
+	}{
+		{
+			name:    "create",
+			handler: func(r *Router) gin.HandlerFunc { return r.createUser },
+			method:  http.MethodPost,
+			payload: `{"name": "New User", "email": "new@example.com",
+				"external_ids": [{"iss": "` + testIdentityIssuer + `", "id": "okta-new"}]}`,
+			wantPrefix: "error creating user: ",
+		},
+		{
+			name:       "update",
+			handler:    func(r *Router) gin.HandlerFunc { return r.updateUser },
+			method:     http.MethodPut,
+			userID:     usersTestUserID,
+			payload:    `{"name": "Renamed", "external_ids": [{"iss": "` + usersPingIssuer + `", "id": "ping-test"}]}`,
+			wantPrefix: "error updating user: ",
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			s.resetExternalIDs()
+			s.failExternalIDInserts(s.T())
+
+			w := serveUserRequest(tt.handler(s.identityRouter(testIdentityIssuer)), tt.method, tt.userID, tt.payload)
+
+			s.Equal(http.StatusInternalServerError, w.Code)
+			s.True(strings.HasPrefix(errorMessage(s.T(), w), tt.wantPrefix), w.Body.String())
+
+			exists, err := models.Users(models.UserWhere.Email.EQ("new@example.com")).Exists(s.T().Context(), s.db)
+			s.Require().NoError(err)
+			s.False(exists, "a failed create must not leave a user")
+
+			user, err := models.FindUser(s.T().Context(), s.db, usersTestUserID)
+			s.Require().NoError(err)
+			s.Equal("Test User", user.Name, "a failed update must not change the user")
+
+			s.Equal(noPairs, s.storedPairs("test@example.com"))
+			s.Equal(metadataUserPairs, s.storedPairs("metadata@example.com"))
+			s.Equal(map[string]int{}, s.auditActions())
+			s.Empty(s.publishedAction())
+		})
+	}
+}
+
+func TestValidateExternalIDsAccepted(t *testing.T) {
+	longIssuer := "https://" + strings.Repeat("a", 512-len("https://"))
+
+	tenIssuers := make([]string, 10)
+	tenPairs := make([]dbtools.ExternalIDPair, 10)
+
+	for i := range tenIssuers {
+		tenIssuers[i] = "https://idp" + string(rune('a'+i)) + ".example.com"
+		tenPairs[i] = dbtools.ExternalIDPair{Iss: tenIssuers[i], ID: "id"}
+	}
+
+	tests := []struct {
+		name    string
+		pairs   []dbtools.ExternalIDPair
+		issuers []string
+	}{
+		{
+			name:    "id of 256 characters",
+			pairs:   []dbtools.ExternalIDPair{{Iss: testIdentityIssuer, ID: strings.Repeat("a", 256)}},
+			issuers: []string{testIdentityIssuer},
+		},
+		{
+			name:    "id of 1 character",
+			pairs:   []dbtools.ExternalIDPair{{Iss: testIdentityIssuer, ID: "a"}},
+			issuers: []string{testIdentityIssuer},
+		},
+		{
+			name:    "issuer of 512 characters",
+			pairs:   []dbtools.ExternalIDPair{{Iss: longIssuer, ID: "a"}},
+			issuers: []string{longIssuer},
+		},
+		{
+			name:    "10 entries at different issuers",
+			pairs:   tenPairs,
+			issuers: tenIssuers,
+		},
+		{
+			name:    "http issuer",
+			pairs:   []dbtools.ExternalIDPair{{Iss: "http://idp.example.com", ID: "a"}},
+			issuers: []string{"http://idp.example.com"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.NoError(t, validateExternalIDs(tt.pairs, tt.issuers))
 		})
 	}
 }

@@ -7,6 +7,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/metal-toolbox/governor-api/internal/dbtools"
 )
 
 // externalIDSchema is what the database has of users.external_id: the column
@@ -85,6 +87,51 @@ func TestDropUsersExternalIDDown(t *testing.T) {
 			assert.Equal(t, tt.downTo, dbVersion(t, db))
 			assert.Equal(t, externalIDSchema{Column: true, Index: true}, usersExternalIDSchema(t, db))
 			assert.Equal(t, tt.wantUsers, userExternalIDs(t, db))
+		})
+	}
+}
+
+func TestDropUsersExternalIDDownIndex(t *testing.T) {
+	tests := []struct {
+		name           string
+		otherDeleted   bool
+		wantConstraint string
+		wantViolation  bool
+	}{
+		{
+			name:           "two active users with the same external id",
+			wantConstraint: "users_external_id_key_1",
+			wantViolation:  true,
+		},
+		{
+			name:         "a deleted and an active user with the same external id",
+			otherDeleted: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			db := migratedTo(t, 8, nil)
+
+			p, err := NewProvider(db, []string{testIssuer})
+			require.NoError(t, err)
+
+			_, err = p.DownTo(ctx, 7)
+			require.NoError(t, err)
+
+			_, err = db.ExecContext(ctx,
+				`INSERT INTO users (name, email, external_id, created_at, updated_at, deleted_at)
+				VALUES ('Other', 'other@example.com', 'shared', now(), now(), CASE WHEN $1 THEN now() END)`,
+				tt.otherDeleted)
+			require.NoError(t, err)
+
+			_, err = db.ExecContext(ctx,
+				`INSERT INTO users (name, email, external_id, created_at, updated_at)
+				VALUES ('Active', 'active@example.com', 'shared', now(), now())`)
+
+			constraint, violation := dbtools.UniqueViolation(err)
+			assert.Equal(t, []any{tt.wantConstraint, tt.wantViolation}, []any{constraint, violation})
 		})
 	}
 }
