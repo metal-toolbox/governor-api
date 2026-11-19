@@ -1,6 +1,5 @@
-// Package openapi holds the governor-api OpenAPI spec. `make openapi-lint`
-// validates the spec with redocly; the tests here check what the validator
-// cannot know is required.
+// Package openapi holds the governor-api OpenAPI spec. redocly lint validates
+// the spec; the tests here check what the validator cannot know is required.
 package openapi
 
 import (

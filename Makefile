@@ -1,5 +1,5 @@
 all: lint test
-PHONY: test coverage lint golint openapi-lint clean vendor ci-test
+PHONY: test coverage lint golint clean vendor ci-test
 
 PG_STRING=postgres://postgres:postgres@pg:5432
 DB_NAME=governor
@@ -10,11 +10,6 @@ GOOS=linux
 DB_STRING=host=localhost port=5432 user=root sslmode=disable
 DB_STRING_DC=host=crdb port=5432 user=root sslmode=disable
 TEST_DB_DC=${DB_STRING_DC} dbname=${DB_NAME}_test
-
-# redocly CLI for openapi-lint, fetched from the Equinix Nexus npm registry
-NPM_REGISTRY=https://nexus.equinix.com/repository/Equinix-NPM-Release/
-REDOCLY_CLI_VERSION=2.12.6
-OPENAPI_SPEC=openapi/v1alpha1/openapi.yaml
 
 # OAuth client generated secret
 SECRET := $(shell bash -c 'openssl rand -hex 16')
@@ -27,10 +22,6 @@ lint: golint
 golint: | vendor
 	@echo Linting Go files...
 	@golangci-lint run --build-tags "-tags testtools"
-
-openapi-lint:
-	@echo Linting the OpenAPI spec...
-	@npx --yes --registry ${NPM_REGISTRY} @redocly/cli@${REDOCLY_CLI_VERSION} lint ${OPENAPI_SPEC}
 
 vendor:
 	@go mod download
