@@ -14,6 +14,7 @@ import (
 
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	models "github.com/metal-toolbox/governor-api/internal/models/psql"
+	apitypes "github.com/metal-toolbox/governor-api/pkg/api/types"
 )
 
 const (
@@ -23,10 +24,6 @@ const (
 	// user_external_ids table.
 	maxIssuerLength     = 512
 	maxExternalIDLength = 256
-
-	// externalIDDeprecationLink is the Link header value of a response that
-	// carries the deprecated external_id field.
-	externalIDDeprecationLink = `<https://github.com/metal-toolbox/governor-api/blob/main/docs/multi-idp-user-identities-lld.md>; rel="deprecation"`
 )
 
 // requestedExternalIDs returns the identities that req sets, validated. ok is
@@ -189,7 +186,7 @@ func (r *Router) newUserResponse(u *models.User, pairs []dbtools.ExternalIDPair)
 // external_id field.
 func setExternalIDDeprecation(c *gin.Context) {
 	c.Header("Deprecation", "true")
-	c.Header("Link", externalIDDeprecationLink)
+	c.Header("Link", apitypes.ExternalIDDeprecationLink)
 }
 
 // rollbackAndSendError rolls tx back and sends msg with code, adding the

@@ -25,10 +25,6 @@ const (
 
 	// UserStatusSuspended is the status for a suspended user
 	UserStatusSuspended = "suspended"
-
-	// externalIDDeprecationLink is the Link header value of a response that
-	// carries the deprecated external_id field.
-	externalIDDeprecationLink = `<https://github.com/metal-toolbox/governor-api/blob/main/docs/multi-idp-user-identities-lld.md>; rel="deprecation"`
 )
 
 var (
@@ -225,7 +221,7 @@ func (r *Router) listUsers(c *gin.Context) {
 	}
 
 	c.Header("Deprecation", "true")
-	c.Header("Link", externalIDDeprecationLink)
+	c.Header("Link", apitypes.ExternalIDDeprecationLink)
 
 	c.JSON(http.StatusOK, &PaginationResponse[*User]{
 		TotalRecordCount: count,

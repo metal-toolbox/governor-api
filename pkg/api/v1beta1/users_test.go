@@ -30,7 +30,7 @@ const (
 	testIdentityIssuer = "https://idp.example.com"
 	testPingIssuer     = "https://ping.example.com"
 
-	deprecationLink = `<https://github.com/metal-toolbox/governor-api/blob/main/docs/multi-idp-user-identities-lld.md>; rel="deprecation"`
+	deprecationLink = `<https://github.com/metal-toolbox/governor-api/blob/main/docs/user-external-ids.md>; rel="deprecation"`
 
 	usersAliceID = "00000005-0000-0000-0000-000000000001"
 	usersBobID   = "00000005-0000-0000-0000-000000000002"

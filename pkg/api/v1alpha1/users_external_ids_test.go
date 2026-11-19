@@ -30,7 +30,7 @@ const (
 	usersMetadataUser  = "00000001-0000-0000-0000-000000000003"
 	usersDeletedUserID = "00000001-0000-0000-0000-000000000002"
 	usersUnknownUserID = "00000001-0000-0000-0000-000000000099"
-	deprecationLink    = `<https://github.com/metal-toolbox/governor-api/blob/main/docs/multi-idp-user-identities-lld.md>; rel="deprecation"`
+	deprecationLink    = `<https://github.com/metal-toolbox/governor-api/blob/main/docs/user-external-ids.md>; rel="deprecation"`
 )
 
 var (
