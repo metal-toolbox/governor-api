@@ -63,11 +63,14 @@ func NewProvider(db *sql.DB, identityIssuers []string, opts ...Option) (*goose.P
 // registered, because fix would count a registered one as a migration file.
 //
 // RunContext changes goose's global state (registered Go migrations, base
-// filesystem, dialect), so it is not safe for concurrent use.
+// filesystem, dialect), so it is not safe for concurrent use. When it returns,
+// no Go migration is registered and the base filesystem is the OS one again.
 func RunContext(ctx context.Context, db *sql.DB, identityIssuers []string, command string, args []string, opts ...Option) error {
 	cfg := newProviderConfig(opts)
 
 	goose.ResetGlobalMigrations()
+	defer goose.ResetGlobalMigrations()
+	defer goose.SetBaseFS(nil)
 
 	if command != "create" && command != "fix" {
 		if err := goose.SetGlobalMigrations(newBackfillMigration(identityIssuers, cfg.logger)); err != nil {

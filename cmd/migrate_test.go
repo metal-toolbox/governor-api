@@ -117,7 +117,9 @@ func unconnectedDB(t *testing.T) *sql.DB {
 	return db
 }
 
-// captureGooseLog sends the goose package log to a buffer for the test.
+// captureGooseLog sends the goose package log to a buffer for the test, and
+// restores goose's package-level logger, base filesystem and Go migration
+// registry when the test ends.
 func captureGooseLog(t *testing.T) *bytes.Buffer {
 	t.Helper()
 
@@ -127,6 +129,7 @@ func captureGooseLog(t *testing.T) *bytes.Buffer {
 	t.Cleanup(func() {
 		goose.SetLogger(log.Default())
 		goose.SetBaseFS(nil)
+		goose.ResetGlobalMigrations()
 	})
 
 	return buf

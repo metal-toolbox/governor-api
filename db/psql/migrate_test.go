@@ -86,12 +86,11 @@ func TestRunContextUp(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Cleanup(func() { goose.SetBaseFS(nil) })
-
 			db := migratedTo(t, 6, backfillSeed)
 
 			err := RunContext(context.Background(), db, tt.issuers, "up", nil)
 			assert.ErrorIs(t, err, tt.wantErr)
+			assertGooseGlobalsReset(t)
 
 			assert.Equal(t, tt.wantVersion, dbVersion(t, db))
 			assert.Equal(t, tt.wantRows, externalIDRows(t, db))
@@ -100,8 +99,6 @@ func TestRunContextUp(t *testing.T) {
 }
 
 func TestRunContextIgnoresEarlierRegistrations(t *testing.T) {
-	t.Cleanup(func() { goose.SetBaseFS(nil) })
-
 	db := migratedTo(t, 6, backfillSeed)
 
 	// A Go migration registered before the call, by an earlier run or another
@@ -111,4 +108,15 @@ func TestRunContextIgnoresEarlierRegistrations(t *testing.T) {
 
 	require.NoError(t, RunContext(context.Background(), db, []string{testIssuer}, "up", nil))
 	assert.Equal(t, int64(8), dbVersion(t, db))
+}
+
+// assertGooseGlobalsReset checks that goose's package-level API is back to
+// its defaults: no registered Go migration and the OS filesystem. An empty
+// directory then holds no migrations; a registered Go migration would be
+// listed, and with the embedded filesystem the directory would not exist.
+func assertGooseGlobalsReset(t *testing.T) {
+	t.Helper()
+
+	_, err := goose.CollectMigrations(t.TempDir(), 0, goose.MaxVersion)
+	assert.ErrorIs(t, err, goose.ErrNoMigrationFiles)
 }
