@@ -274,13 +274,10 @@ func TestRunMigratePostgresFix(t *testing.T) {
 	assert.Equal(t, []string{"00001_initial.sql", "00002_add_foo.sql"}, names)
 }
 
-var errTestRestore = errors.New("restore broke")
-
 func TestRestoreWithMigration(t *testing.T) {
 	tests := []struct {
 		name        string
 		restoreErr  error
-		wantErr     error
 		wantVersion int64
 		wantRows    int
 	}{
@@ -291,8 +288,7 @@ func TestRestoreWithMigration(t *testing.T) {
 		},
 		{
 			name:        "a failed restore stops before the backfill",
-			restoreErr:  errTestRestore,
-			wantErr:     errTestRestore,
+			restoreErr:  errors.New("restore broke"), //nolint:err113 // any restore failure
 			wantVersion: psqlmigrations.BackfillVersion - 1,
 			wantRows:    0,
 		},
@@ -317,7 +313,7 @@ func TestRestoreWithMigration(t *testing.T) {
 			}
 
 			err := restoreWithMigration(ctx, db, auths, restore)
-			assert.ErrorIs(t, err, tt.wantErr)
+			assert.ErrorIs(t, err, tt.restoreErr)
 			assert.Equal(t, tt.wantVersion, testDBVersion(t, db))
 
 			var rows int
