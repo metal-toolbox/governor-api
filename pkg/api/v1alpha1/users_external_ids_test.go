@@ -805,7 +805,7 @@ func (s *UserTestSuite) TestListUsersWithoutMatchIsEmptyArray() {
 			s.identityRouter(testIdentityIssuer).listUsers(c)
 
 			s.Equal(http.StatusOK, w.Code)
-			s.Equal("[]", w.Body.String())
+			s.JSONEq("[]", w.Body.String())
 		})
 	}
 }
