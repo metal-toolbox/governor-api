@@ -1,6 +1,7 @@
 package psql
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 
@@ -48,4 +49,66 @@ func TestNewProviderSources(t *testing.T) {
 		{Version: 7, Type: goose.TypeGo, Path: "00007_backfill_user_external_ids.go"},
 		{Version: 8, Type: goose.TypeSQL, Path: "00008_drop_users_external_id.sql"},
 	}, got)
+}
+
+func TestRunContextUp(t *testing.T) {
+	tests := []struct {
+		name        string
+		issuers     []string
+		wantErr     error
+		wantVersion int64
+		wantRows    []externalIDRow
+	}{
+		{
+			name:        "one flagged provider runs the backfill",
+			issuers:     []string{testIssuer},
+			wantVersion: 8,
+			wantRows: []externalIDRow{
+				{Email: "alice@example.com", Iss: testIssuer, ExternalID: "okta-alice"},
+				{Email: "bob@example.com", Iss: testIssuer, ExternalID: "okta-bob"},
+			},
+		},
+		{
+			name:        "no flagged provider",
+			issuers:     nil,
+			wantErr:     ErrIdentityProviderCount,
+			wantVersion: 6,
+			wantRows:    []externalIDRow{},
+		},
+		{
+			name:        "two flagged providers",
+			issuers:     []string{testIssuer, pingIssuer},
+			wantErr:     ErrIdentityProviderCount,
+			wantVersion: 6,
+			wantRows:    []externalIDRow{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Cleanup(func() { goose.SetBaseFS(nil) })
+
+			db := migratedTo(t, 6, backfillSeed)
+
+			err := RunContext(context.Background(), db, tt.issuers, "up", nil)
+			assert.ErrorIs(t, err, tt.wantErr)
+
+			assert.Equal(t, tt.wantVersion, dbVersion(t, db))
+			assert.Equal(t, tt.wantRows, externalIDRows(t, db))
+		})
+	}
+}
+
+func TestRunContextIgnoresEarlierRegistrations(t *testing.T) {
+	t.Cleanup(func() { goose.SetBaseFS(nil) })
+
+	db := migratedTo(t, 6, backfillSeed)
+
+	// A Go migration registered before the call, by an earlier run or another
+	// package, must not reach the run: version 99 would be applied after 00008.
+	require.NoError(t, goose.SetGlobalMigrations(goose.NewGoMigration(99, nil, nil)))
+	t.Cleanup(goose.ResetGlobalMigrations)
+
+	require.NoError(t, RunContext(context.Background(), db, []string{testIssuer}, "up", nil))
+	assert.Equal(t, int64(8), dbVersion(t, db))
 }

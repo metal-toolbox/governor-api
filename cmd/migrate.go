@@ -4,10 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"io"
 	"math"
-	"strconv"
-	"time"
 
 	_ "github.com/cockroachdb/cockroach-go/v2/crdb/crdbpgxv5" // crdb retries and postgres interface
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -45,7 +42,7 @@ fix                  Apply sequential ordering to migrations
 	`,
 	Args: cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return migrate(cmd.Context(), args[0], args[1:], cmd.OutOrStdout())
+		return migrate(cmd.Context(), args[0], args[1:])
 	},
 }
 
@@ -56,7 +53,7 @@ func init() {
 	viperBindFlag("db.driver", migrateCmd.PersistentFlags().Lookup("db-driver"))
 }
 
-func migrate(ctx context.Context, command string, args []string, out io.Writer) error {
+func migrate(ctx context.Context, command string, args []string) error {
 	db, err := goose.OpenDBWithDriver("postgres", viper.GetString("db.uri"))
 	if err != nil {
 		return fmt.Errorf("open DB: %w", err)
@@ -64,50 +61,49 @@ func migrate(ctx context.Context, command string, args []string, out io.Writer) 
 
 	defer db.Close()
 
-	return runMigrate(ctx, db, viper.GetViper(), command, args, out)
+	return runMigrate(ctx, db, viper.GetViper(), command, args)
 }
 
 // runMigrate runs a migrate command against db with the driver and oidc
 // providers configured in v.
-func runMigrate(ctx context.Context, db *sql.DB, v *viper.Viper, command string, args []string, out io.Writer) error {
+func runMigrate(ctx context.Context, db *sql.DB, v *viper.Viper, command string, args []string) error {
 	switch driver := v.GetString("db.driver"); driver {
 	case "postgres":
-		return migratePostgres(ctx, db, v, command, args, out)
+		return migratePostgres(ctx, db, v, command, args)
 	case "crdb":
+		// The crdb migrations are SQL only; a Go migration registered for
+		// postgres would collide with their version numbers.
+		goose.ResetGlobalMigrations()
 		goose.SetBaseFS(crdbmigrations.Migrations)
 
-		return runGooseCommand(ctx, db, command, args)
+		if err := goose.RunContext(ctx, command, db, "migrations", args...); err != nil {
+			return fmt.Errorf("migrate %s: %w", command, err)
+		}
+
+		return nil
 	default:
 		return fmt.Errorf("%w: %s", ErrUnsupportedDBDriver, driver)
 	}
 }
 
-// migratePostgres runs a migrate command on PostgreSQL. Commands that apply or
-// inspect migrations go through psqlmigrations.NewProvider, so they always
-// include Go migration 00007, and need an oidc provider with identity.enabled.
+// migratePostgres runs a migrate command on PostgreSQL through
+// psqlmigrations.RunContext, which always includes Go migration 00007. Commands
+// that apply or inspect migrations need an oidc provider with identity.enabled;
 // create and fix only write migration files, so they need no oidc config.
-func migratePostgres(ctx context.Context, db *sql.DB, v *viper.Viper, command string, args []string, out io.Writer) error {
-	if isFileCommand(command) {
-		goose.SetBaseFS(psqlmigrations.Migrations)
+func migratePostgres(ctx context.Context, db *sql.DB, v *viper.Viper, command string, args []string) error {
+	var identityIssuers []string
 
-		return runGooseCommand(ctx, db, command, args)
+	if !isFileCommand(command) {
+		auths, err := loadAuthConfigs(v)
+		if err != nil {
+			return err
+		}
+
+		identityIssuers = configs.IdentityIssuers(auths)
 	}
 
-	auths, err := loadAuthConfigs(v)
+	err := psqlmigrations.RunContext(ctx, db, identityIssuers, command, args, psqlmigrations.WithLogger(logger.Desugar()))
 	if err != nil {
-		return err
-	}
-
-	p, err := psqlmigrations.NewProvider(db, configs.IdentityIssuers(auths), psqlmigrations.WithLogger(logger.Desugar()))
-	if err != nil {
-		return fmt.Errorf("build migration provider: %w", err)
-	}
-
-	return runProviderCommand(ctx, p, command, args, out)
-}
-
-func runGooseCommand(ctx context.Context, db *sql.DB, command string, args []string) error {
-	if err := goose.RunContext(ctx, command, db, "migrations", args...); err != nil {
 		return fmt.Errorf("migrate %s: %w", command, err)
 	}
 
@@ -118,115 +114,6 @@ func runGooseCommand(ctx context.Context, db *sql.DB, command string, args []str
 // and never applies a migration.
 func isFileCommand(command string) bool {
 	return command == "create" || command == "fix"
-}
-
-// runProviderCommand maps a goose CLI command to the Provider call and prints
-// the result to out. It returns ErrUnsupportedMigrateCommand for any command
-// that is not a Provider call, including create and fix.
-func runProviderCommand(ctx context.Context, p *goose.Provider, command string, args []string, out io.Writer) error {
-	switch command {
-	case "up":
-		results, err := p.Up(ctx)
-		printResults(out, results...)
-
-		return err
-	case "up-by-one":
-		return runOne(out, func() (*goose.MigrationResult, error) { return p.UpByOne(ctx) })
-	case "up-to":
-		v, err := versionArg(args)
-		if err != nil {
-			return err
-		}
-
-		results, err := p.UpTo(ctx, v)
-		printResults(out, results...)
-
-		return err
-	case "down":
-		return runOne(out, func() (*goose.MigrationResult, error) { return p.Down(ctx) })
-	case "down-to":
-		v, err := versionArg(args)
-		if err != nil {
-			return err
-		}
-
-		results, err := p.DownTo(ctx, v)
-		printResults(out, results...)
-
-		return err
-	case "redo":
-		if err := runOne(out, func() (*goose.MigrationResult, error) { return p.Down(ctx) }); err != nil {
-			return err
-		}
-
-		return runOne(out, func() (*goose.MigrationResult, error) { return p.UpByOne(ctx) })
-	case "reset":
-		results, err := p.DownTo(ctx, 0)
-		printResults(out, results...)
-
-		return err
-	case "status":
-		statuses, err := p.Status(ctx)
-		if err != nil {
-			return err
-		}
-
-		printStatus(out, statuses)
-
-		return nil
-	case "version":
-		v, err := p.GetDBVersion(ctx)
-		if err != nil {
-			return err
-		}
-
-		fmt.Fprintf(out, "version %d\n", v)
-
-		return nil
-	default:
-		return fmt.Errorf("%w: %s", ErrUnsupportedMigrateCommand, command)
-	}
-}
-
-func runOne(out io.Writer, fn func() (*goose.MigrationResult, error)) error {
-	result, err := fn()
-	if result != nil {
-		printResults(out, result)
-	}
-
-	return err
-}
-
-func versionArg(args []string) (int64, error) {
-	if len(args) == 0 {
-		return 0, ErrMigrateVersionRequired
-	}
-
-	v, err := strconv.ParseInt(args[0], 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("parse VERSION: %w", err)
-	}
-
-	return v, nil
-}
-
-func printResults(out io.Writer, results ...*goose.MigrationResult) {
-	for _, r := range results {
-		fmt.Fprintln(out, r)
-	}
-}
-
-// printStatus prints one line per migration: version, state and applied time,
-// or "-" for a migration that has not been applied.
-func printStatus(out io.Writer, statuses []*goose.MigrationStatus) {
-	for _, s := range statuses {
-		applied := "-"
-		if !s.AppliedAt.IsZero() {
-			applied = s.AppliedAt.UTC().Format(time.RFC3339)
-		}
-
-		fmt.Fprintf(out, "%d\t%s\t%s\n", s.Source.Version, s.State, applied)
-	}
 }
 
 // RunMigration applies every pending PostgreSQL migration, as the service does

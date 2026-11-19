@@ -7,10 +7,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/metal-toolbox/hollow-toolbox/ginjwt"
@@ -134,51 +132,66 @@ func captureGooseLog(t *testing.T) *bytes.Buffer {
 	return buf
 }
 
-func TestRunProviderCommand(t *testing.T) {
+func TestRunMigratePostgresCommands(t *testing.T) {
 	tests := []struct {
 		name        string
 		start       int64
 		command     string
 		args        []string
-		wantErr     error
+		wantErr     bool
 		wantVersion int64
-		wantOut     []string
+		wantLog     []string
 	}{
-		{name: "up", start: 5, command: "up", wantVersion: 8, wantOut: []string{"00006_user_external_ids.sql", "00007_backfill_user_external_ids.go", "00008_drop_users_external_id.sql"}},
-		{name: "up-by-one", start: 5, command: "up-by-one", wantVersion: 6, wantOut: []string{"00006_user_external_ids.sql"}},
-		{name: "up-to", start: 3, command: "up-to", args: []string{"5"}, wantVersion: 5, wantOut: []string{"00004_group_metadata.sql", "00005_extension_resource_annotations.sql"}},
-		{name: "up-to without version", start: 3, command: "up-to", wantErr: ErrMigrateVersionRequired, wantVersion: 3},
-		{name: "up-to with invalid version", start: 3, command: "up-to", args: []string{"five"}, wantErr: strconv.ErrSyntax, wantVersion: 3},
-		{name: "down", start: 7, command: "down", wantVersion: 6, wantOut: []string{"down 00007_backfill_user_external_ids.go"}},
-		{name: "down-to", start: 7, command: "down-to", args: []string{"5"}, wantVersion: 5, wantOut: []string{"down 00007_backfill_user_external_ids.go", "down 00006_user_external_ids.sql"}},
-		{name: "down-to without version", start: 7, command: "down-to", wantErr: ErrMigrateVersionRequired, wantVersion: 7},
-		{name: "redo", start: 7, command: "redo", wantVersion: 7, wantOut: []string{"down 00007_backfill_user_external_ids.go", "up 00007_backfill_user_external_ids.go"}},
-		{name: "reset", start: 7, command: "reset", wantVersion: 0, wantOut: []string{"down 00001_initial.sql"}},
-		{name: "status", start: 6, command: "status", wantVersion: 6, wantOut: []string{"6\tapplied\t", "7\tpending\t-\n"}},
-		{name: "version", start: 6, command: "version", wantVersion: 6, wantOut: []string{"version 6\n"}},
-		{name: "create is not a provider command", start: 6, command: "create", args: []string{"x", "sql"}, wantErr: ErrUnsupportedMigrateCommand, wantVersion: 6},
-		{name: "fix is not a provider command", start: 6, command: "fix", wantErr: ErrUnsupportedMigrateCommand, wantVersion: 6},
-		{name: "unknown command", start: 6, command: "sideways", wantErr: ErrUnsupportedMigrateCommand, wantVersion: 6},
+		{name: "up", start: 5, command: "up", wantVersion: 8, wantLog: []string{"OK   00006_user_external_ids.sql", "OK   00007_backfill_user_external_ids.go", "OK   00008_drop_users_external_id.sql"}},
+		{name: "up-by-one", start: 5, command: "up-by-one", wantVersion: 6, wantLog: []string{"OK   00006_user_external_ids.sql"}},
+		{name: "up-to", start: 3, command: "up-to", args: []string{"5"}, wantVersion: 5, wantLog: []string{"OK   00004_group_metadata.sql", "OK   00005_extension_resource_annotations.sql"}},
+		{name: "up-to without version", start: 3, command: "up-to", wantErr: true, wantVersion: 3},
+		{name: "up-to with invalid version", start: 3, command: "up-to", args: []string{"five"}, wantErr: true, wantVersion: 3},
+		{name: "down", start: 7, command: "down", wantVersion: 6, wantLog: []string{"OK   00007_backfill_user_external_ids.go"}},
+		{name: "down-to", start: 7, command: "down-to", args: []string{"5"}, wantVersion: 5, wantLog: []string{"OK   00007_backfill_user_external_ids.go", "OK   00006_user_external_ids.sql"}},
+		{name: "down-to without version", start: 7, command: "down-to", wantErr: true, wantVersion: 7},
+		{name: "redo", start: 7, command: "redo", wantVersion: 7, wantLog: []string{"OK   00007_backfill_user_external_ids.go"}},
+		{name: "reset", start: 7, command: "reset", wantVersion: 0, wantLog: []string{"OK   00001_initial.sql"}},
+		{name: "status", start: 6, command: "status", wantVersion: 6, wantLog: []string{"-- 00006_user_external_ids.sql", "Pending                  -- 00007_backfill_user_external_ids.go"}},
+		{name: "version", start: 6, command: "version", wantVersion: 6, wantLog: []string{"goose: version 6"}},
+		{name: "unknown command", start: 6, command: "sideways", wantErr: true, wantVersion: 6},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			db := migratedTestDB(t, tt.start)
+			gooseLog := captureGooseLog(t)
 
-			p, err := psqlmigrations.NewProvider(db, []string{testIdentityIssuer})
-			require.NoError(t, err)
-
-			out := &bytes.Buffer{}
-
-			err = runProviderCommand(context.Background(), p, tt.command, tt.args, out)
-			assert.ErrorIs(t, err, tt.wantErr)
+			err := runMigrate(context.Background(), db, configFor(t, "postgres", identityOIDCConfig), tt.command, tt.args)
+			assert.Equal(t, tt.wantErr, err != nil, "error: %v", err)
 			assert.Equal(t, tt.wantVersion, testDBVersion(t, db))
 
-			for _, want := range tt.wantOut {
-				assert.Contains(t, out.String(), want)
+			for _, want := range tt.wantLog {
+				assert.Contains(t, gooseLog.String(), want)
 			}
 		})
 	}
+}
+
+func TestRunMigratePostgresTwoIdentityProviders(t *testing.T) {
+	captureGooseLog(t)
+
+	db := migratedTestDB(t, 6)
+
+	// Two issuers with identity.enabled pass the config check, which needs at
+	// least one; migration 00007 needs exactly one and refuses to run.
+	cfg := identityOIDCConfig + `
+  - enabled: true
+    audience: api
+    issuer: https://ping.example.com
+    jwksuri: https://ping.example.com/jwks
+    identity:
+      enabled: true
+`
+
+	err := runMigrate(context.Background(), db, configFor(t, "postgres", cfg), "up", nil)
+	assert.ErrorIs(t, err, psqlmigrations.ErrIdentityProviderCount)
+	assert.Equal(t, int64(6), testDBVersion(t, db))
 }
 
 func TestRunMigratePostgresChecksIdentityProviders(t *testing.T) {
@@ -209,7 +222,7 @@ func TestRunMigratePostgresChecksIdentityProviders(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			db := dbtools.NewPGTestServer(t)
 
-			err := runMigrate(context.Background(), db, configFor(t, "postgres", tt.cfg), "up", nil, &bytes.Buffer{})
+			err := runMigrate(context.Background(), db, configFor(t, "postgres", tt.cfg), "up", nil)
 			assert.ErrorIs(t, err, tt.wantErr)
 			assert.Equal(t, tt.wantApplied, hasVersionTable(t, db))
 		})
@@ -221,7 +234,7 @@ func TestRunMigrateCRDBSkipsIdentityCheck(t *testing.T) {
 	db := dbtools.NewPGTestServer(t)
 
 	// No oidc config at all: the crdb branch must not ask for one.
-	err := runMigrate(context.Background(), db, configFor(t, "crdb", "logging:\n  debug: false\n"), "status", nil, &bytes.Buffer{})
+	err := runMigrate(context.Background(), db, configFor(t, "crdb", "logging:\n  debug: false\n"), "status", nil)
 	require.NoError(t, err)
 
 	// 00002_user_gh_id.sql exists only in the crdb migrations, so goose.RunContext
@@ -230,7 +243,7 @@ func TestRunMigrateCRDBSkipsIdentityCheck(t *testing.T) {
 }
 
 func TestRunMigrateUnsupportedDriver(t *testing.T) {
-	err := runMigrate(context.Background(), unconnectedDB(t), configFor(t, "mysql", identityOIDCConfig), "up", nil, &bytes.Buffer{})
+	err := runMigrate(context.Background(), unconnectedDB(t), configFor(t, "mysql", identityOIDCConfig), "up", nil)
 	assert.ErrorIs(t, err, ErrUnsupportedDBDriver)
 }
 
@@ -243,7 +256,7 @@ func TestRunMigratePostgresCreate(t *testing.T) {
 
 	// create writes a file and applies nothing, so it needs no oidc config.
 	err := runMigrate(context.Background(), unconnectedDB(t), configFor(t, "postgres", "logging:\n  debug: false\n"),
-		"create", []string{"add_foo", "sql"}, &bytes.Buffer{})
+		"create", []string{"add_foo", "sql"})
 	require.NoError(t, err)
 
 	files, err := filepath.Glob(filepath.Join(dir, "migrations", "*_add_foo.sql"))
@@ -261,7 +274,7 @@ func TestRunMigratePostgresFix(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join("migrations", "20260101000000_add_foo.sql"), []byte("-- +goose Up\n"), 0o600))
 
 	err := runMigrate(context.Background(), unconnectedDB(t), configFor(t, "postgres", "logging:\n  debug: false\n"),
-		"fix", nil, &bytes.Buffer{})
+		"fix", nil)
 	require.NoError(t, err)
 
 	entries, err := os.ReadDir(filepath.Join(dir, "migrations"))
@@ -386,15 +399,4 @@ func TestRestoreMigrateWithoutIdentityProvider(t *testing.T) {
 	assert.ErrorIs(t, err, configs.ErrNoIdentityProvider)
 	assert.ErrorContains(t, err, "set identity.enabled: true on the provider that issued the existing user IDs")
 	assert.False(t, hasVersionTable(t, db), "no migration may run")
-}
-
-func TestPrintStatus(t *testing.T) {
-	out := &bytes.Buffer{}
-
-	printStatus(out, []*goose.MigrationStatus{
-		{Source: &goose.Source{Version: 6}, State: goose.StateApplied, AppliedAt: time.Date(2026, 11, 18, 12, 0, 0, 0, time.UTC)},
-		{Source: &goose.Source{Version: 7}, State: goose.StatePending},
-	})
-
-	assert.Equal(t, "6\tapplied\t2026-11-18T12:00:00Z\n7\tpending\t-\n", out.String())
 }
