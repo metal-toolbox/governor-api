@@ -65,8 +65,8 @@ Send `external_ids` on `POST /api/v1alpha1/users` and
 }
 ```
 
-- Each `iss` must be a configured issuer and may appear only once. A request
-  may set at most 10 identities.
+- Each `iss` must be the issuer of an `oidc` entry with `identity.enabled: true`
+  and may appear only once. A request may set at most 10 identities.
 - On update, `external_ids` replaces the user's full set; an empty array
   removes them all. Leave the field out to keep the identities unchanged.
 - A pair that is already linked to another user returns `409`.
@@ -83,7 +83,7 @@ Each `oidc` entry has an `identity` block:
 
 | Key | Default | Meaning |
 |---|---|---|
-| `identity.enabled` | `false` | Tokens from this provider resolve to governor users. |
+| `identity.enabled` | `false` | Tokens from this provider resolve to governor users. When `false`, a sign-in through this provider returns `401 user not registered`, also for a user who already has an identity at its issuer. |
 | `identity.autoLink` | `false` | On the first sign-in through this provider, link the identity to the existing active user with the same email. Used only when `identity.enabled` is `true`. |
 | `identity.autoRegister` | `true` | On the first sign-in through this provider, create a user when no user matches. Used only when `identity.enabled` is `true`. |
 

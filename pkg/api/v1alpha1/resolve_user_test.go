@@ -517,6 +517,20 @@ func (s *ResolveUserTestSuite) TestUserAuthRequired() {
 			wantOutcome: func() map[string]float64 { return map[string]float64{s.ping.srv.URL + " rejected_unregistered": 1} },
 		},
 		{
+			name:   "known identity through an issuer without identity enabled",
+			okta:   off,
+			ping:   enabled,
+			issuer: func() *stubOIDC { return s.okta },
+			claims: func() claims { return claims{s.okta.srv.URL, "okta-sub", "okta@example.com"} },
+			userInfo: userInfo{
+				status: http.StatusOK, name: "Okta User", email: "okta@example.com", sub: "okta-sub",
+			},
+			want:         resolveResult{Status: http.StatusUnauthorized, Error: "user not registered"},
+			wantLinkedTo: "okta@example.com",
+			wantAudit:    map[string]int{},
+			wantOutcome:  func() map[string]float64 { return map[string]float64{s.okta.srv.URL + " rejected_unregistered": 1} },
+		},
+		{
 			name:   "auto-register off",
 			okta:   noRegister,
 			ping:   off,
@@ -804,18 +818,27 @@ func (s *ResolveUserTestSuite) TestUserAuthRequired() {
 func (s *ResolveUserTestSuite) TestGroupAuthRequiredResolvesWithoutRegistering() {
 	tests := []struct {
 		name string
+		okta configs.IdentityConfig
 		user string
 		want resolveResult
 	}{
 		{
 			name: "known identity",
+			okta: configs.IdentityConfig{Enabled: true},
 			user: "okta-sub",
 			want: resolveResult{Status: http.StatusUnauthorized, Error: "user not group member"},
 		},
 		{
 			name: "unknown identity",
+			okta: configs.IdentityConfig{Enabled: true},
 			user: "new-sub",
 			want: resolveResult{Status: http.StatusUnauthorized, Error: "user not found"},
+		},
+		{
+			name: "known identity through an issuer without identity enabled",
+			okta: configs.IdentityConfig{},
+			user: "okta-sub",
+			want: resolveResult{Status: http.StatusUnauthorized, Error: "user not registered"},
 		},
 	}
 
@@ -823,7 +846,7 @@ func (s *ResolveUserTestSuite) TestGroupAuthRequiredResolvesWithoutRegistering()
 		s.Run(tt.name, func() {
 			s.reset()
 
-			r := s.router(prometheus.NewRegistry(), configs.IdentityConfig{Enabled: true}, configs.IdentityConfig{})
+			r := s.router(prometheus.NewRegistry(), tt.okta, configs.IdentityConfig{Enabled: true})
 			cl := claims{s.okta.srv.URL, tt.user, "new@example.com"}
 
 			got := serve(r.mwGroupAuthRequired(AuthRoleGroupMember), cl, s.okta.token(s.T(), cl.subject), resolveGroupID)

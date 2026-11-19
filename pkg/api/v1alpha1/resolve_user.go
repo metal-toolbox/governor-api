@@ -68,9 +68,9 @@ func (r *Router) authConfigFor(iss string) (configs.Auth, bool) {
 
 // resolveUser returns the governor user of the signed-in caller, found by the
 // verified issuer and the username claim of the token. mods apply to the users
-// query. When autoProvision is true, an unknown sign-in from a provider with
-// identity.enabled may create a user. When ok is false, resolveUser has
-// already sent the error response.
+// query. A token from a provider without identity.enabled resolves to no user.
+// When autoProvision is true, an unknown sign-in may link or create a user.
+// When ok is false, resolveUser has already sent the error response.
 func (r *Router) resolveUser(c *gin.Context, autoProvision bool, mods ...qm.QueryMod) (user *models.User, ok bool) {
 	ctx, span := tracer.Start(c.Request.Context(), "resolveUser")
 	defer span.End()
@@ -100,6 +100,16 @@ func (r *Router) resolveUser(c *gin.Context, autoProvision bool, mods ...qm.Quer
 	observe := func(o metrics.Outcome) {
 		span.SetAttributes(attribute.String("outcome", string(o)))
 		r.UserResolution.Observe(iss, o, time.Since(start))
+	}
+
+	// identity.enabled is the switch for a provider's sign-ins: without it, no
+	// token from the provider resolves to a user, even one that already has a
+	// record for the issuer.
+	if !ac.Identity.Enabled {
+		observe(metrics.OutcomeRejectedUnregistered)
+		sendError(c, http.StatusUnauthorized, "user not registered")
+
+		return nil, false
 	}
 
 	user, err := dbtools.FindUserByExternalID(ctx, r.DB, iss, sub, mods...)

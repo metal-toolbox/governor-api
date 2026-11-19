@@ -15,6 +15,7 @@ import (
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	models "github.com/metal-toolbox/governor-api/internal/models/psql"
 	apitypes "github.com/metal-toolbox/governor-api/pkg/api/types"
+	"github.com/metal-toolbox/governor-api/pkg/configs"
 )
 
 const (
@@ -27,8 +28,9 @@ const (
 )
 
 // requestedExternalIDs returns the identities that req sets, validated. ok is
-// false when req sets none. The deprecated external_id becomes the one
-// identity at the primary identity issuer.
+// false when req sets none. Every identity must be at an issuer with
+// identity.enabled. The deprecated external_id becomes the one identity at
+// the primary identity issuer.
 func (r *Router) requestedExternalIDs(req *UserReq) (pairs []dbtools.ExternalIDPair, ok bool, err error) {
 	switch {
 	case req.ExternalID != "" && req.ExternalIDs != nil:
@@ -47,6 +49,15 @@ func (r *Router) requestedExternalIDs(req *UserReq) (pairs []dbtools.ExternalIDP
 
 	if err := validateExternalIDs(pairs, r.configuredIssuers()); err != nil {
 		return nil, false, err
+	}
+
+	// A record at an issuer without identity.enabled could never sign in, so
+	// only identity providers take records.
+	identityIssuers := configs.IdentityIssuers(r.AuthConf)
+	for _, p := range pairs {
+		if !slices.Contains(identityIssuers, p.Iss) {
+			return nil, false, fmt.Errorf("%w: iss %s has no oidc provider with identity.enabled", errInvalidExternalIDs, p.Iss)
+		}
 	}
 
 	return pairs, true, nil

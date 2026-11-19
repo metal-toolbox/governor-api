@@ -26,6 +26,7 @@ import (
 
 const (
 	usersPingIssuer    = "https://ping.example.com"
+	usersHydraIssuer   = "https://hydra.example.com"
 	usersTestUserID    = "00000001-0000-0000-0000-000000000001"
 	usersMetadataUser  = "00000001-0000-0000-0000-000000000003"
 	usersDeletedUserID = "00000001-0000-0000-0000-000000000002"
@@ -42,13 +43,17 @@ var (
 )
 
 // identityRouter returns a Router with the test issuer as primary identity
-// provider and a second, Ping, provider. primary overrides the primary
-// identity issuer; "" means that no provider has identity.enabled.
+// provider, a second, Ping, identity provider and a Hydra provider without
+// identity.enabled. primary overrides the primary identity issuer; "" means
+// that no provider has identity.enabled.
 func (s *UserTestSuite) identityRouter(primary string) *Router {
+	identity := configs.IdentityConfig{Enabled: primary != ""}
+
 	r := s.v1alpha1()
 	r.AuthConf = []configs.Auth{
-		{AuthConfig: ginjwt.AuthConfig{Enabled: true, Issuer: testIdentityIssuer}, Identity: configs.IdentityConfig{Enabled: primary != ""}},
-		{AuthConfig: ginjwt.AuthConfig{Enabled: true, Issuer: usersPingIssuer}},
+		{AuthConfig: ginjwt.AuthConfig{Enabled: true, Issuer: testIdentityIssuer}, Identity: identity},
+		{AuthConfig: ginjwt.AuthConfig{Enabled: true, Issuer: usersPingIssuer}, Identity: identity},
+		{AuthConfig: ginjwt.AuthConfig{Enabled: true, Issuer: usersHydraIssuer}},
 	}
 	r.PrimaryIdentityIssuer = primary
 
@@ -301,6 +306,13 @@ func (s *UserTestSuite) TestCreateUserExternalIDsRejected() {
 			wantErr:    "invalid external_ids: iss https://x.example.com is not a configured issuer",
 		},
 		{
+			name:       "issuer without identity enabled",
+			primary:    testIdentityIssuer,
+			externalID: `"external_ids": [{"iss": "` + usersHydraIssuer + `", "id": "x"}]`,
+			wantStatus: http.StatusUnprocessableEntity,
+			wantErr:    "invalid external_ids: iss " + usersHydraIssuer + " has no oidc provider with identity.enabled",
+		},
+		{
 			name:       "issuer that is not an http url",
 			primary:    testIdentityIssuer,
 			externalID: `"external_ids": [{"iss": "ftp://idp.example.com", "id": "x"}]`,
@@ -509,6 +521,14 @@ func (s *UserTestSuite) TestUpdateUserExternalIDsRejected() {
 			payload:    `{"external_ids": [{"iss": "https://x.example.com", "id": "x"}]}`,
 			wantStatus: http.StatusUnprocessableEntity,
 			wantErr:    "invalid external_ids: iss https://x.example.com is not a configured issuer",
+		},
+		{
+			name:       "issuer without identity enabled",
+			primary:    testIdentityIssuer,
+			userID:     usersMetadataUser,
+			payload:    `{"external_ids": [{"iss": "` + usersHydraIssuer + `", "id": "x"}]}`,
+			wantStatus: http.StatusUnprocessableEntity,
+			wantErr:    "invalid external_ids: iss " + usersHydraIssuer + " has no oidc provider with identity.enabled",
 		},
 		{
 			name:       "identity of another user",

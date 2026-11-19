@@ -59,7 +59,9 @@ ExternalID:
       type: string
       format: uri
       maxLength: 512
-      description: Issuer URL of the identity provider; must equal a configured oidc issuer
+      description: |
+        Issuer URL of the identity provider. On create and update, it must equal the issuer of a configured
+        oidc provider with identity.enabled
       examples: ["https://sso.example.com/oauth2/default"]
     id:
       type: string
