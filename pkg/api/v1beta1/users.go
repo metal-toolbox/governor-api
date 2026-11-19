@@ -4,10 +4,12 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/aarondl/null/v8"
 	"github.com/aarondl/sqlboiler/v4/queries/qm"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
+	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	models "github.com/metal-toolbox/governor-api/internal/models/psql"
 )
 
@@ -20,6 +22,10 @@ const (
 
 	// UserStatusSuspended is the status for a suspended user
 	UserStatusSuspended = "suspended"
+
+	// externalIDDeprecationLink is the Link header value of a response that
+	// carries the deprecated external_id field.
+	externalIDDeprecationLink = `<https://github.com/metal-toolbox/governor-api/blob/main/docs/multi-idp-user-identities-lld.md>; rel="deprecation"`
 )
 
 var (
@@ -31,9 +37,17 @@ var (
 // User is a user response
 type User struct {
 	*models.User
-	Memberships        []string `json:"memberships,omitempty"`
-	MembershipsDirect  []string `json:"memberships_direct,omitempty"`
-	MembershipRequests []string `json:"membership_requests,omitempty"`
+	// ExternalIDs are the user's identities at the identity providers. It is
+	// an empty array when the user has none.
+	ExternalIDs []dbtools.ExternalIDPair `json:"external_ids"`
+	// ExternalID is the user's identity at the primary identity provider, the
+	// first oidc provider with identity.enabled, or null.
+	//
+	// Deprecated: use ExternalIDs.
+	ExternalID         null.String `json:"external_id"`
+	Memberships        []string    `json:"memberships,omitempty"`
+	MembershipsDirect  []string    `json:"memberships_direct,omitempty"`
+	MembershipRequests []string    `json:"membership_requests,omitempty"`
 }
 
 // listUsers responds with the list of all users
@@ -52,11 +66,6 @@ func (r *Router) listUsers(c *gin.Context) {
 			return
 		}
 
-		convertedVals := make([]interface{}, len(val))
-		for i, v := range val {
-			convertedVals[i] = v
-		}
-
 		switch k {
 		case "email":
 			// append email queries as case insensitive using LOWER()
@@ -67,7 +76,7 @@ func (r *Router) listUsers(c *gin.Context) {
 				queryMods = append(queryMods, qm.Or("LOWER(email) = LOWER(?)", v))
 			}
 		case "external_id":
-			queryMods = append(queryMods, qm.Or2(qm.WhereIn(k+" IN ?", convertedVals...)))
+			queryMods = append(queryMods, qm.Or2(dbtools.WhereUserHasExternalID(val)))
 		}
 	}
 
@@ -171,9 +180,34 @@ func (r *Router) listUsers(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, &PaginationResponse[*models.User]{
+	ids := make([]string, len(users))
+	for i, u := range users {
+		ids[i] = u.ID
+	}
+
+	externalIDs, err := dbtools.ListUserExternalIDs(ctx, r.DB, ids)
+	if err != nil {
+		r.Logger.Error("error fetching user external ids", zap.Error(err))
+		sendError(c, http.StatusBadRequest, "error fetching users: "+err.Error())
+
+		return
+	}
+
+	records := make([]*User, len(users))
+	for i, u := range users {
+		records[i] = &User{
+			User:        u,
+			ExternalIDs: externalIDs[u.ID],
+			ExternalID:  dbtools.PrimaryExternalID(externalIDs[u.ID], r.PrimaryIdentityIssuer),
+		}
+	}
+
+	c.Header("Deprecation", "true")
+	c.Header("Link", externalIDDeprecationLink)
+
+	c.JSON(http.StatusOK, &PaginationResponse[*User]{
 		TotalRecordCount: count,
-		Records:          users,
+		Records:          records,
 		PrevCursor:       prevCursorResp,
 		NextCursor:       nextCursorResp,
 	})

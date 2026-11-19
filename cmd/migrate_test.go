@@ -143,7 +143,7 @@ func TestRunProviderCommand(t *testing.T) {
 		wantVersion int64
 		wantOut     []string
 	}{
-		{name: "up", start: 5, command: "up", wantVersion: 7, wantOut: []string{"00006_user_external_ids.sql", "00007_backfill_user_external_ids.go"}},
+		{name: "up", start: 5, command: "up", wantVersion: 8, wantOut: []string{"00006_user_external_ids.sql", "00007_backfill_user_external_ids.go", "00008_drop_users_external_id.sql"}},
 		{name: "up-by-one", start: 5, command: "up-by-one", wantVersion: 6, wantOut: []string{"00006_user_external_ids.sql"}},
 		{name: "up-to", start: 3, command: "up-to", args: []string{"5"}, wantVersion: 5, wantOut: []string{"00004_group_metadata.sql", "00005_extension_resource_annotations.sql"}},
 		{name: "up-to without version", start: 3, command: "up-to", wantErr: ErrMigrateVersionRequired, wantVersion: 3},
@@ -286,7 +286,7 @@ func TestRestoreWithMigration(t *testing.T) {
 	}{
 		{
 			name:        "restored users are backfilled",
-			wantVersion: psqlmigrations.BackfillVersion,
+			wantVersion: 8,
 			wantRows:    1,
 		},
 		{

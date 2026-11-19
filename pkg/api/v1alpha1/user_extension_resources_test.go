@@ -54,10 +54,10 @@ func (s *UserExtensionResourceTestSuite) seedTestDB() error {
 		`,
 
 		// test users
-		`INSERT INTO "users" ("id", "external_id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
-		('00000003-0000-0000-0000-000000000001', NULL, 'Harold Admin', 'hadmin@email.com', 0, NULL, NULL, '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL, NULL, NULL, 'active');`,
-		`INSERT INTO "users" ("id", "external_id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
-		('00000003-0000-0000-0000-000000000002', NULL, 'John User', 'juser@email.com', 0, NULL, NULL, '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL, NULL, NULL, 'active');`,
+		`INSERT INTO "users" ("id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
+		('00000003-0000-0000-0000-000000000001', 'Harold Admin', 'hadmin@email.com', 0, NULL, NULL, '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL, NULL, NULL, 'active');`,
+		`INSERT INTO "users" ("id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
+		('00000003-0000-0000-0000-000000000002', 'John User', 'juser@email.com', 0, NULL, NULL, '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL, NULL, NULL, 'active');`,
 
 		// test extension resources each of these resource should be associated with the user above
 		// harold admin's resources

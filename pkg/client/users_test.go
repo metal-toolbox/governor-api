@@ -6,9 +6,11 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/aarondl/null/v8"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 
+	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	"github.com/metal-toolbox/governor-api/pkg/api/v1alpha1"
 	"github.com/metal-toolbox/governor-api/pkg/api/v1beta1"
 )
@@ -277,9 +279,9 @@ func TestClient_CreateUser(t *testing.T) {
 				},
 			},
 			req: &v1alpha1.UserReq{
-				ExternalID: "000001",
-				Name:       "John Trumbull",
-				Email:      "jtrumbull@ct.gov",
+				ExternalIDs: &[]dbtools.ExternalIDPair{{Iss: "https://sso.example.com/oauth2/default", ID: "000016"}},
+				Name:        "John Trumbull",
+				Email:       "jtrumbull@ct.gov",
 			},
 			want: testResp(testUserResponse),
 		},
@@ -549,4 +551,15 @@ func TestClient_UpdateUser(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func TestUserResponseExternalIDs(t *testing.T) {
+	var u v1alpha1.User
+	assert.NoError(t, json.Unmarshal(testUserResponse, &u))
+
+	assert.Equal(t, []dbtools.ExternalIDPair{
+		{Iss: "https://sso.example.com/oauth2/default", ID: "000016"},
+		{Iss: "https://auth.pingone.example.com/as", ID: "ping-000016"},
+	}, u.ExternalIDs)
+	assert.Equal(t, null.StringFrom("000016"), u.ExternalID)
 }

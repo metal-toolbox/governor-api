@@ -26,7 +26,6 @@ import (
 // User is an object representing the database table.
 type User struct {
 	ID             string      `boil:"id" json:"id" toml:"id" yaml:"id"`
-	ExternalID     null.String `boil:"external_id" json:"external_id,omitempty" toml:"external_id" yaml:"external_id,omitempty"`
 	Name           string      `boil:"name" json:"name" toml:"name" yaml:"name"`
 	Email          string      `boil:"email" json:"email" toml:"email" yaml:"email"`
 	LoginCount     int64       `boil:"login_count" json:"login_count" toml:"login_count" yaml:"login_count"`
@@ -46,7 +45,6 @@ type User struct {
 
 var UserColumns = struct {
 	ID             string
-	ExternalID     string
 	Name           string
 	Email          string
 	LoginCount     string
@@ -61,7 +59,6 @@ var UserColumns = struct {
 	Metadata       string
 }{
 	ID:             "id",
-	ExternalID:     "external_id",
 	Name:           "name",
 	Email:          "email",
 	LoginCount:     "login_count",
@@ -78,7 +75,6 @@ var UserColumns = struct {
 
 var UserTableColumns = struct {
 	ID             string
-	ExternalID     string
 	Name           string
 	Email          string
 	LoginCount     string
@@ -93,7 +89,6 @@ var UserTableColumns = struct {
 	Metadata       string
 }{
 	ID:             "users.id",
-	ExternalID:     "users.external_id",
 	Name:           "users.name",
 	Email:          "users.email",
 	LoginCount:     "users.login_count",
@@ -150,7 +145,6 @@ func (w whereHelpernull_Int64) IsNotNull() qm.QueryMod { return qmhelper.WhereIs
 
 var UserWhere = struct {
 	ID             whereHelperstring
-	ExternalID     whereHelpernull_String
 	Name           whereHelperstring
 	Email          whereHelperstring
 	LoginCount     whereHelperint64
@@ -165,7 +159,6 @@ var UserWhere = struct {
 	Metadata       whereHelpertypes_JSON
 }{
 	ID:             whereHelperstring{field: "\"users\".\"id\""},
-	ExternalID:     whereHelpernull_String{field: "\"users\".\"external_id\""},
 	Name:           whereHelperstring{field: "\"users\".\"name\""},
 	Email:          whereHelperstring{field: "\"users\".\"email\""},
 	LoginCount:     whereHelperint64{field: "\"users\".\"login_count\""},
@@ -350,9 +343,9 @@ func (r *userR) GetUserExternalIds() UserExternalIDSlice {
 type userL struct{}
 
 var (
-	userAllColumns            = []string{"id", "external_id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status", "metadata"}
+	userAllColumns            = []string{"id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status", "metadata"}
 	userColumnsWithoutDefault = []string{"name", "email", "created_at", "updated_at"}
-	userColumnsWithDefault    = []string{"id", "external_id", "login_count", "avatar_url", "last_login_at", "github_id", "github_username", "deleted_at", "status", "metadata"}
+	userColumnsWithDefault    = []string{"id", "login_count", "avatar_url", "last_login_at", "github_id", "github_username", "deleted_at", "status", "metadata"}
 	userPrimaryKeyColumns     = []string{"id"}
 	userGeneratedColumns      = []string{}
 )

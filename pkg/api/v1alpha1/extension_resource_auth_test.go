@@ -54,14 +54,14 @@ func (s *ExtensionResourcesGroupAuthTestSuite) seedTestDB() error {
 		VALUES ('00000002-0000-0000-0000-000000000004', 'Other Group', 'other-group', 'other-group', 'some note', now(), now());`,
 
 		// test users
-		`INSERT INTO "users" ("id", "external_id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
-		('00000003-0000-0000-0000-000000000001', NULL, 'Harold Admin', 'hadmin@email.com', 0, NULL, NULL, now(), now(), NULL, NULL, NULL, 'active');`,
-		`INSERT INTO "users" ("id", "external_id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
-		('00000003-0000-0000-0000-000000000002', NULL, 'John User', 'juser@email.com', 0, NULL, NULL, now(), now(), NULL, NULL, NULL, 'active');`,
-		`INSERT INTO "users" ("id", "external_id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
-		('00000003-0000-0000-0000-000000000003', NULL, 'Alice Owner', 'aowner@email.com', 0, NULL, NULL, now(), now(), NULL, NULL, NULL, 'active');`,
-		`INSERT INTO "users" ("id", "external_id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
-		('00000003-0000-0000-0000-000000000004', NULL, 'Bob Regular', 'bregular@email.com', 0, NULL, NULL, now(), now(), NULL, NULL, NULL, 'active');`,
+		`INSERT INTO "users" ("id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
+		('00000003-0000-0000-0000-000000000001', 'Harold Admin', 'hadmin@email.com', 0, NULL, NULL, now(), now(), NULL, NULL, NULL, 'active');`,
+		`INSERT INTO "users" ("id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
+		('00000003-0000-0000-0000-000000000002', 'John User', 'juser@email.com', 0, NULL, NULL, now(), now(), NULL, NULL, NULL, 'active');`,
+		`INSERT INTO "users" ("id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
+		('00000003-0000-0000-0000-000000000003', 'Alice Owner', 'aowner@email.com', 0, NULL, NULL, now(), now(), NULL, NULL, NULL, 'active');`,
+		`INSERT INTO "users" ("id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
+		('00000003-0000-0000-0000-000000000004', 'Bob Regular', 'bregular@email.com', 0, NULL, NULL, now(), now(), NULL, NULL, NULL, 'active');`,
 
 		// group members
 		// 		harold-admin -> governor-admin

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/aarondl/null/v8"
 	"github.com/aarondl/sqlboiler/v4/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -204,6 +205,230 @@ func (s *ExternalIDsTestSuite) TestAuditUserExternalIDAdded() {
 	s.Equal(extIDUser2, stored.ActorID.String)
 	s.Equal("10000002-0000-0000-0000-000000000001", stored.ParentID.String)
 	s.Equal(types.StringArray{"iss: " + testIdentityIssuer, "external_id: sub-two"}, stored.Changeset)
+}
+
+func (s *ExternalIDsTestSuite) TestAuditUserExternalIDRemoved() {
+	ctx := context.Background()
+
+	user, err := models.FindUser(ctx, s.db, extIDUser1)
+	s.Require().NoError(err)
+
+	actor, err := models.FindUser(ctx, s.db, extIDUser2)
+	s.Require().NoError(err)
+
+	event, err := AuditUserExternalIDRemoved(ctx, s.db, "10000002-0000-0000-0000-000000000002", actor, user,
+		ExternalIDPair{Iss: testIdentityIssuer, ID: "sub-one"})
+	s.Require().NoError(err)
+
+	stored, err := models.FindAuditEvent(ctx, s.db, event.ID)
+	s.Require().NoError(err)
+
+	s.Equal(
+		[]string{"user.external_id.removed", extIDUser1, extIDUser2, "10000002-0000-0000-0000-000000000002"},
+		[]string{stored.Action, stored.SubjectUserID.String, stored.ActorID.String, stored.ParentID.String},
+	)
+	s.Equal(types.StringArray{"iss: " + testIdentityIssuer, "external_id: sub-one"}, stored.Changeset)
+}
+
+// storedExternalIDs returns every user_external_ids row, keyed by user ID.
+func (s *ExternalIDsTestSuite) storedExternalIDs() map[string][]ExternalIDPair {
+	s.T().Helper()
+
+	rows, err := s.db.Query(`SELECT user_id, iss, external_id FROM user_external_ids ORDER BY user_id, iss`)
+	s.Require().NoError(err)
+
+	defer rows.Close()
+
+	got := map[string][]ExternalIDPair{}
+
+	for rows.Next() {
+		var (
+			userID string
+			p      ExternalIDPair
+		)
+
+		s.Require().NoError(rows.Scan(&userID, &p.Iss, &p.ID))
+
+		got[userID] = append(got[userID], p)
+	}
+
+	s.Require().NoError(rows.Err())
+
+	return got
+}
+
+func (s *ExternalIDsTestSuite) TestReplaceUserExternalIDs() {
+	tests := []struct {
+		name        string
+		ids         []ExternalIDPair
+		wantAdded   []ExternalIDPair
+		wantRemoved []ExternalIDPair
+		wantStored  map[string][]ExternalIDPair
+	}{
+		{
+			name:        "same set changes nothing",
+			ids:         []ExternalIDPair{{Iss: testIdentityIssuer, ID: "sub-one"}},
+			wantAdded:   []ExternalIDPair{},
+			wantRemoved: []ExternalIDPair{},
+			wantStored: map[string][]ExternalIDPair{
+				extIDUser1:   {{Iss: testIdentityIssuer, ID: "sub-one"}},
+				extIDDeleted: {{Iss: testIdentityIssuer, ID: "sub-deleted"}},
+			},
+		},
+		{
+			name:        "second issuer is added",
+			ids:         []ExternalIDPair{{Iss: testIdentityIssuer, ID: "sub-one"}, {Iss: extIDIssuerB, ID: "sub-one-b"}},
+			wantAdded:   []ExternalIDPair{{Iss: extIDIssuerB, ID: "sub-one-b"}},
+			wantRemoved: []ExternalIDPair{},
+			wantStored: map[string][]ExternalIDPair{
+				extIDUser1:   {{Iss: testIdentityIssuer, ID: "sub-one"}, {Iss: extIDIssuerB, ID: "sub-one-b"}},
+				extIDDeleted: {{Iss: testIdentityIssuer, ID: "sub-deleted"}},
+			},
+		},
+		{
+			name:        "new id for the same issuer replaces the old one",
+			ids:         []ExternalIDPair{{Iss: testIdentityIssuer, ID: "sub-one-new"}},
+			wantAdded:   []ExternalIDPair{{Iss: testIdentityIssuer, ID: "sub-one-new"}},
+			wantRemoved: []ExternalIDPair{{Iss: testIdentityIssuer, ID: "sub-one"}},
+			wantStored: map[string][]ExternalIDPair{
+				extIDUser1:   {{Iss: testIdentityIssuer, ID: "sub-one-new"}},
+				extIDDeleted: {{Iss: testIdentityIssuer, ID: "sub-deleted"}},
+			},
+		},
+		{
+			name:        "empty set removes all",
+			ids:         []ExternalIDPair{},
+			wantAdded:   []ExternalIDPair{},
+			wantRemoved: []ExternalIDPair{{Iss: testIdentityIssuer, ID: "sub-one"}},
+			wantStored: map[string][]ExternalIDPair{
+				extIDDeleted: {{Iss: testIdentityIssuer, ID: "sub-deleted"}},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			s.SetupTest()
+
+			added, removed, err := ReplaceUserExternalIDs(context.Background(), s.db, extIDUser1, tt.ids)
+			s.Require().NoError(err)
+			s.Equal(tt.wantAdded, added)
+			s.Equal(tt.wantRemoved, removed)
+			s.Equal(tt.wantStored, s.storedExternalIDs())
+		})
+	}
+}
+
+func (s *ExternalIDsTestSuite) TestReplaceUserExternalIDsConflict() {
+	tx, err := s.db.BeginTx(context.Background(), nil)
+	s.Require().NoError(err)
+
+	defer func() { _ = tx.Rollback() }()
+
+	_, _, err = ReplaceUserExternalIDs(context.Background(), tx, extIDUser2,
+		[]ExternalIDPair{{Iss: testIdentityIssuer, ID: "sub-one"}})
+	s.ErrorIs(err, ErrExternalIDConflict)
+}
+
+func (s *ExternalIDsTestSuite) TestDeleteUserExternalIDs() {
+	s.Require().NoError(DeleteUserExternalIDs(context.Background(), s.db, extIDUser1))
+
+	s.Equal(map[string][]ExternalIDPair{
+		extIDDeleted: {{Iss: testIdentityIssuer, ID: "sub-deleted"}},
+	}, s.storedExternalIDs())
+}
+
+func (s *ExternalIDsTestSuite) TestListUserExternalIDs() {
+	_, err := s.db.Exec(`INSERT INTO user_external_ids (user_id, iss, external_id) VALUES ($1, $2, 'sub-one-b')`,
+		extIDUser1, extIDIssuerB)
+	s.Require().NoError(err)
+
+	tests := []struct {
+		name    string
+		userIDs []string
+		want    map[string][]ExternalIDPair
+	}{
+		{
+			name:    "no users",
+			userIDs: nil,
+			want:    map[string][]ExternalIDPair{},
+		},
+		{
+			name:    "users with and without records",
+			userIDs: []string{extIDUser1, extIDUser2},
+			want: map[string][]ExternalIDPair{
+				extIDUser1: {{Iss: testIdentityIssuer, ID: "sub-one"}, {Iss: extIDIssuerB, ID: "sub-one-b"}},
+				extIDUser2: {},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			got, err := ListUserExternalIDs(context.Background(), s.db, tt.userIDs)
+			s.Require().NoError(err)
+			s.Equal(tt.want, got)
+		})
+	}
+}
+
+func (s *ExternalIDsTestSuite) TestWhereUserHasExternalID() {
+	tests := []struct {
+		name        string
+		externalIDs []string
+		want        []string
+	}{
+		{
+			name:        "one external id",
+			externalIDs: []string{"sub-one"},
+			want:        []string{extIDUser1},
+		},
+		{
+			name:        "external id of a deleted user",
+			externalIDs: []string{"sub-deleted"},
+			want:        []string{},
+		},
+		{
+			name:        "several external ids",
+			externalIDs: []string{"sub-one", "sub-unknown"},
+			want:        []string{extIDUser1},
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			users, err := models.Users(WhereUserHasExternalID(tt.externalIDs)).All(context.Background(), s.db)
+			s.Require().NoError(err)
+
+			got := []string{}
+			for _, u := range users {
+				got = append(got, u.ID)
+			}
+
+			s.Equal(tt.want, got)
+		})
+	}
+}
+
+func TestPrimaryExternalID(t *testing.T) {
+	pairs := []ExternalIDPair{{Iss: extIDIssuerB, ID: "sub-b"}, {Iss: testIdentityIssuer, ID: "sub-a"}}
+
+	tests := []struct {
+		name    string
+		pairs   []ExternalIDPair
+		primary string
+		want    null.String
+	}{
+		{name: "record of the primary issuer", pairs: pairs, primary: testIdentityIssuer, want: null.StringFrom("sub-a")},
+		{name: "no record of the primary issuer", pairs: pairs[:1], primary: testIdentityIssuer, want: null.String{}},
+		{name: "no primary issuer", pairs: pairs, primary: "", want: null.String{}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, PrimaryExternalID(tt.pairs, tt.primary))
+		})
+	}
 }
 
 func TestExternalIDsSuite(t *testing.T) {

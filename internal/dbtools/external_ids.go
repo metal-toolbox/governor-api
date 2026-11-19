@@ -7,9 +7,11 @@ import (
 	"github.com/aarondl/null/v8"
 	"github.com/aarondl/sqlboiler/v4/boil"
 	"github.com/aarondl/sqlboiler/v4/queries/qm"
+	"github.com/aarondl/sqlboiler/v4/types"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 
 	models "github.com/metal-toolbox/governor-api/internal/models/psql"
 )
@@ -78,6 +80,20 @@ func AuditUserExternalIDAdded(ctx context.Context, exec boil.ContextExecutor, pI
 	ctx, span := tracer.Start(ctx, "AuditUserExternalIDAdded")
 	defer span.End()
 
+	return auditUserExternalID(ctx, span, exec, "user.external_id.added", pID, actor, u, p)
+}
+
+// AuditUserExternalIDRemoved inserts an audit event for an identity removed from the user u.
+func AuditUserExternalIDRemoved(ctx context.Context, exec boil.ContextExecutor, pID string, actor, u *models.User, p ExternalIDPair) (*models.AuditEvent, error) {
+	ctx, span := tracer.Start(ctx, "AuditUserExternalIDRemoved")
+	defer span.End()
+
+	return auditUserExternalID(ctx, span, exec, "user.external_id.removed", pID, actor, u, p)
+}
+
+func auditUserExternalID(
+	ctx context.Context, span trace.Span, exec boil.ContextExecutor, action, pID string, actor, u *models.User, p ExternalIDPair,
+) (*models.AuditEvent, error) {
 	var actorID null.String
 	if actor != nil {
 		actorID = null.StringFrom(actor.ID)
@@ -87,7 +103,7 @@ func AuditUserExternalIDAdded(ctx context.Context, exec boil.ContextExecutor, pI
 		ParentID:      null.StringFrom(pID),
 		ActorID:       actorID,
 		SubjectUserID: null.StringFrom(u.ID),
-		Action:        "user.external_id.added",
+		Action:        action,
 		Changeset:     []string{"iss: " + p.Iss, "external_id: " + p.ID},
 	}
 
@@ -97,4 +113,141 @@ func AuditUserExternalIDAdded(ctx context.Context, exec boil.ContextExecutor, pI
 	}
 
 	return &event, nil
+}
+
+// ReplaceUserExternalIDs makes ids the full set of identities of the user
+// userID. It deletes the records that are not in ids, then inserts the new
+// ones, and returns both, so the caller can audit them. Both are empty when
+// ids equals the stored set. It returns an error matching
+// ErrExternalIDConflict when an identity in ids belongs to another user.
+// Run it in a transaction: an error leaves part of the change written.
+func ReplaceUserExternalIDs(
+	ctx context.Context, exec boil.ContextExecutor, userID string, ids []ExternalIDPair,
+) (added, removed []ExternalIDPair, err error) {
+	ctx, span := tracer.Start(ctx, "ReplaceUserExternalIDs")
+	defer span.End()
+
+	current, err := models.UserExternalIds(
+		models.UserExternalIDWhere.UserID.EQ(userID),
+		qm.OrderBy(models.UserExternalIDColumns.Iss),
+	).All(ctx, exec)
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		return nil, nil, err
+	}
+
+	want := make(map[ExternalIDPair]struct{}, len(ids))
+	for _, p := range ids {
+		want[p] = struct{}{}
+	}
+
+	have := make(map[ExternalIDPair]struct{}, len(current))
+	removed = []ExternalIDPair{}
+
+	for _, rec := range current {
+		p := ExternalIDPair{Iss: rec.Iss, ID: rec.ExternalID}
+		have[p] = struct{}{}
+
+		if _, ok := want[p]; ok {
+			continue
+		}
+
+		if _, err := rec.Delete(ctx, exec); err != nil {
+			span.SetStatus(codes.Error, err.Error())
+			return nil, nil, err
+		}
+
+		removed = append(removed, p)
+	}
+
+	added = []ExternalIDPair{}
+
+	for _, p := range ids {
+		if _, ok := have[p]; ok {
+			continue
+		}
+
+		if _, err := AddUserExternalID(ctx, exec, userID, p.Iss, p.ID); err != nil {
+			span.SetStatus(codes.Error, err.Error())
+			return nil, nil, err
+		}
+
+		added = append(added, p)
+	}
+
+	return added, removed, nil
+}
+
+// DeleteUserExternalIDs deletes every identity of the user userID.
+func DeleteUserExternalIDs(ctx context.Context, exec boil.ContextExecutor, userID string) error {
+	ctx, span := tracer.Start(ctx, "DeleteUserExternalIDs")
+	defer span.End()
+
+	if _, err := models.UserExternalIds(models.UserExternalIDWhere.UserID.EQ(userID)).DeleteAll(ctx, exec); err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		return err
+	}
+
+	return nil
+}
+
+// ListUserExternalIDs returns the identities of the users userIDs, ordered by
+// issuer, in one query. The map has an entry, possibly empty, for every ID in
+// userIDs.
+func ListUserExternalIDs(ctx context.Context, exec boil.ContextExecutor, userIDs []string) (map[string][]ExternalIDPair, error) {
+	ctx, span := tracer.Start(ctx, "ListUserExternalIDs")
+	defer span.End()
+
+	span.SetAttributes(attribute.Int("users", len(userIDs)))
+
+	out := make(map[string][]ExternalIDPair, len(userIDs))
+	if len(userIDs) == 0 {
+		return out, nil
+	}
+
+	for _, id := range userIDs {
+		out[id] = []ExternalIDPair{}
+	}
+
+	recs, err := models.UserExternalIds(
+		qm.Where(models.UserExternalIDColumns.UserID+" = ANY(?::uuid[])", types.StringArray(userIDs)),
+		qm.OrderBy(models.UserExternalIDColumns.UserID+", "+models.UserExternalIDColumns.Iss),
+	).All(ctx, exec)
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
+	}
+
+	for _, rec := range recs {
+		out[rec.UserID] = append(out[rec.UserID], ExternalIDPair{Iss: rec.Iss, ID: rec.ExternalID})
+	}
+
+	return out, nil
+}
+
+// WhereUserHasExternalID selects the users that have any of externalIDs at
+// any issuer.
+func WhereUserHasExternalID(externalIDs []string) qm.QueryMod {
+	return qm.Where(
+		"EXISTS (SELECT 1 FROM "+models.TableNames.UserExternalIds+" uei WHERE uei.user_id = "+
+			models.TableNames.Users+".id AND uei.external_id = ANY(?::text[]))",
+		types.StringArray(externalIDs),
+	)
+}
+
+// PrimaryExternalID returns the external ID in pairs of the primary identity
+// issuer primaryIss, for the deprecated external_id API field. It is null
+// when there is no primary issuer or pairs has no record for it.
+func PrimaryExternalID(pairs []ExternalIDPair, primaryIss string) null.String {
+	if primaryIss == "" {
+		return null.String{}
+	}
+
+	for _, p := range pairs {
+		if p.Iss == primaryIss {
+			return null.StringFrom(p.ID)
+		}
+	}
+
+	return null.String{}
 }

@@ -61,6 +61,7 @@ var (
     {
         "id": "9fd9408e-08a7-4572-b694-0541fdb80574",
         "external_id": "000089",
+        "external_ids": [{"iss": "https://sso.example.com/oauth2/default", "id": "000089"}],
         "name": "Ned Lamont",
         "email": "nlamont@ct.gov",
         "login_count": 2,
@@ -107,6 +108,7 @@ var (
 		{
 			"id": "9fd9408e-08a7-4572-b694-0541fdb80574",
 			"external_id": "000089",
+			"external_ids": [{"iss": "https://sso.example.com/oauth2/default", "id": "000089"}],
 			"name": "Ned Lamont",
 			"email": "nlamont@ct.gov",
 			"login_count": 2,
@@ -157,6 +159,10 @@ var (
 {
 	"id": "18d4f247-cb23-47fc-9c84-e624294027ec",
 	"external_id": "000016",
+	"external_ids": [
+		{"iss": "https://sso.example.com/oauth2/default", "id": "000016"},
+		{"iss": "https://auth.pingone.example.com/as", "id": "ping-000016"}
+	],
 	"name": "John Trumbull",
 	"email": "jtrumbull@ct.gov",
 	"login_count": 27,

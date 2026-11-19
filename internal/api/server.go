@@ -58,28 +58,32 @@ type Server struct {
 func (s *Server) setupRoutes(router *gin.Engine) {
 	s.Conf.Logger.Sugar().Info("Setting up routes")
 
+	primaryIssuer, _ := configs.PrimaryIdentityIssuer(s.Conf.AuthConf)
+
 	v1alphaRtr := v1alpha.Router{
-		AdminGroups:    s.Conf.AdminGroups,
-		AuthMW:         s.AuthMW,
-		AuditMW:        s.aumdw,
-		AuthConf:       s.Conf.AuthConf,
-		Logger:         s.Conf.Logger,
-		DB:             s.DB,
-		EventBus:       s.EventBus,
-		UserResolution: s.userResolution,
+		AdminGroups:           s.Conf.AdminGroups,
+		AuthMW:                s.AuthMW,
+		AuditMW:               s.aumdw,
+		AuthConf:              s.Conf.AuthConf,
+		Logger:                s.Conf.Logger,
+		DB:                    s.DB,
+		EventBus:              s.EventBus,
+		PrimaryIdentityIssuer: primaryIssuer,
+		UserResolution:        s.userResolution,
 	}
 
 	v1alpha1 := router.Group("/api/v1alpha1")
 	v1alphaRtr.Routes(v1alpha1)
 
 	v1betaRtr := v1beta.Router{
-		AdminGroups: s.Conf.AdminGroups,
-		AuthMW:      s.AuthMW,
-		AuditMW:     s.aumdw,
-		AuthConf:    s.Conf.AuthConf,
-		Logger:      s.Conf.Logger,
-		DB:          s.DB,
-		EventBus:    s.EventBus,
+		AdminGroups:           s.Conf.AdminGroups,
+		AuthMW:                s.AuthMW,
+		AuditMW:               s.aumdw,
+		AuthConf:              s.Conf.AuthConf,
+		Logger:                s.Conf.Logger,
+		DB:                    s.DB,
+		EventBus:              s.EventBus,
+		PrimaryIdentityIssuer: primaryIssuer,
 	}
 
 	v1beta1 := router.Group("/api/v1beta1")

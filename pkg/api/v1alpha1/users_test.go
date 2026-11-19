@@ -47,7 +47,7 @@ func (s *UserTestSuite) seedTestDB() error {
 	}
 
 	for _, q := range testData {
-		_, err := s.db.Query(q)
+		_, err := s.db.Exec(q)
 		if err != nil {
 			return err
 		}

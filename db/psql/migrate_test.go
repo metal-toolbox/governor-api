@@ -46,5 +46,6 @@ func TestNewProviderSources(t *testing.T) {
 		{Version: 5, Type: goose.TypeSQL, Path: "00005_extension_resource_annotations.sql"},
 		{Version: 6, Type: goose.TypeSQL, Path: "00006_user_external_ids.sql"},
 		{Version: 7, Type: goose.TypeGo, Path: "00007_backfill_user_external_ids.go"},
+		{Version: 8, Type: goose.TypeSQL, Path: "00008_drop_users_external_id.sql"},
 	}, got)
 }
