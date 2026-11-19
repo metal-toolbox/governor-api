@@ -30,12 +30,9 @@ type Router struct {
 	AuditLogWriter io.Writer
 	AuditMW        *ginaudit.Middleware
 	AuthMW         *ginauth.MultiTokenMiddleware
-	// AuthConf is the list of oidc providers. Set it with SetAuthConf, which
-	// also builds the issuer lookup that user resolution reads.
-	AuthConf configs.AuthConfigs
-	DB       *sqlx.DB
-	EventBus *eventbus.Client
-	Logger   *zap.Logger
+	DB             *sqlx.DB
+	EventBus       *eventbus.Client
+	Logger         *zap.Logger
 	// PrimaryIdentityIssuer is the issuer of the first oidc provider with
 	// identity.enabled, or "" when there is none. The deprecated external_id
 	// field of a user is the user's identity at this issuer.
@@ -43,14 +40,21 @@ type Router struct {
 	// UserResolution records how signed-in users are resolved. nil records nothing.
 	UserResolution *metrics.UserResolution
 
-	// authByIssuer is AuthConf keyed by issuer, built by SetAuthConf.
+	// authConf and authByIssuer, the same providers keyed by issuer, are set
+	// together by SetAuthConf only, so they always agree.
+	authConf     configs.AuthConfigs
 	authByIssuer map[string]configs.Auth
 }
 
-// SetAuthConf sets AuthConf to auths and builds the issuer lookup from it.
+// SetAuthConf sets the oidc providers and builds their issuer lookup.
 func (r *Router) SetAuthConf(auths configs.AuthConfigs) {
-	r.AuthConf = auths
+	r.authConf = auths
 	r.authByIssuer = auths.ByIssuer()
+}
+
+// AuthConf returns the oidc providers set by SetAuthConf.
+func (r *Router) AuthConf() configs.AuthConfigs {
+	return r.authConf
 }
 
 // Routes sets up protected routes and sets the scopes for said routes

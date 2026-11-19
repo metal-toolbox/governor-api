@@ -131,3 +131,19 @@ func TestRoutersPrimaryIdentityIssuer(t *testing.T) {
 		})
 	}
 }
+
+func TestRoutersAuthConf(t *testing.T) {
+	auths := configs.AuthConfigs{
+		{AuthConfig: ginjwt.AuthConfig{Enabled: true, Issuer: "https://okta.example.com"}, Identity: configs.IdentityConfig{Enabled: true}},
+		{AuthConfig: ginjwt.AuthConfig{Enabled: true, Issuer: "https://hydra.example.com"}},
+	}
+
+	s := &Server{Conf: &Conf{AuthConf: auths}}
+
+	alpha, beta := s.routers()
+
+	// The v1alpha1 providers can only be set through SetAuthConf, which also
+	// builds the issuer lookup of user resolution.
+	assert.Equal(t, auths, alpha.AuthConf())
+	assert.Equal(t, auths, beta.AuthConf)
+}

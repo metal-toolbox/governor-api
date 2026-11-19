@@ -34,7 +34,7 @@ func TestRouterAuthConfigFor(t *testing.T) {
 			got, ok := r.authConfigFor(tt.iss)
 			assert.Equal(t, tt.want, got)
 			assert.Equal(t, tt.wantOK, ok)
-			assert.Equal(t, configs.AuthConfigs{okta, oktaCLI}, r.AuthConf)
+			assert.Equal(t, configs.AuthConfigs{okta, oktaCLI}, r.AuthConf())
 		})
 	}
 }

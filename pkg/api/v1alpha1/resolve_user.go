@@ -279,7 +279,7 @@ func (r *Router) verifiedUserInfo(ctx context.Context, c *gin.Context, sub strin
 	infoCtx, cancel := context.WithTimeout(ctx, userInfoTimeout)
 	defer cancel()
 
-	userInfo, err := auth.UserInfoFromJWT(infoCtx, authzHeader[expectedAuthzHeaderParts-1], r.AuthConf)
+	userInfo, err := auth.UserInfoFromJWT(infoCtx, authzHeader[expectedAuthzHeaderParts-1], r.authConf)
 	if err != nil {
 		r.Logger.Debug("error retrieving userinfo", zap.Error(err))
 		sendError(c, http.StatusBadRequest, "error retrieving userinfo")

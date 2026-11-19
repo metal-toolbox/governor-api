@@ -46,7 +46,7 @@ func (r *Router) requestedExternalIDs(req *UserReq) (pairs []dbtools.ExternalID,
 		return nil, false, nil
 	}
 
-	if err := validateExternalIDs(pairs, r.AuthConf.Issuers()); err != nil {
+	if err := validateExternalIDs(pairs, r.authConf.Issuers()); err != nil {
 		return nil, false, err
 	}
 
@@ -59,7 +59,7 @@ func (r *Router) requestedExternalIDs(req *UserReq) (pairs []dbtools.ExternalID,
 // sign in, so it cannot be added or changed, but an unchanged one may be sent
 // back so that a full-set update keeps it.
 func (r *Router) checkIdentityIssuers(pairs, current []dbtools.ExternalID) error {
-	identityIssuers := r.AuthConf.IdentityIssuers()
+	identityIssuers := r.authConf.IdentityIssuers()
 
 	for _, p := range pairs {
 		if slices.Contains(identityIssuers, p.Iss) || slices.Contains(current, p) {
@@ -75,7 +75,7 @@ func (r *Router) checkIdentityIssuers(pairs, current []dbtools.ExternalID) error
 // allConfiguredIssuers reports whether every issuer in issuers is the issuer
 // of a configured oidc provider.
 func (r *Router) allConfiguredIssuers(issuers []string) bool {
-	configured := r.AuthConf.Issuers()
+	configured := r.authConf.Issuers()
 
 	for _, iss := range issuers {
 		if !slices.Contains(configured, iss) {
