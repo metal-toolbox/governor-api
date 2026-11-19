@@ -13,6 +13,7 @@ import (
 	"github.com/metal-toolbox/hollow-toolbox/ginjwt"
 
 	"github.com/metal-toolbox/governor-api/internal/eventbus"
+	"github.com/metal-toolbox/governor-api/internal/metrics"
 	"github.com/metal-toolbox/governor-api/pkg/configs"
 )
 
@@ -33,6 +34,8 @@ type Router struct {
 	DB             *sqlx.DB
 	EventBus       *eventbus.Client
 	Logger         *zap.Logger
+	// UserResolution records how signed-in users are resolved. nil records nothing.
+	UserResolution *metrics.UserResolution
 }
 
 // Routes sets up protected routes and sets the scopes for said routes

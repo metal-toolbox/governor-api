@@ -75,7 +75,7 @@ func TestMostSpecificScope(t *testing.T) {
 }
 
 func TestVerifier_VerifyTokenWithScopes(t *testing.T) {
-	claims := ginauth.ClaimMetadata{Subject: "wl-principal", User: "wl-user", Roles: []string{"role"}}
+	claims := ginauth.ClaimMetadata{Subject: "wl-principal", User: "wl-user", Issuer: "https://idp.example.com", Roles: []string{"role"}}
 	scopes := []string{"write", "create", "create:governor:users", oidcScope}
 
 	t.Run("jwt failure returns error and skips the decider", func(t *testing.T) {
@@ -103,6 +103,7 @@ func TestVerifier_VerifyTokenWithScopes(t *testing.T) {
 		assert.Equal(t, "wl-principal", c.GetString(contextKeySubject))
 		assert.Equal(t, "wl-user", c.GetString(contextKeyUser))
 		assert.Equal(t, []string{"role"}, c.GetStringSlice(contextKeyRoles))
+		assert.Equal(t, "https://idp.example.com", c.GetString(contextKeyIssuer))
 	})
 
 	t.Run("deny returns authorization error", func(t *testing.T) {
@@ -118,6 +119,7 @@ func TestVerifier_VerifyTokenWithScopes(t *testing.T) {
 
 		// context must not be populated on denial
 		assert.Empty(t, c.GetString(contextKeySubject))
+		assert.Empty(t, c.GetString(contextKeyIssuer))
 	})
 
 	t.Run("decider error is propagated", func(t *testing.T) {
@@ -134,7 +136,7 @@ func TestVerifier_SetMetadata(t *testing.T) {
 	// never roles, so a failed verifier cannot clobber a sibling's identity on
 	// the shared gin.Context.
 	t.Run("non-empty claims set subject and user but not roles", func(t *testing.T) {
-		claims := ginauth.ClaimMetadata{Subject: "s", User: "u", Roles: []string{"r"}}
+		claims := ginauth.ClaimMetadata{Subject: "s", User: "u", Issuer: "https://other.example.com", Roles: []string{"r"}}
 		v := NewVerifier(stubVerifier{}, &stubDecider{})
 		c := newTestContext()
 
@@ -143,6 +145,7 @@ func TestVerifier_SetMetadata(t *testing.T) {
 		assert.Equal(t, "s", c.GetString(contextKeySubject))
 		assert.Equal(t, "u", c.GetString(contextKeyUser))
 		assert.Empty(t, c.GetStringSlice(contextKeyRoles))
+		assert.Empty(t, c.GetString(contextKeyIssuer))
 	})
 
 	t.Run("empty claims do not clobber existing context", func(t *testing.T) {
@@ -151,11 +154,13 @@ func TestVerifier_SetMetadata(t *testing.T) {
 		c.Set(contextKeySubject, "winner-sub")
 		c.Set(contextKeyUser, "winner-user")
 		c.Set(contextKeyRoles, []string{"openid"})
+		c.Set(contextKeyIssuer, "https://winner.example.com")
 
-		v.SetMetadata(c, ginauth.ClaimMetadata{})
+		v.SetMetadata(c, ginauth.ClaimMetadata{Issuer: "https://loser.example.com"})
 
 		assert.Equal(t, "winner-sub", c.GetString(contextKeySubject))
 		assert.Equal(t, "winner-user", c.GetString(contextKeyUser))
 		assert.Equal(t, []string{"openid"}, c.GetStringSlice(contextKeyRoles))
+		assert.Equal(t, "https://winner.example.com", c.GetString(contextKeyIssuer))
 	})
 }

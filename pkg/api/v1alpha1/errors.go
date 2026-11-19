@@ -34,6 +34,10 @@ var (
 	ErrBadRequest = errors.New("bad request")
 	// ErrRemoveActiveRecord is returned when trying to remove an active record
 	ErrRemoveActiveRecord = fmt.Errorf("%w: cannot remove active record", ErrBadRequest)
+
+	// errEmailExists is returned when a first sign-in would register a user
+	// whose email belongs to an existing user.
+	errEmailExists = errors.New("a user with this email exists")
 )
 
 func sendError(c *gin.Context, code int, msg string) {
