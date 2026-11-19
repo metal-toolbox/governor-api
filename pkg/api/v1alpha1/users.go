@@ -251,6 +251,10 @@ func (r *Router) createUser(c *gin.Context) {
 	}
 
 	externalIDs, _, err := r.requestedExternalIDs(&req)
+	if err == nil {
+		err = r.checkIdentityIssuers(externalIDs, nil)
+	}
+
 	if err != nil {
 		sendError(c, http.StatusUnprocessableEntity, err.Error())
 		return
@@ -688,23 +692,29 @@ func (r *Router) updateUserFields(c *gin.Context, tx *sql.Tx, original, user *mo
 }
 
 // replaceUserExternalIDs makes pairs the identities of user in tx, or, with
-// upsert, replaces only the identity at the issuer of pairs[0]. It audits
-// each added and removed identity, and with auditData it also puts those
-// audit events in the request's audit data. changed reports whether any
-// identity was added or removed. On error it rolls tx back, sends the error
-// and returns ok false.
+// upsert, replaces only the identity at the issuer of pairs[0]. A pair at an
+// issuer without identity.enabled is accepted only when it is one of the
+// user's stored records. It audits each added and removed identity, and with
+// auditData it also puts those audit events in the request's audit data.
+// changed reports whether any identity was added or removed. On error it
+// rolls tx back, sends the error and returns ok false.
 func (r *Router) replaceUserExternalIDs(
 	c *gin.Context, tx *sql.Tx, user *models.User, pairs []dbtools.ExternalIDPair, upsert, auditData bool,
 ) (changed, ok bool) {
 	ctx := c.Request.Context()
 
-	if upsert {
-		current, err := userExternalIDs(ctx, tx, user.ID)
-		if err != nil {
-			rollbackAndSendError(c, tx, http.StatusInternalServerError, "error updating user: "+err.Error())
-			return false, false
-		}
+	current, err := userExternalIDs(ctx, tx, user.ID)
+	if err != nil {
+		rollbackAndSendError(c, tx, http.StatusInternalServerError, "error updating user: "+err.Error())
+		return false, false
+	}
 
+	if err := r.checkIdentityIssuers(pairs, current); err != nil {
+		rollbackAndSendError(c, tx, http.StatusUnprocessableEntity, err.Error())
+		return false, false
+	}
+
+	if upsert {
 		pairs = upsertExternalID(current, pairs[0])
 	}
 

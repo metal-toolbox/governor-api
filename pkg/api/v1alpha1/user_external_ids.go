@@ -28,9 +28,9 @@ const (
 )
 
 // requestedExternalIDs returns the identities that req sets, validated. ok is
-// false when req sets none. Every identity must be at an issuer with
-// identity.enabled. The deprecated external_id becomes the one identity at
-// the primary identity issuer.
+// false when req sets none. The deprecated external_id becomes the one
+// identity at the primary identity issuer. Whether each identity may be
+// written is checked against the user's records by checkIdentityIssuers.
 func (r *Router) requestedExternalIDs(req *UserReq) (pairs []dbtools.ExternalIDPair, ok bool, err error) {
 	switch {
 	case req.ExternalID != "" && req.ExternalIDs != nil:
@@ -51,16 +51,26 @@ func (r *Router) requestedExternalIDs(req *UserReq) (pairs []dbtools.ExternalIDP
 		return nil, false, err
 	}
 
-	// A record at an issuer without identity.enabled could never sign in, so
-	// only identity providers take records.
+	return pairs, true, nil
+}
+
+// checkIdentityIssuers returns an error matching errInvalidExternalIDs when a
+// pair in pairs is at an issuer without identity.enabled and is not one of
+// current, the user's stored records. A record at such an issuer can never
+// sign in, so it cannot be added or changed, but an unchanged one may be sent
+// back so that a full-set update keeps it.
+func (r *Router) checkIdentityIssuers(pairs, current []dbtools.ExternalIDPair) error {
 	identityIssuers := configs.IdentityIssuers(r.AuthConf)
+
 	for _, p := range pairs {
-		if !slices.Contains(identityIssuers, p.Iss) {
-			return nil, false, fmt.Errorf("%w: iss %s has no oidc provider with identity.enabled", errInvalidExternalIDs, p.Iss)
+		if slices.Contains(identityIssuers, p.Iss) || slices.Contains(current, p) {
+			continue
 		}
+
+		return fmt.Errorf("%w: iss %s has no oidc provider with identity.enabled", errInvalidExternalIDs, p.Iss)
 	}
 
-	return pairs, true, nil
+	return nil
 }
 
 // configuredIssuers returns the issuers of the configured oidc providers.

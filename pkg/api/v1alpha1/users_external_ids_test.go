@@ -490,6 +490,79 @@ func (s *UserTestSuite) TestUpdateUserExternalIDs() {
 	}
 }
 
+func (s *UserTestSuite) TestUpdateUserExternalIDsAtIssuerWithoutIdentity() {
+	hydraPair := dbtools.ExternalIDPair{Iss: usersHydraIssuer, ID: "hydra-metadata"}
+
+	tests := []struct {
+		name       string
+		payload    string
+		wantStatus int
+		wantPairs  []dbtools.ExternalIDPair
+		wantAudit  map[string]int
+		wantEvent  string
+	}{
+		{
+			name: "an unchanged record is kept while another changes",
+			payload: `{"external_ids": [{"iss": "` + testIdentityIssuer + `", "id": "okta-new"},
+				{"iss": "` + usersPingIssuer + `", "id": "ping-metadata"},
+				{"iss": "` + usersHydraIssuer + `", "id": "hydra-metadata"}]}`,
+			wantStatus: http.StatusAccepted,
+			wantPairs: []dbtools.ExternalIDPair{
+				hydraPair,
+				{Iss: testIdentityIssuer, ID: "okta-new"},
+				{Iss: usersPingIssuer, ID: "ping-metadata"},
+			},
+			wantAudit: map[string]int{"user.external_id.added": 1, "user.external_id.removed": 1},
+			wantEvent: events.GovernorEventUpdate,
+		},
+		{
+			name: "leaving the record out removes it",
+			payload: `{"external_ids": [{"iss": "` + testIdentityIssuer + `", "id": "okta-metadata"},
+				{"iss": "` + usersPingIssuer + `", "id": "ping-metadata"}]}`,
+			wantStatus: http.StatusAccepted,
+			wantPairs:  metadataUserPairs,
+			wantAudit:  map[string]int{"user.external_id.removed": 1},
+			wantEvent:  events.GovernorEventUpdate,
+		},
+		{
+			name:       "a changed record is rejected",
+			payload:    `{"external_ids": [{"iss": "` + usersHydraIssuer + `", "id": "hydra-other"}]}`,
+			wantStatus: http.StatusUnprocessableEntity,
+			wantPairs:  append([]dbtools.ExternalIDPair{hydraPair}, metadataUserPairs...),
+			wantAudit:  map[string]int{},
+		},
+		{
+			name:       "the deprecated external id keeps the record",
+			payload:    `{"external_id": "okta-new"}`,
+			wantStatus: http.StatusAccepted,
+			wantPairs: []dbtools.ExternalIDPair{
+				hydraPair,
+				{Iss: testIdentityIssuer, ID: "okta-new"},
+				{Iss: usersPingIssuer, ID: "ping-metadata"},
+			},
+			wantAudit: map[string]int{"user.external_id.added": 1, "user.external_id.removed": 1},
+			wantEvent: events.GovernorEventUpdate,
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			s.resetExternalIDs()
+
+			_, err := s.db.Exec(`INSERT INTO user_external_ids (user_id, iss, external_id) VALUES ($1, $2, $3)`,
+				usersMetadataUser, hydraPair.Iss, hydraPair.ID)
+			s.Require().NoError(err)
+
+			w := serveUserRequest(s.identityRouter(testIdentityIssuer).updateUser, http.MethodPut, usersMetadataUser, tt.payload)
+
+			s.Require().Equal(tt.wantStatus, w.Code, w.Body.String())
+			s.Equal(tt.wantPairs, s.storedPairs("metadata@example.com"))
+			s.Equal(tt.wantAudit, s.auditActions())
+			s.Equal(tt.wantEvent, s.publishedAction())
+		})
+	}
+}
+
 func (s *UserTestSuite) TestUpdateUserExternalIDsRejected() {
 	tests := []struct {
 		name       string

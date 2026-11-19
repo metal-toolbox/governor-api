@@ -69,6 +69,8 @@ Send `external_ids` on `POST /api/v1alpha1/users` and
   and may appear only once. A request may set at most 10 identities.
 - On update, `external_ids` replaces the user's full set; an empty array
   removes them all. Leave the field out to keep the identities unchanged.
+  A record at an issuer whose `identity.enabled` was turned off may be sent
+  back unchanged, so a full-set update keeps it; it cannot be added or changed.
 - A pair that is already linked to another user returns `409`.
 
 Until it is removed, a request that sends `external_id` without `external_ids`
