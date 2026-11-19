@@ -11,8 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var errOther = errors.New("other")
-
 func TestUniqueViolation(t *testing.T) {
 	type result struct {
 		constraint string
@@ -45,7 +43,7 @@ func TestUniqueViolation(t *testing.T) {
 		},
 		{
 			name: "not a postgres error",
-			err:  errOther,
+			err:  errors.New("other"), //nolint:err113 // any error that is not from PostgreSQL
 		},
 		{
 			name: "nil",
@@ -72,7 +70,7 @@ func TestIsTimeout(t *testing.T) {
 		{name: "lib/pq statement timeout", err: &pq.Error{Code: "57014"}, want: true},
 		{name: "context deadline", err: fmt.Errorf("query: %w", context.DeadlineExceeded), want: true},
 		{name: "unique violation", err: &pgconn.PgError{Code: "23505"}},
-		{name: "other error", err: errOther},
+		{name: "other error", err: errors.New("other")}, //nolint:err113 // any error that is not from PostgreSQL
 		{name: "nil"},
 	}
 

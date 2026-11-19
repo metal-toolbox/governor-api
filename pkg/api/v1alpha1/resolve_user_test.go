@@ -38,8 +38,6 @@ import (
 	events "github.com/metal-toolbox/governor-api/pkg/events/v1alpha1"
 )
 
-var errNATSDown = errors.New("nats down")
-
 const (
 	resolveOktaUserID      = "00000003-0000-0000-0000-000000000001"
 	resolveSuspendedUserID = "00000003-0000-0000-0000-000000000002"
@@ -1025,7 +1023,7 @@ func (s *ResolveUserTestSuite) TestPublishFailureAfterCommit() {
 		s.Run(tt.name, func() {
 			s.reset()
 
-			s.conn.err = errNATSDown
+			s.conn.err = errors.New("nats down") //nolint:err113 // a test-only publish failure
 
 			r := s.router(prometheus.NewRegistry(), configs.IdentityConfig{Enabled: true}, tt.ping)
 			s.ping.respond(http.StatusOK, "Some User", tt.claims.subject, tt.claims.user)
