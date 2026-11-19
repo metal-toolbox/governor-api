@@ -210,9 +210,10 @@ type spanResult struct {
 
 func TestRunMigratePostgresSpan(t *testing.T) {
 	tests := []struct {
-		name string
-		cfg  string
-		want []spanResult
+		name    string
+		cfg     string
+		wantErr error
+		want    []spanResult
 	}{
 		{
 			name: "command succeeds",
@@ -220,9 +221,10 @@ func TestRunMigratePostgresSpan(t *testing.T) {
 			want: []spanResult{{Name: "migratePostgres", Command: "version", Status: codes.Unset}},
 		},
 		{
-			name: "oidc config is refused",
-			cfg:  noIdentityOIDCConfig,
-			want: []spanResult{{Name: "migratePostgres", Command: "version", Status: codes.Error}},
+			name:    "oidc config is refused",
+			cfg:     noIdentityOIDCConfig,
+			wantErr: configs.ErrNoIdentityProvider,
+			want:    []spanResult{{Name: "migratePostgres", Command: "version", Status: codes.Error}},
 		},
 	}
 
@@ -236,7 +238,12 @@ func TestRunMigratePostgresSpan(t *testing.T) {
 			otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(spans)))
 			t.Cleanup(func() { otel.SetTracerProvider(prev) })
 
-			_ = runMigrate(context.Background(), migratedTestDB(t, 6), configFor(t, "postgres", tt.cfg), "version", nil)
+			err := runMigrate(context.Background(), migratedTestDB(t, 6), configFor(t, "postgres", tt.cfg), "version", nil)
+			if tt.wantErr != nil {
+				require.ErrorIs(t, err, tt.wantErr)
+			} else {
+				require.NoError(t, err)
+			}
 
 			got := []spanResult{}
 
