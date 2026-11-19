@@ -365,7 +365,7 @@ func (s *ResolveUserTestSuite) recordCount(userID string) int {
 // "ping" and the user ID as "okta user", "new user" or "".
 type logSummary struct {
 	Level      zapcore.Level
-	IdP        string
+	Provider   string
 	Outcome    string
 	AuditID    string
 	User       string
@@ -391,7 +391,7 @@ func (s *ResolveUserTestSuite) resolutionLogs() []logSummary {
 
 		got = append(got, logSummary{
 			Level:      e.Level,
-			IdP:        idps[f["iss"].(string)],
+			Provider:   idps[f["iss"].(string)],
 			Outcome:    f["outcome"].(string),
 			AuditID:    f["audit_id"].(string),
 			User:       user,
@@ -492,7 +492,7 @@ func (s *ResolveUserTestSuite) TestUserAuthRequired() {
 			wantAudit:    map[string]int{"user.created": 1, "user.external_id.added": 1},
 			wantEvent:    events.GovernorEventCreate,
 			wantOutcome:  func() map[string]float64 { return map[string]float64{s.okta.srv.URL + " registered": 1} },
-			wantLog:      []logSummary{{Level: zapcore.InfoLevel, IdP: "okta", Outcome: "registered", AuditID: resolveAuditID, User: "new user", TraceIDSet: true}},
+			wantLog:      []logSummary{{Level: zapcore.InfoLevel, Provider: "okta", Outcome: "registered", AuditID: resolveAuditID, User: "new user", TraceIDSet: true}},
 		},
 		{
 			name:   "okta subject through an issuer without identity enabled",
@@ -532,7 +532,7 @@ func (s *ResolveUserTestSuite) TestUserAuthRequired() {
 			want:        resolveResult{Status: http.StatusConflict, Error: "a user with this email exists; linking is disabled for this issuer"},
 			wantAudit:   map[string]int{},
 			wantOutcome: func() map[string]float64 { return map[string]float64{s.ping.srv.URL + " rejected_conflict": 1} },
-			wantLog:     []logSummary{{Level: zapcore.WarnLevel, IdP: "ping", Outcome: "rejected_conflict", AuditID: resolveAuditID, User: "", TraceIDSet: true}},
+			wantLog:     []logSummary{{Level: zapcore.WarnLevel, Provider: "ping", Outcome: "rejected_conflict", AuditID: resolveAuditID, User: "", TraceIDSet: true}},
 		},
 		{
 			name:   "email of a suspended user",
@@ -546,7 +546,7 @@ func (s *ResolveUserTestSuite) TestUserAuthRequired() {
 			want:        resolveResult{Status: http.StatusConflict, Error: "a user with this email exists; linking is disabled for this issuer"},
 			wantAudit:   map[string]int{},
 			wantOutcome: func() map[string]float64 { return map[string]float64{s.okta.srv.URL + " rejected_conflict": 1} },
-			wantLog:     []logSummary{{Level: zapcore.WarnLevel, IdP: "okta", Outcome: "rejected_conflict", AuditID: resolveAuditID, User: "", TraceIDSet: true}},
+			wantLog:     []logSummary{{Level: zapcore.WarnLevel, Provider: "okta", Outcome: "rejected_conflict", AuditID: resolveAuditID, User: "", TraceIDSet: true}},
 		},
 		{
 			name:   "ping sign-in links the okta user with the same email",
@@ -562,7 +562,7 @@ func (s *ResolveUserTestSuite) TestUserAuthRequired() {
 			wantAudit:    map[string]int{"user.external_id.added": 1},
 			wantEvent:    events.GovernorEventUpdate,
 			wantOutcome:  func() map[string]float64 { return map[string]float64{s.ping.srv.URL + " linked": 1} },
-			wantLog:      []logSummary{{Level: zapcore.InfoLevel, IdP: "ping", Outcome: "linked", AuditID: resolveAuditID, User: "okta user", TraceIDSet: true}},
+			wantLog:      []logSummary{{Level: zapcore.InfoLevel, Provider: "ping", Outcome: "linked", AuditID: resolveAuditID, User: "okta user", TraceIDSet: true}},
 		},
 		{
 			name:   "email match ignores case",
@@ -578,7 +578,7 @@ func (s *ResolveUserTestSuite) TestUserAuthRequired() {
 			wantAudit:    map[string]int{"user.external_id.added": 1},
 			wantEvent:    events.GovernorEventUpdate,
 			wantOutcome:  func() map[string]float64 { return map[string]float64{s.ping.srv.URL + " linked": 1} },
-			wantLog:      []logSummary{{Level: zapcore.InfoLevel, IdP: "ping", Outcome: "linked", AuditID: resolveAuditID, User: "okta user", TraceIDSet: true}},
+			wantLog:      []logSummary{{Level: zapcore.InfoLevel, Provider: "ping", Outcome: "linked", AuditID: resolveAuditID, User: "okta user", TraceIDSet: true}},
 		},
 		{
 			name:   "user already linked to another identity for the issuer",
@@ -592,7 +592,7 @@ func (s *ResolveUserTestSuite) TestUserAuthRequired() {
 			want:        resolveResult{Status: http.StatusConflict, Error: "user already linked to a different identity for this issuer"},
 			wantAudit:   map[string]int{},
 			wantOutcome: func() map[string]float64 { return map[string]float64{s.okta.srv.URL + " rejected_conflict": 1} },
-			wantLog:     []logSummary{{Level: zapcore.WarnLevel, IdP: "okta", Outcome: "rejected_conflict", AuditID: resolveAuditID, User: "", TraceIDSet: true}},
+			wantLog:     []logSummary{{Level: zapcore.WarnLevel, Provider: "okta", Outcome: "rejected_conflict", AuditID: resolveAuditID, User: "", TraceIDSet: true}},
 		},
 		{
 			name:   "suspended user is not linked",
@@ -606,7 +606,7 @@ func (s *ResolveUserTestSuite) TestUserAuthRequired() {
 			want:        resolveResult{Status: http.StatusConflict, Error: "a user with this email exists; linking is disabled for this issuer"},
 			wantAudit:   map[string]int{},
 			wantOutcome: func() map[string]float64 { return map[string]float64{s.ping.srv.URL + " rejected_conflict": 1} },
-			wantLog:     []logSummary{{Level: zapcore.WarnLevel, IdP: "ping", Outcome: "rejected_conflict", AuditID: resolveAuditID, User: "", TraceIDSet: true}},
+			wantLog:     []logSummary{{Level: zapcore.WarnLevel, Provider: "ping", Outcome: "rejected_conflict", AuditID: resolveAuditID, User: "", TraceIDSet: true}},
 		},
 		{
 			name:   "linking on finds no user and registers one",
@@ -622,7 +622,7 @@ func (s *ResolveUserTestSuite) TestUserAuthRequired() {
 			wantAudit:    map[string]int{"user.created": 1, "user.external_id.added": 1},
 			wantEvent:    events.GovernorEventCreate,
 			wantOutcome:  func() map[string]float64 { return map[string]float64{s.ping.srv.URL + " registered": 1} },
-			wantLog:      []logSummary{{Level: zapcore.InfoLevel, IdP: "ping", Outcome: "registered", AuditID: resolveAuditID, User: "new user", TraceIDSet: true}},
+			wantLog:      []logSummary{{Level: zapcore.InfoLevel, Provider: "ping", Outcome: "registered", AuditID: resolveAuditID, User: "new user", TraceIDSet: true}},
 		},
 		{
 			name:   "linking on and registration off finds no user",
@@ -664,7 +664,7 @@ func (s *ResolveUserTestSuite) TestUserAuthRequired() {
 			wantAudit:    map[string]int{"user.created": 1, "user.external_id.added": 1},
 			wantEvent:    events.GovernorEventCreate,
 			wantOutcome:  func() map[string]float64 { return map[string]float64{s.ping.srv.URL + " registered": 1} },
-			wantLog:      []logSummary{{Level: zapcore.InfoLevel, IdP: "ping", Outcome: "registered", AuditID: resolveAuditID, User: "new user", TraceIDSet: true}},
+			wantLog:      []logSummary{{Level: zapcore.InfoLevel, Provider: "ping", Outcome: "registered", AuditID: resolveAuditID, User: "new user", TraceIDSet: true}},
 		},
 		{
 			name:   "email of a soft-deleted user with linking off registers a new user",
@@ -680,7 +680,7 @@ func (s *ResolveUserTestSuite) TestUserAuthRequired() {
 			wantAudit:    map[string]int{"user.created": 1, "user.external_id.added": 1},
 			wantEvent:    events.GovernorEventCreate,
 			wantOutcome:  func() map[string]float64 { return map[string]float64{s.ping.srv.URL + " registered": 1} },
-			wantLog:      []logSummary{{Level: zapcore.InfoLevel, IdP: "ping", Outcome: "registered", AuditID: resolveAuditID, User: "new user", TraceIDSet: true}},
+			wantLog:      []logSummary{{Level: zapcore.InfoLevel, Provider: "ping", Outcome: "registered", AuditID: resolveAuditID, User: "new user", TraceIDSet: true}},
 		},
 		{
 			name:        "missing issuer",
