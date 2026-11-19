@@ -198,8 +198,6 @@ func (r *Router) handleProvisionError(
 	ctx context.Context, c *gin.Context, span trace.Span, observe func(metrics.Outcome),
 	iss, sub string, err error, mods []qm.QueryMod,
 ) (*models.User, bool) {
-	span.SetStatus(codes.Error, err.Error())
-
 	if errors.Is(err, errEmailExists) || errors.Is(err, dbtools.ErrExternalIDConflict) {
 		user, lookupErr := dbtools.FindUserByExternalID(ctx, r.DB, iss, sub, mods...)
 		if lookupErr == nil {
@@ -209,11 +207,14 @@ func (r *Router) handleProvisionError(
 
 		if !errors.Is(lookupErr, sql.ErrNoRows) {
 			observe(metrics.OutcomeError)
+			span.SetStatus(codes.Error, lookupErr.Error())
 			sendError(c, http.StatusInternalServerError, "error getting user: "+lookupErr.Error())
 
 			return nil, false
 		}
 	}
+
+	span.SetStatus(codes.Error, err.Error())
 
 	switch {
 	case errors.Is(err, errEmailExists):
