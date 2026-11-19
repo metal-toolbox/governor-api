@@ -383,7 +383,7 @@ func TestRestoreMigrateWithoutIdentityProvider(t *testing.T) {
 	restoreCMD.SetContext(context.Background())
 
 	err := restoreCMD.RunE(restoreCMD, nil)
-	require.ErrorIs(t, err, configs.ErrNoIdentityProvider)
+	assert.ErrorIs(t, err, configs.ErrNoIdentityProvider)
 	assert.ErrorContains(t, err, "set identity.enabled: true on the provider that issued the existing user IDs")
 	assert.False(t, hasVersionTable(t, db), "no migration may run")
 }
