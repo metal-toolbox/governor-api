@@ -42,8 +42,9 @@ const (
 	setStatementTimeout = `SET LOCAL statement_timeout = '5s'`
 )
 
-// provisioned is a user that a first sign-in created, with the audit event
-// that records it.
+// provisioned is the user that a first sign-in linked or created, with the
+// audit event that records it. outcome is OutcomeHit, with no event, when a
+// concurrent sign-in had already linked the same identity.
 type provisioned struct {
 	user    *models.User
 	outcome metrics.Outcome
@@ -128,7 +129,7 @@ func (r *Router) resolveUser(c *gin.Context, autoProvision bool, mods ...qm.Quer
 		return nil, false
 	}
 
-	r.Logger.Debug("user not found in db, trying to register",
+	r.Logger.Debug("user not found in db, trying to link or register",
 		zap.String("iss", iss),
 		zap.String("email", c.GetString("jwt.subject")),
 		zap.String("external_id", sub),
@@ -146,22 +147,8 @@ func (r *Router) resolveUser(c *gin.Context, autoProvision bool, mods ...qm.Quer
 	}
 
 	observe(p.outcome)
-	r.logResolution(c, span, zap.InfoLevel, iss, p.user.ID, p.outcome)
 
-	if err := updateContextWithAuditEventData(c, p.event); err != nil {
-		sendError(c, http.StatusBadRequest, "error creating user (audit): "+err.Error())
-		return nil, false
-	}
-
-	if err := r.EventBus.Publish(ctx, events.GovernorUsersEventSubject, &events.Event{
-		Version: events.Version,
-		Action:  p.action,
-		AuditID: c.GetString(ginaudit.AuditIDContextKey),
-		ActorID: getCtxActorID(c),
-		GroupID: "",
-		UserID:  p.user.ID,
-	}); err != nil {
-		sendError(c, http.StatusBadRequest, "failed to publish user "+p.action+" event, downstream changes may be delayed "+err.Error())
+	if p.outcome != metrics.OutcomeHit && !r.announceProvisioned(ctx, c, span, iss, p) {
 		return nil, false
 	}
 
@@ -176,6 +163,32 @@ func (r *Router) resolveUser(c *gin.Context, autoProvision bool, mods ...qm.Quer
 	}
 
 	return user, true
+}
+
+// announceProvisioned logs a linked or registered user, adds its audit event
+// to the request audit data and publishes the users event. When it returns
+// false, it has already sent the error response.
+func (r *Router) announceProvisioned(ctx context.Context, c *gin.Context, span trace.Span, iss string, p *provisioned) bool {
+	r.logResolution(c, span, zap.InfoLevel, iss, p.user.ID, p.outcome)
+
+	if err := updateContextWithAuditEventData(c, p.event); err != nil {
+		sendError(c, http.StatusBadRequest, "error writing user audit data: "+err.Error())
+		return false
+	}
+
+	if err := r.EventBus.Publish(ctx, events.GovernorUsersEventSubject, &events.Event{
+		Version: events.Version,
+		Action:  p.action,
+		AuditID: c.GetString(ginaudit.AuditIDContextKey),
+		ActorID: getCtxActorID(c),
+		GroupID: "",
+		UserID:  p.user.ID,
+	}); err != nil {
+		sendError(c, http.StatusBadRequest, "failed to publish user "+p.action+" event, downstream changes may be delayed "+err.Error())
+		return false
+	}
+
+	return true
 }
 
 // handleProvisionError sends the response for a failed first sign-in. A
@@ -207,6 +220,13 @@ func (r *Router) handleProvisionError(
 		observe(metrics.OutcomeRejectedConflict)
 		r.logResolution(c, span, zap.WarnLevel, iss, "", metrics.OutcomeRejectedConflict)
 		sendError(c, http.StatusConflict, "a user with this email exists; linking is disabled for this issuer")
+	case errors.Is(err, errLinkedToOtherIdentity):
+		observe(metrics.OutcomeRejectedConflict)
+		r.logResolution(c, span, zap.WarnLevel, iss, "", metrics.OutcomeRejectedConflict)
+		sendError(c, http.StatusConflict, "user already linked to a different identity for this issuer")
+	case errors.Is(err, errNotRegistered):
+		observe(metrics.OutcomeRejectedUnregistered)
+		sendError(c, http.StatusUnauthorized, "user not registered")
 	case dbtools.IsTimeout(err):
 		observe(metrics.OutcomeError)
 		sendError(c, http.StatusInternalServerError, "error getting user: timeout")
@@ -219,8 +239,18 @@ func (r *Router) handleProvisionError(
 }
 
 // mayProvision reports whether a provider's identity settings let an unknown
-// sign-in create a user.
+// sign-in link or create a user.
 func mayProvision(id configs.IdentityConfig) bool {
+	return mayLink(id) || mayRegister(id)
+}
+
+// mayLink reports whether an unknown sign-in may be linked by email to an existing user.
+func mayLink(id configs.IdentityConfig) bool {
+	return id.Enabled && id.AutoLink
+}
+
+// mayRegister reports whether an unknown sign-in may create a user.
+func mayRegister(id configs.IdentityConfig) bool {
 	return id.Enabled && id.AutoRegisterOrDefault()
 }
 
@@ -265,9 +295,12 @@ func (r *Router) verifiedUserInfo(ctx context.Context, c *gin.Context, sub strin
 	return userInfo, true
 }
 
-// provisionUser creates the user of an unknown sign-in from the provider ac,
-// with its (issuer, sub) record and audit rows, in one transaction. It returns
-// errEmailExists when an active user already has the email, and an error matching
+// provisionUser links an unknown sign-in from the provider ac to the user
+// with the same email, or creates a user for it, with its (issuer, sub) record
+// and audit rows, in one transaction. It returns errEmailExists when a user
+// that may not be linked already has the email, errLinkedToOtherIdentity when
+// that user has another identity at the issuer, errNotRegistered when nothing
+// was linked and the provider may not create users, and an error matching
 // dbtools.ErrExternalIDConflict when the identity was recorded concurrently.
 func (r *Router) provisionUser(
 	ctx context.Context, auditID string, ac configs.Auth, sub string, userInfo *auth.OIDCUserInfo,
@@ -295,9 +328,24 @@ func (r *Router) provisionUser(
 
 	pair := dbtools.ExternalIDPair{Iss: ac.Issuer, ID: sub}
 
-	p, err := registerUser(ctx, tx, auditID, pair, userInfo)
-	if err != nil {
-		return nil, err
+	var p *provisioned
+
+	if mayLink(ac.Identity) {
+		p, err = linkUser(ctx, tx, auditID, pair, userInfo.Email)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if p == nil {
+		if !mayRegister(ac.Identity) {
+			return nil, errNotRegistered
+		}
+
+		p, err = registerUser(ctx, tx, auditID, pair, userInfo)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -305,6 +353,55 @@ func (r *Router) provisionUser(
 	}
 
 	return p, nil
+}
+
+// linkUser adds the identity pair to the active user whose email equals email,
+// ignoring case. It returns nil and no error when there is no such user. The
+// user row stays locked until the transaction ends, so a concurrent first
+// sign-in of the same identity waits here and then sees the committed record.
+func linkUser(ctx context.Context, tx *sqlx.Tx, auditID string, pair dbtools.ExternalIDPair, email string) (*provisioned, error) {
+	user, err := models.Users(
+		qm.Where("lower(email) = lower(?)", email),
+		qm.Where("(status IS NULL OR status <> ?)", UserStatusSuspended),
+		qm.For("UPDATE"),
+	).One(ctx, tx)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	existing, err := models.UserExternalIds(
+		models.UserExternalIDWhere.UserID.EQ(user.ID),
+		models.UserExternalIDWhere.Iss.EQ(pair.Iss),
+	).One(ctx, tx)
+
+	switch {
+	case err == nil && existing.ExternalID == pair.ID:
+		return &provisioned{user: user, outcome: metrics.OutcomeHit}, nil
+	case err == nil:
+		return nil, errLinkedToOtherIdentity
+	case !errors.Is(err, sql.ErrNoRows):
+		return nil, err
+	}
+
+	if _, err := dbtools.AddUserExternalID(ctx, tx, user.ID, pair.Iss, pair.ID); err != nil {
+		return nil, err
+	}
+
+	event, err := dbtools.AuditUserExternalIDAdded(ctx, tx, auditID, user, user, pair)
+	if err != nil {
+		return nil, err
+	}
+
+	return &provisioned{
+		user:    user,
+		outcome: metrics.OutcomeLinked,
+		event:   event,
+		action:  events.GovernorEventUpdate,
+	}, nil
 }
 
 // registerUser inserts a new user for userInfo with the identity pair.

@@ -315,6 +315,9 @@ func boolPtr(b bool) *bool { return &b }
 func (s *ResolveUserTestSuite) TestUserAuthRequired() {
 	enabled := configs.IdentityConfig{Enabled: true}
 	noRegister := configs.IdentityConfig{Enabled: true, AutoRegister: boolPtr(false)}
+	link := configs.IdentityConfig{Enabled: true, AutoLink: true}
+	linkOnly := configs.IdentityConfig{Enabled: true, AutoLink: true, AutoRegister: boolPtr(false)}
+	linkNotEnabled := configs.IdentityConfig{AutoLink: true}
 	off := configs.IdentityConfig{}
 
 	type userInfo struct {
@@ -414,6 +417,103 @@ func (s *ResolveUserTestSuite) TestUserAuthRequired() {
 			want:        resolveResult{Status: http.StatusConflict, Error: "a user with this email exists; linking is disabled for this issuer"},
 			wantAudit:   map[string]int{},
 			wantOutcome: func() map[string]float64 { return map[string]float64{s.okta.srv.URL + " rejected_conflict": 1} },
+		},
+		{
+			name:   "ping sign-in links the okta user with the same email",
+			okta:   enabled,
+			ping:   link,
+			issuer: func() *stubOIDC { return s.ping },
+			claims: func() claims { return claims{s.ping.srv.URL, "ping-sub", "okta@example.com"} },
+			userInfo: userInfo{
+				status: http.StatusOK, name: "Okta User", email: "okta@example.com", sub: "ping-sub",
+			},
+			want:         resolveResult{Status: http.StatusOK, Email: "okta@example.com"},
+			wantLinkedTo: "okta@example.com",
+			wantAudit:    map[string]int{"user.external_id.added": 1},
+			wantEvent:    events.GovernorEventUpdate,
+			wantOutcome:  func() map[string]float64 { return map[string]float64{s.ping.srv.URL + " linked": 1} },
+		},
+		{
+			name:   "email match ignores case",
+			okta:   enabled,
+			ping:   linkOnly,
+			issuer: func() *stubOIDC { return s.ping },
+			claims: func() claims { return claims{s.ping.srv.URL, "ping-sub", "OKTA@Example.com"} },
+			userInfo: userInfo{
+				status: http.StatusOK, name: "Okta User", email: "OKTA@Example.com", sub: "ping-sub",
+			},
+			want:         resolveResult{Status: http.StatusOK, Email: "okta@example.com"},
+			wantLinkedTo: "okta@example.com",
+			wantAudit:    map[string]int{"user.external_id.added": 1},
+			wantEvent:    events.GovernorEventUpdate,
+			wantOutcome:  func() map[string]float64 { return map[string]float64{s.ping.srv.URL + " linked": 1} },
+		},
+		{
+			name:   "user already linked to another identity for the issuer",
+			okta:   link,
+			ping:   off,
+			issuer: func() *stubOIDC { return s.okta },
+			claims: func() claims { return claims{s.okta.srv.URL, "okta-sub-2", "okta@example.com"} },
+			userInfo: userInfo{
+				status: http.StatusOK, name: "Okta User", email: "okta@example.com", sub: "okta-sub-2",
+			},
+			want:        resolveResult{Status: http.StatusConflict, Error: "user already linked to a different identity for this issuer"},
+			wantAudit:   map[string]int{},
+			wantOutcome: func() map[string]float64 { return map[string]float64{s.okta.srv.URL + " rejected_conflict": 1} },
+		},
+		{
+			name:   "suspended user is not linked",
+			okta:   enabled,
+			ping:   link,
+			issuer: func() *stubOIDC { return s.ping },
+			claims: func() claims { return claims{s.ping.srv.URL, "ping-sub", "suspended@example.com"} },
+			userInfo: userInfo{
+				status: http.StatusOK, name: "Suspended User", email: "suspended@example.com", sub: "ping-sub",
+			},
+			want:        resolveResult{Status: http.StatusConflict, Error: "a user with this email exists; linking is disabled for this issuer"},
+			wantAudit:   map[string]int{},
+			wantOutcome: func() map[string]float64 { return map[string]float64{s.ping.srv.URL + " rejected_conflict": 1} },
+		},
+		{
+			name:   "linking on finds no user and registers one",
+			okta:   enabled,
+			ping:   link,
+			issuer: func() *stubOIDC { return s.ping },
+			claims: func() claims { return claims{s.ping.srv.URL, "ping-new", "ping-new@example.com"} },
+			userInfo: userInfo{
+				status: http.StatusOK, name: "Ping User", email: "ping-new@example.com", sub: "ping-new",
+			},
+			want:         resolveResult{Status: http.StatusOK, Email: "ping-new@example.com"},
+			wantLinkedTo: "ping-new@example.com",
+			wantAudit:    map[string]int{"user.created": 1, "user.external_id.added": 1},
+			wantEvent:    events.GovernorEventCreate,
+			wantOutcome:  func() map[string]float64 { return map[string]float64{s.ping.srv.URL + " registered": 1} },
+		},
+		{
+			name:   "linking on and registration off finds no user",
+			okta:   enabled,
+			ping:   linkOnly,
+			issuer: func() *stubOIDC { return s.ping },
+			claims: func() claims { return claims{s.ping.srv.URL, "ping-new", "ping-new@example.com"} },
+			userInfo: userInfo{
+				status: http.StatusOK, name: "Ping User", email: "ping-new@example.com", sub: "ping-new",
+			},
+			want:        resolveResult{Status: http.StatusUnauthorized, Error: "user not registered"},
+			wantAudit:   map[string]int{},
+			wantOutcome: func() map[string]float64 { return map[string]float64{s.ping.srv.URL + " rejected_unregistered": 1} },
+		},
+		{
+			name:   "linking set on a provider without identity enabled",
+			okta:   enabled,
+			ping:   linkNotEnabled,
+			issuer: func() *stubOIDC { return s.ping },
+			claims: func() claims { return claims{s.ping.srv.URL, "ping-sub", "okta@example.com"} },
+			userInfo: userInfo{
+				status: http.StatusOK, name: "Okta User", email: "okta@example.com", sub: "ping-sub",
+			},
+			want:        resolveResult{Status: http.StatusUnauthorized, Error: "user not registered"},
+			wantAudit:   map[string]int{},
+			wantOutcome: func() map[string]float64 { return map[string]float64{s.ping.srv.URL + " rejected_unregistered": 1} },
 		},
 		{
 			name:        "missing issuer",
@@ -597,6 +697,48 @@ func (s *ResolveUserTestSuite) TestConcurrentFirstSignIn() {
 	s.Equal(resolveResult{Status: http.StatusOK, Email: "racer@example.com"}, got)
 	s.Equal(map[string]float64{s.okta.srv.URL + " hit": 1}, outcomes(s.T(), reg))
 	s.Equal(map[string]int{}, s.auditActions())
+}
+
+// TestConcurrentFirstLink holds the lock on the Okta user while another
+// transaction links the same Ping identity to it. Once that one commits, the
+// request finds the committed record under the lock and writes nothing.
+func (s *ResolveUserTestSuite) TestConcurrentFirstLink() {
+	s.reset()
+
+	reg := prometheus.NewRegistry()
+	r := s.router(reg, configs.IdentityConfig{Enabled: true}, configs.IdentityConfig{Enabled: true, AutoLink: true})
+	s.ping.respond(http.StatusOK, "Okta User", "okta@example.com", "ping-sub")
+
+	ctx := context.Background()
+
+	other, err := s.db.BeginTx(ctx, nil)
+	s.Require().NoError(err)
+
+	defer func() { _ = other.Rollback() }()
+
+	_, err = other.ExecContext(ctx, `SELECT id FROM users WHERE id = $1 FOR UPDATE`, resolveOktaUserID)
+	s.Require().NoError(err)
+
+	_, err = other.ExecContext(ctx, `INSERT INTO user_external_ids (user_id, iss, external_id) VALUES ($1, $2, 'ping-sub')`,
+		resolveOktaUserID, s.ping.srv.URL)
+	s.Require().NoError(err)
+
+	cl := claims{s.ping.srv.URL, "ping-sub", "okta@example.com"}
+	done := make(chan resolveResult, 1)
+
+	go func() {
+		done <- serve(r.mwUserAuthRequired(AuthRoleUser), cl, s.ping.token(s.T(), cl.subject), resolveGroupID)
+	}()
+
+	time.Sleep(500 * time.Millisecond)
+	s.Require().NoError(other.Commit())
+
+	got := <-done
+
+	s.Equal(resolveResult{Status: http.StatusOK, Email: "okta@example.com"}, got)
+	s.Equal(map[string]float64{s.ping.srv.URL + " hit": 1}, outcomes(s.T(), reg))
+	s.Equal(map[string]int{}, s.auditActions())
+	s.Empty(s.publishedAction())
 }
 
 // TestFirstSignInLockTimeout holds an uncommitted user with the same email for

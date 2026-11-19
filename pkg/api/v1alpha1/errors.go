@@ -38,6 +38,12 @@ var (
 	// errEmailExists is returned when a first sign-in would register a user
 	// whose email belongs to an existing user.
 	errEmailExists = errors.New("a user with this email exists")
+	// errLinkedToOtherIdentity is returned when a first sign-in matches a user
+	// by email that already has a different identity at the same issuer.
+	errLinkedToOtherIdentity = errors.New("user already linked to a different identity for this issuer")
+	// errNotRegistered is returned when a first sign-in matches no user and the
+	// provider may not create one.
+	errNotRegistered = errors.New("user not registered")
 )
 
 func sendError(c *gin.Context, code int, msg string) {
