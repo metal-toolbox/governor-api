@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -661,6 +662,21 @@ func (s *UserTestSuite) TestListUsersExternalIDs() {
 			query: "external_id=unknown",
 			want:  map[string][]dbtools.ExternalIDPair{},
 		},
+		{
+			name:  "external id at its issuer",
+			query: "external_id=ping-metadata&iss=" + url.QueryEscape(usersPingIssuer),
+			want:  map[string][]dbtools.ExternalIDPair{"metadata@example.com": metadataUserPairs},
+		},
+		{
+			name:  "external id at another issuer",
+			query: "external_id=ping-metadata&iss=" + url.QueryEscape(testIdentityIssuer),
+			want:  map[string][]dbtools.ExternalIDPair{},
+		},
+		{
+			name:  "users with a record at an issuer",
+			query: "iss=" + url.QueryEscape(usersPingIssuer),
+			want:  map[string][]dbtools.ExternalIDPair{"metadata@example.com": metadataUserPairs},
+		},
 	}
 
 	for _, tt := range tests {
@@ -684,6 +700,30 @@ func (s *UserTestSuite) TestListUsersExternalIDs() {
 
 			s.Equal(tt.want, got)
 			s.Equal("true", w.Header().Get("Deprecation"))
+		})
+	}
+}
+
+func (s *UserTestSuite) TestListUsersUnknownIssuer() {
+	tests := []struct {
+		name  string
+		query string
+	}{
+		{name: "issuer alone", query: "iss=" + url.QueryEscape("https://x.example.com")},
+		{name: "issuer with an external id", query: "external_id=x&iss=" + url.QueryEscape("https://x.example.com")},
+		{name: "one of two issuers", query: "iss=" + url.QueryEscape(usersPingIssuer) + "&iss=" + url.QueryEscape("https://x.example.com")},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Request, _ = http.NewRequest(http.MethodGet, "/api/v1alpha1/users?"+tt.query, nil)
+
+			s.identityRouter(testIdentityIssuer).listUsers(c)
+
+			s.Equal(http.StatusUnprocessableEntity, w.Code)
+			s.JSONEq(`{"error": "invalid iss: not a configured issuer"}`, w.Body.String())
 		})
 	}
 }

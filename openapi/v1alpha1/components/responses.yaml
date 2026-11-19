@@ -32,3 +32,10 @@ InternalError:
     application/json:
       schema:
         $ref: './schemas/errors.yaml#/Error'
+
+UnprocessableEntity:
+  description: The request is well formed but breaks a constraint, for example an invalid external_ids entry
+  content:
+    application/json:
+      schema:
+        $ref: './schemas/errors.yaml#/Error'

@@ -219,6 +219,8 @@ components:
       $ref: './components/responses.yaml#/NotFound'
     InternalError:
       $ref: './components/responses.yaml#/InternalError'
+    UnprocessableEntity:
+      $ref: './components/responses.yaml#/UnprocessableEntity'
 
 security:
   - bearerAuth: []

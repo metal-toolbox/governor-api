@@ -65,6 +65,20 @@ func (r *Router) configuredIssuers() []string {
 	return issuers
 }
 
+// allConfiguredIssuers reports whether every issuer in issuers is the issuer
+// of a configured oidc provider.
+func (r *Router) allConfiguredIssuers(issuers []string) bool {
+	configured := r.configuredIssuers()
+
+	for _, iss := range issuers {
+		if !slices.Contains(configured, iss) {
+			return false
+		}
+	}
+
+	return true
+}
+
 // validateExternalIDs returns an error matching errInvalidExternalIDs when
 // pairs has more than maxUserExternalIDs entries, an issuer twice, or an entry
 // whose issuer is not one of issuers or whose ID is not a valid external ID.

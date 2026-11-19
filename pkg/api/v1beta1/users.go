@@ -2,6 +2,7 @@ package v1beta1
 
 import (
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/aarondl/null/v8"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	models "github.com/metal-toolbox/governor-api/internal/models/psql"
+	"github.com/metal-toolbox/governor-api/pkg/configs"
 )
 
 const (
@@ -29,7 +31,7 @@ const (
 )
 
 var (
-	permittedListUsersParams = []string{"external_id", "email", "deleted", "limit", "sort_by", "sort_order", "search", "status[]", "next_cursor", "prev_cursor", "last", "offset"}
+	permittedListUsersParams = []string{"external_id", "iss", "email", "deleted", "limit", "sort_by", "sort_order", "search", "status[]", "next_cursor", "prev_cursor", "last", "offset"}
 	validStatuses            = []string{UserStatusActive, UserStatusPending, UserStatusSuspended}
 	allowedSortCols          = []string{"name", "email", "id"}
 )
@@ -50,10 +52,28 @@ type User struct {
 	MembershipRequests []string    `json:"membership_requests,omitempty"`
 }
 
+// allConfiguredIssuers reports whether every issuer in issuers is the issuer
+// of a configured oidc provider.
+func (r *Router) allConfiguredIssuers(issuers []string) bool {
+	for _, iss := range issuers {
+		if !slices.ContainsFunc(r.AuthConf, func(ac configs.Auth) bool { return ac.Issuer == iss }) {
+			return false
+		}
+	}
+
+	return true
+}
+
 // listUsers responds with the list of all users
 func (r *Router) listUsers(c *gin.Context) {
 	ctx := c.Request.Context()
 	queryMods := []qm.QueryMod{}
+
+	filterIssuers, filterIDs := c.QueryArray("iss"), c.QueryArray("external_id")
+	if !r.allConfiguredIssuers(filterIssuers) {
+		sendError(c, http.StatusUnprocessableEntity, "invalid iss: not a configured issuer")
+		return
+	}
 
 	for k, val := range c.Request.URL.Query() {
 		r.Logger.Debug("checking query", zap.String("url.query.key", k), zap.Strings("url.query.value", val))
@@ -75,9 +95,11 @@ func (r *Router) listUsers(c *gin.Context) {
 			for _, v := range val {
 				queryMods = append(queryMods, qm.Or("LOWER(email) = LOWER(?)", v))
 			}
-		case "external_id":
-			queryMods = append(queryMods, qm.Or2(dbtools.WhereUserHasExternalID(val)))
 		}
+	}
+
+	if len(filterIssuers) > 0 || len(filterIDs) > 0 {
+		queryMods = append(queryMods, qm.Or2(dbtools.WhereUserHasExternalID(filterIssuers, filterIDs)))
 	}
 
 	p, err := parsePagination(c)

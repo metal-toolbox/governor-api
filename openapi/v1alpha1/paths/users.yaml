@@ -17,10 +17,23 @@ users:
           default: false
       - name: external_id
         in: query
-        description: Filter users by their external ID from the identity provider
+        description: |
+          Filter users by their external ID. With iss, it matches the external ID at that identity provider;
+          without iss (deprecated), it matches the external ID at any identity provider.
         required: false
         schema:
           type: string
+          minLength: 1
+          maxLength: 256
+      - name: iss
+        in: query
+        description: |
+          Filter users by identity provider issuer. Alone, it matches the users with an identity at that
+          issuer; with external_id, the users with that external ID there. Must be a configured oidc issuer.
+        required: false
+        schema:
+          type: string
+          format: uri
       - name: email
         in: query
         description: Filter users by their email address
@@ -53,6 +66,8 @@ users:
         $ref: '../components/responses.yaml#/BadRequest'
       '401':
         $ref: '../components/responses.yaml#/Unauthorized'
+      '422':
+        $ref: '../components/responses.yaml#/UnprocessableEntity'
       '500':
         $ref: '../components/responses.yaml#/InternalError'
 
@@ -85,6 +100,8 @@ users:
         $ref: '../components/responses.yaml#/Forbidden'
       '409':
         $ref: '../components/responses.yaml#/BadRequest'
+      '422':
+        $ref: '../components/responses.yaml#/UnprocessableEntity'
       '500':
         $ref: '../components/responses.yaml#/InternalError'
 
@@ -154,6 +171,14 @@ users-id:
         $ref: '../components/responses.yaml#/Forbidden'
       '404':
         $ref: '../components/responses.yaml#/NotFound'
+      '409':
+        description: An external_ids entry is already linked to another user
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/errors.yaml#/Error'
+      '422':
+        $ref: '../components/responses.yaml#/UnprocessableEntity'
       '500':
         $ref: '../components/responses.yaml#/InternalError'
 

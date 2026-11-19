@@ -31,7 +31,7 @@ const (
 	UserStatusSuspended = "suspended"
 )
 
-var permittedListUsersParams = []string{"external_id", "email", "metadata"}
+var permittedListUsersParams = []string{"external_id", "iss", "email", "metadata"}
 
 // User is a user response
 type User struct {
@@ -71,6 +71,12 @@ type UserReq struct {
 // listUsers responds with the list of all users
 func (r *Router) listUsers(c *gin.Context) {
 	queryMods := []qm.QueryMod{}
+
+	filterIssuers, filterIDs := c.QueryArray("iss"), c.QueryArray("external_id")
+	if !r.allConfiguredIssuers(filterIssuers) {
+		sendError(c, http.StatusUnprocessableEntity, "invalid iss: not a configured issuer")
+		return
+	}
 
 	for k, val := range c.Request.URL.Query() {
 		r.Logger.Debug("checking query", zap.String("url.query.key", k), zap.Strings("url.query.value", val))
@@ -113,11 +119,15 @@ func (r *Router) listUsers(c *gin.Context) {
 			}
 
 			queryMods = append(queryMods, qms...)
-		case "external_id":
-			queryMods = append(queryMods, qm.Or2(dbtools.WhereUserHasExternalID(val)))
+		case "external_id", "iss":
+			// both filter one EXISTS subquery, added once after the loop
 		default:
 			queryMods = append(queryMods, qm.Or2(qm.WhereIn(k+" IN ?", convertedVals...)))
 		}
+	}
+
+	if len(filterIssuers) > 0 || len(filterIDs) > 0 {
+		queryMods = append(queryMods, qm.Or2(dbtools.WhereUserHasExternalID(filterIssuers, filterIDs)))
 	}
 
 	users, err := models.Users(queryMods...).All(c.Request.Context(), r.DB)

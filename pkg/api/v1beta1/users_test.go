@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"github.com/aarondl/null/v8"
@@ -151,6 +152,21 @@ func (s *UsersTestSuite) TestListUsersExternalIDs() {
 			query: "external_id=unknown",
 			want:  map[string]listedUser{},
 		},
+		{
+			name:  "external id at its issuer",
+			query: "external_id=ping-bob&iss=" + url.QueryEscape(testPingIssuer),
+			want:  map[string]listedUser{"bob@example.com": listedBob},
+		},
+		{
+			name:  "external id at another issuer",
+			query: "external_id=ping-bob&iss=" + url.QueryEscape(testIdentityIssuer),
+			want:  map[string]listedUser{},
+		},
+		{
+			name:  "users with a record at an issuer",
+			query: "iss=" + url.QueryEscape(testIdentityIssuer),
+			want:  map[string]listedUser{"alice@example.com": listedAlice},
+		},
 	}
 
 	for _, tt := range tests {
@@ -159,6 +175,24 @@ func (s *UsersTestSuite) TestListUsersExternalIDs() {
 			s.Equal(http.StatusOK, code, msg)
 			s.Equal(tt.want, got)
 			s.Equal("true", deprecation)
+		})
+	}
+}
+
+func (s *UsersTestSuite) TestListUsersUnknownIssuer() {
+	tests := []struct {
+		name  string
+		query string
+	}{
+		{name: "issuer alone", query: "iss=" + url.QueryEscape("https://x.example.com")},
+		{name: "issuer with an external id", query: "external_id=x&iss=" + url.QueryEscape("https://x.example.com")},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			code, msg, _, _ := s.listUsers(tt.query)
+			s.Equal(http.StatusUnprocessableEntity, code)
+			s.Equal("invalid iss: not a configured issuer", msg)
 		})
 	}
 }

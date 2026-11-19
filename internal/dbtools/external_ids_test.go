@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/aarondl/null/v8"
+	"github.com/aarondl/sqlboiler/v4/queries/qm"
 	"github.com/aarondl/sqlboiler/v4/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -373,13 +374,18 @@ func (s *ExternalIDsTestSuite) TestListUserExternalIDs() {
 }
 
 func (s *ExternalIDsTestSuite) TestWhereUserHasExternalID() {
+	_, err := s.db.Exec(`INSERT INTO user_external_ids (user_id, iss, external_id) VALUES ($1, $2, 'sub-two-b')`,
+		extIDUser2, extIDIssuerB)
+	s.Require().NoError(err)
+
 	tests := []struct {
 		name        string
+		issuers     []string
 		externalIDs []string
 		want        []string
 	}{
 		{
-			name:        "one external id",
+			name:        "external id at any issuer",
 			externalIDs: []string{"sub-one"},
 			want:        []string{extIDUser1},
 		},
@@ -390,14 +396,34 @@ func (s *ExternalIDsTestSuite) TestWhereUserHasExternalID() {
 		},
 		{
 			name:        "several external ids",
-			externalIDs: []string{"sub-one", "sub-unknown"},
+			externalIDs: []string{"sub-one", "sub-two-b", "sub-unknown"},
+			want:        []string{extIDUser1, extIDUser2},
+		},
+		{
+			name:        "external id at its issuer",
+			issuers:     []string{testIdentityIssuer},
+			externalIDs: []string{"sub-one"},
 			want:        []string{extIDUser1},
+		},
+		{
+			name:        "external id at another issuer",
+			issuers:     []string{extIDIssuerB},
+			externalIDs: []string{"sub-one"},
+			want:        []string{},
+		},
+		{
+			name:    "any record at an issuer",
+			issuers: []string{extIDIssuerB},
+			want:    []string{extIDUser2},
 		},
 	}
 
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
-			users, err := models.Users(WhereUserHasExternalID(tt.externalIDs)).All(context.Background(), s.db)
+			users, err := models.Users(
+				WhereUserHasExternalID(tt.issuers, tt.externalIDs),
+				qm.OrderBy(models.UserColumns.ID),
+			).All(context.Background(), s.db)
 			s.Require().NoError(err)
 
 			got := []string{}

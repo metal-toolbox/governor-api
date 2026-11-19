@@ -225,14 +225,27 @@ func ListUserExternalIDs(ctx context.Context, exec boil.ContextExecutor, userIDs
 	return out, nil
 }
 
-// WhereUserHasExternalID selects the users that have any of externalIDs at
-// any issuer.
-func WhereUserHasExternalID(externalIDs []string) qm.QueryMod {
-	return qm.Where(
-		"EXISTS (SELECT 1 FROM "+models.TableNames.UserExternalIds+" uei WHERE uei.user_id = "+
-			models.TableNames.Users+".id AND uei.external_id = ANY(?::text[]))",
-		types.StringArray(externalIDs),
-	)
+// WhereUserHasExternalID selects the users that have a record at one of
+// issuers with one of externalIDs. An empty issuers matches any issuer, and an
+// empty externalIDs any external ID.
+func WhereUserHasExternalID(issuers, externalIDs []string) qm.QueryMod {
+	clause := "EXISTS (SELECT 1 FROM " + models.TableNames.UserExternalIds + " uei WHERE uei.user_id = " +
+		models.TableNames.Users + ".id"
+	args := []any{}
+
+	if len(issuers) > 0 {
+		clause += " AND uei.iss = ANY(?::text[])"
+
+		args = append(args, types.StringArray(issuers))
+	}
+
+	if len(externalIDs) > 0 {
+		clause += " AND uei.external_id = ANY(?::text[])"
+
+		args = append(args, types.StringArray(externalIDs))
+	}
+
+	return qm.Where(clause+")", args...)
 }
 
 // PrimaryExternalID returns the external ID in pairs of the primary identity

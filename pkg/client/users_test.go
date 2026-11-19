@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"testing"
 
 	"github.com/aarondl/null/v8"
@@ -562,4 +563,64 @@ func TestUserResponseExternalIDs(t *testing.T) {
 		{Iss: "https://auth.pingone.example.com/as", ID: "ping-000016"},
 	}, u.ExternalIDs)
 	assert.Equal(t, null.StringFrom("000016"), u.ExternalID)
+}
+
+func TestClient_UserByExternalID(t *testing.T) {
+	const (
+		iss        = "https://auth.pingone.example.com/as"
+		externalID = "ping-000016"
+	)
+
+	testResp := func(r []byte) *v1alpha1.User {
+		var u v1alpha1.User
+		if err := json.Unmarshal(r, &u); err != nil {
+			t.Error(err)
+		}
+
+		return &u
+	}
+
+	tests := []struct {
+		name       string
+		statusCode int
+		resp       []byte
+		want       *v1alpha1.User
+		wantErr    error
+	}{
+		{
+			name:       "found",
+			statusCode: http.StatusOK,
+			resp:       []byte("[" + string(testUserResponse) + "]"),
+			want:       testResp(testUserResponse),
+		},
+		{
+			name:       "not found",
+			statusCode: http.StatusOK,
+			resp:       []byte(`[]`),
+			wantErr:    ErrUserNotFound,
+		},
+		{
+			name:       "non-success",
+			statusCode: http.StatusInternalServerError,
+			wantErr:    ErrRequestNonSuccess,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			transport := &mockTransport{t: t, statusCode: tt.statusCode, resp: tt.resp}
+			c := &Client{
+				url:        "https://the.gov",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: transport},
+			}
+
+			got, err := c.UserByExternalID(context.TODO(), iss, externalID)
+
+			assert.ErrorIs(t, err, tt.wantErr)
+			assert.Equal(t, tt.want, got)
+			assert.Equal(t, "/api/v1alpha1/users", transport.Request().URL.Path)
+			assert.Equal(t, url.Values{"external_id": {externalID}, "iss": {iss}}, transport.Request().URL.Query())
+		})
+	}
 }
