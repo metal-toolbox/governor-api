@@ -965,6 +965,56 @@ func (s *ResolveUserTestSuite) TestConcurrentFirstLink() {
 	s.Empty(s.publishedAction())
 }
 
+// TestConcurrentFirstLinkRequests sends two first sign-ins of the same Ping
+// identity at once while another transaction holds the lock on the Okta user,
+// so both requests wait on that lock and race to link once it is released.
+func (s *ResolveUserTestSuite) TestConcurrentFirstLinkRequests() {
+	s.reset()
+
+	reg := prometheus.NewRegistry()
+	r := s.router(reg, configs.IdentityConfig{Enabled: true}, configs.IdentityConfig{Enabled: true, AutoLink: true})
+	s.ping.respond(http.StatusOK, "Okta User", "okta@example.com", "ping-sub")
+
+	ctx := context.Background()
+
+	holder, err := s.db.BeginTx(ctx, nil)
+	s.Require().NoError(err)
+
+	defer func() { _ = holder.Rollback() }()
+
+	_, err = holder.ExecContext(ctx, `SELECT id FROM users WHERE id = $1 FOR UPDATE`, resolveOktaUserID)
+	s.Require().NoError(err)
+
+	cl := claims{s.ping.srv.URL, "ping-sub", "okta@example.com"}
+	results := make(chan resolveResult, 2)
+
+	var wg sync.WaitGroup
+
+	for range 2 {
+		wg.Go(func() {
+			results <- serve(r.mwUserAuthRequired(AuthRoleUser), cl, s.ping.token(s.T(), cl.subject), resolveGroupID)
+		})
+	}
+
+	time.Sleep(500 * time.Millisecond)
+	s.Require().NoError(holder.Rollback())
+
+	wg.Wait()
+	close(results)
+
+	var got []resolveResult
+	for res := range results {
+		got = append(got, res)
+	}
+
+	want := resolveResult{Status: http.StatusOK, Email: "okta@example.com"}
+	s.Equal([]resolveResult{want, want}, got)
+	s.Equal("okta@example.com", s.linkedEmail(s.ping.srv.URL, "ping-sub"))
+	s.Equal(2, s.recordCount(resolveOktaUserID), "the Okta record and one Ping record")
+	s.Equal(map[string]int{"user.external_id.added": 1}, s.auditActions())
+	s.Equal(map[string]float64{s.ping.srv.URL + " hit": 1, s.ping.srv.URL + " linked": 1}, outcomes(s.T(), reg))
+}
+
 // TestFirstSignInLockTimeout holds an uncommitted user with the same email for
 // longer than the lock timeout, so the request gives up and writes nothing.
 func (s *ResolveUserTestSuite) TestFirstSignInLockTimeout() {
