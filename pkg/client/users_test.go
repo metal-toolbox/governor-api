@@ -296,9 +296,9 @@ func TestClient_CreateUser(t *testing.T) {
 				},
 			},
 			req: &v1alpha1.UserReq{
-				ExternalID: "000001",
-				Name:       "John Trumbull",
-				Email:      "jtrumbull@ct.gov",
+				ExternalIDs: &[]dbtools.ExternalIDPair{{Iss: "https://sso.example.com/oauth2/default", ID: "000001"}},
+				Name:        "John Trumbull",
+				Email:       "jtrumbull@ct.gov",
 			},
 			want: testResp(testUserResponse),
 		},
@@ -311,9 +311,9 @@ func TestClient_CreateUser(t *testing.T) {
 				},
 			},
 			req: &v1alpha1.UserReq{
-				ExternalID: "999991",
-				Name:       "Test One",
-				Email:      "test1@test.gov",
+				ExternalIDs: &[]dbtools.ExternalIDPair{{Iss: "https://sso.example.com/oauth2/default", ID: "999991"}},
+				Name:        "Test One",
+				Email:       "test1@test.gov",
 			},
 			wantErr: true,
 		},
@@ -327,9 +327,9 @@ func TestClient_CreateUser(t *testing.T) {
 				},
 			},
 			req: &v1alpha1.UserReq{
-				ExternalID: "999992",
-				Name:       "Test Two",
-				Email:      "test2@test.gov",
+				ExternalIDs: &[]dbtools.ExternalIDPair{{Iss: "https://sso.example.com/oauth2/default", ID: "999992"}},
+				Name:        "Test Two",
+				Email:       "test2@test.gov",
 			},
 			wantErr: true,
 		},
@@ -562,7 +562,7 @@ func TestUserResponseExternalIDs(t *testing.T) {
 		{Iss: "https://sso.example.com/oauth2/default", ID: "000016"},
 		{Iss: "https://auth.pingone.example.com/as", ID: "ping-000016"},
 	}, u.ExternalIDs)
-	assert.Equal(t, null.StringFrom("000016"), u.ExternalID)
+	assert.Equal(t, null.StringFrom("000016"), u.ExternalID) //nolint:staticcheck // clients still decode the deprecated field for one release
 }
 
 func TestClient_UserByExternalID(t *testing.T) {

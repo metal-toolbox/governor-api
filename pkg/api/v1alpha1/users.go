@@ -356,29 +356,8 @@ func (r *Router) createUser(c *gin.Context) {
 		return
 	}
 
-	for _, p := range externalIDs {
-		if _, err := dbtools.AddUserExternalID(c.Request.Context(), tx, user.ID, p.Iss, p.ID); err != nil {
-			if errors.Is(err, dbtools.ErrExternalIDConflict) {
-				rollbackAndSendError(c, tx, http.StatusConflict, "external id already linked to another user")
-				return
-			}
-
-			rollbackAndSendError(c, tx, http.StatusInternalServerError, "error creating user: "+err.Error())
-
-			return
-		}
-	}
-
-	if _, err := auditExternalIDChanges(
-		c.Request.Context(), tx, getCtxAuditID(c), getCtxUser(c), user, externalIDs, nil,
-	); err != nil {
-		rollbackAndSendError(c, tx, http.StatusInternalServerError, "error creating user (audit): "+err.Error())
-		return
-	}
-
-	storedIDs, err := userExternalIDs(c.Request.Context(), tx, user.ID)
-	if err != nil {
-		rollbackAndSendError(c, tx, http.StatusInternalServerError, "error creating user: "+err.Error())
+	storedIDs, ok := addUserExternalIDs(c, tx, user, externalIDs)
+	if !ok {
 		return
 	}
 
@@ -416,6 +395,39 @@ func (r *Router) createUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusAccepted, resp)
+}
+
+// addUserExternalIDs records pairs as the identities of the new user in tx,
+// audits them, and returns the stored identities. On error it rolls tx back,
+// sends the error and returns ok false.
+func addUserExternalIDs(c *gin.Context, tx *sql.Tx, user *models.User, pairs []dbtools.ExternalIDPair) (stored []dbtools.ExternalIDPair, ok bool) {
+	ctx := c.Request.Context()
+
+	for _, p := range pairs {
+		if _, err := dbtools.AddUserExternalID(ctx, tx, user.ID, p.Iss, p.ID); err != nil {
+			if errors.Is(err, dbtools.ErrExternalIDConflict) {
+				rollbackAndSendError(c, tx, http.StatusConflict, "external id already linked to another user")
+				return nil, false
+			}
+
+			rollbackAndSendError(c, tx, http.StatusInternalServerError, "error creating user: "+err.Error())
+
+			return nil, false
+		}
+	}
+
+	if _, err := auditExternalIDChanges(ctx, tx, getCtxAuditID(c), getCtxUser(c), user, pairs, nil); err != nil {
+		rollbackAndSendError(c, tx, http.StatusInternalServerError, "error creating user (audit): "+err.Error())
+		return nil, false
+	}
+
+	stored, err := userExternalIDs(ctx, tx, user.ID)
+	if err != nil {
+		rollbackAndSendError(c, tx, http.StatusInternalServerError, "error creating user: "+err.Error())
+		return nil, false
+	}
+
+	return stored, true
 }
 
 // updateUser updates a user in the database. It is also used to activate a pending user by setting their status
