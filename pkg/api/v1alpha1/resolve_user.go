@@ -329,16 +329,19 @@ func (r *Router) provisionUser(
 
 	pair := dbtools.ExternalIDPair{Iss: ac.Issuer, ID: sub}
 
-	var p *provisioned
+	var (
+		p      *provisioned
+		linked bool
+	)
 
 	if mayLink(ac.Identity) {
-		p, err = linkUser(ctx, tx, auditID, pair, userInfo.Email)
+		p, linked, err = linkUser(ctx, tx, auditID, pair, userInfo.Email)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	if p == nil {
+	if !linked {
 		if !mayRegister(ac.Identity) {
 			return nil, errNotRegistered
 		}
@@ -357,21 +360,23 @@ func (r *Router) provisionUser(
 }
 
 // linkUser adds the identity pair to the active user whose email equals email,
-// ignoring case. It returns nil and no error when there is no such user. The
-// user row stays locked until the transaction ends, so a concurrent first
-// sign-in of the same identity waits here and then sees the committed record.
-func linkUser(ctx context.Context, tx *sqlx.Tx, auditID string, pair dbtools.ExternalIDPair, email string) (*provisioned, error) {
+// ignoring case. found is false when there is no such user. The user row
+// stays locked until the transaction ends, so a concurrent first sign-in of
+// the same identity waits here and then sees the committed record.
+func linkUser(
+	ctx context.Context, tx *sqlx.Tx, auditID string, pair dbtools.ExternalIDPair, email string,
+) (p *provisioned, found bool, err error) {
 	user, err := models.Users(
 		qm.Where("lower(email) = lower(?)", email),
 		qm.Where("(status IS NULL OR status <> ?)", UserStatusSuspended),
 		qm.For("UPDATE"),
 	).One(ctx, tx)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, nil
+		return nil, false, nil
 	}
 
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	existing, err := models.UserExternalIds(
@@ -381,20 +386,20 @@ func linkUser(ctx context.Context, tx *sqlx.Tx, auditID string, pair dbtools.Ext
 
 	switch {
 	case err == nil && existing.ExternalID == pair.ID:
-		return &provisioned{user: user, outcome: metrics.OutcomeHit}, nil
+		return &provisioned{user: user, outcome: metrics.OutcomeHit}, true, nil
 	case err == nil:
-		return nil, errLinkedToOtherIdentity
+		return nil, true, errLinkedToOtherIdentity
 	case !errors.Is(err, sql.ErrNoRows):
-		return nil, err
+		return nil, true, err
 	}
 
 	if _, err := dbtools.AddUserExternalID(ctx, tx, user.ID, pair.Iss, pair.ID); err != nil {
-		return nil, err
+		return nil, true, err
 	}
 
 	event, err := dbtools.AuditUserExternalIDAdded(ctx, tx, auditID, user, user, pair)
 	if err != nil {
-		return nil, err
+		return nil, true, err
 	}
 
 	return &provisioned{
@@ -402,7 +407,7 @@ func linkUser(ctx context.Context, tx *sqlx.Tx, auditID string, pair dbtools.Ext
 		outcome: metrics.OutcomeLinked,
 		event:   event,
 		action:  events.GovernorEventUpdate,
-	}, nil
+	}, true, nil
 }
 
 // registerUser inserts a new user for userInfo with the identity pair.
