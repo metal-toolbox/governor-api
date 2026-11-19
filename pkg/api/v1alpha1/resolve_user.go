@@ -157,7 +157,7 @@ func (r *Router) resolveUser(c *gin.Context, autoProvision bool, mods ...qm.Quer
 
 	observe(p.outcome)
 
-	if p.outcome != metrics.OutcomeHit && !r.announceProvisioned(ctx, c, span, iss, p) {
+	if p.outcome != metrics.OutcomeHit && !r.publishProvisioned(ctx, c, span, iss, p) {
 		return nil, false
 	}
 
@@ -174,10 +174,10 @@ func (r *Router) resolveUser(c *gin.Context, autoProvision bool, mods ...qm.Quer
 	return user, true
 }
 
-// announceProvisioned logs a linked or registered user, adds its audit event
-// to the request audit data and publishes the users event. When it returns
+// publishProvisioned logs a linked or registered user, adds its audit event
+// to the request audit data and publishes the users event on the event bus. When it returns
 // false, it has already sent the error response.
-func (r *Router) announceProvisioned(ctx context.Context, c *gin.Context, span trace.Span, iss string, p *provisioned) bool {
+func (r *Router) publishProvisioned(ctx context.Context, c *gin.Context, span trace.Span, iss string, p *provisioned) bool {
 	r.logResolution(c, span, zap.InfoLevel, iss, p.user.ID, p.outcome)
 
 	if err := updateContextWithAuditEventData(c, p.event); err != nil {
