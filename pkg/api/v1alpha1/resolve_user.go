@@ -307,7 +307,7 @@ func (r *Router) verifiedUserInfo(ctx context.Context, c *gin.Context, sub strin
 	return userInfo, true
 }
 
-// provisionUser links an unknown sign-in from the provider ac to the user
+// provisionUser links an unknown sign-in through provider to the user
 // with the same email, or creates a user for it, with its (issuer, sub) record
 // and audit rows, in one transaction. It returns errEmailExists when a user
 // that may not be linked already has the email, errLinkedToOtherIdentity when
@@ -315,7 +315,7 @@ func (r *Router) verifiedUserInfo(ctx context.Context, c *gin.Context, sub strin
 // was linked and the provider may not create users, and an error matching
 // dbtools.ErrExternalIDConflict when the identity was recorded concurrently.
 func (r *Router) provisionUser(
-	ctx context.Context, auditID string, ac configs.Auth, sub string, userInfo *auth.OIDCUserInfo,
+	ctx context.Context, auditID string, provider configs.Auth, sub string, userInfo *auth.OIDCUserInfo,
 ) (*provisioned, error) {
 	ctx, span := tracer.Start(ctx, "provisionUser")
 	defer span.End()
@@ -338,14 +338,14 @@ func (r *Router) provisionUser(
 		}
 	}
 
-	pair := dbtools.ExternalIDPair{Iss: ac.Issuer, ID: sub}
+	pair := dbtools.ExternalIDPair{Iss: provider.Issuer, ID: sub}
 
 	var (
 		p      *provisioned
 		linked bool
 	)
 
-	if shouldLink(ac.Identity) {
+	if shouldLink(provider.Identity) {
 		p, linked, err = linkUser(ctx, tx, auditID, pair, userInfo.Email)
 		if err != nil {
 			return nil, err
@@ -353,7 +353,7 @@ func (r *Router) provisionUser(
 	}
 
 	if !linked {
-		if !shouldRegister(ac.Identity) {
+		if !shouldRegister(provider.Identity) {
 			return nil, errNotRegistered
 		}
 
