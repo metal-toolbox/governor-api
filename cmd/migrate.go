@@ -90,9 +90,9 @@ func runMigrate(ctx context.Context, db *sql.DB, v *viper.Viper, command string,
 }
 
 // migratePostgres runs a migrate command on PostgreSQL through
-// psqlmigrations.RunContext, which always includes Go migration 00007. Commands
-// that apply or inspect migrations need an oidc provider with identity.enabled;
-// create and fix only write migration files, so they need no oidc config.
+// psqlmigrations.RunContext. Commands that apply or inspect migrations include
+// Go migration 00007 and need an oidc provider with identity.enabled; create
+// and fix only write migration files, so they need no oidc config.
 func migratePostgres(ctx context.Context, db *sql.DB, v *viper.Viper, command string, args []string) error {
 	ctx, span := otel.GetTracerProvider().Tracer(cmdTracerName).Start(ctx, "migratePostgres",
 		trace.WithAttributes(attribute.String("migration.command", command)))
