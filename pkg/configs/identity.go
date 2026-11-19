@@ -51,10 +51,16 @@ func IdentityIssuers(auths []Auth) []string {
 	return issuers
 }
 
-// ValidateIdentityProviders returns ErrNoIdentityProvider when no provider has
-// Identity.Enabled. The error lists the configured issuers, so the operator
-// can pick the one to flag.
+// ValidateIdentityProviders returns an error matching
+// ErrConflictingIdentityConfig when providers that share an issuer have
+// different identity settings, and ErrNoIdentityProvider when no provider has
+// Identity.Enabled. The second error lists the configured issuers, so the
+// operator can pick the one to flag.
 func ValidateIdentityProviders(auths []Auth) error {
+	if err := validateIssuerIdentity(auths); err != nil {
+		return err
+	}
+
 	if len(IdentityIssuers(auths)) > 0 {
 		return nil
 	}
@@ -87,4 +93,37 @@ func PrimaryIdentityIssuer(auths []Auth) (issuer string, ok bool) {
 	}
 
 	return issuers[0], true
+}
+
+// identitySettings is the effective identity behaviour of a provider, with
+// AutoRegister resolved to its default.
+type identitySettings struct {
+	enabled, autoLink, autoRegister bool
+}
+
+func settingsOf(i IdentityConfig) identitySettings {
+	return identitySettings{enabled: i.Enabled, autoLink: i.AutoLink, autoRegister: i.AutoRegisterOrDefault()}
+}
+
+// validateIssuerIdentity returns ErrConflictingIdentityConfig, with the
+// issuer, when two providers with the same issuer have different identity
+// settings.
+func validateIssuerIdentity(auths []Auth) error {
+	first := make(map[string]identitySettings, len(auths))
+
+	for _, a := range auths {
+		got := settingsOf(a.Identity)
+
+		want, seen := first[a.Issuer]
+		if !seen {
+			first[a.Issuer] = got
+			continue
+		}
+
+		if got != want {
+			return fmt.Errorf("%w (issuer: %s)", ErrConflictingIdentityConfig, a.Issuer)
+		}
+	}
+
+	return nil
 }

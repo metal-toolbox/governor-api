@@ -102,6 +102,49 @@ func TestIdentityProviders(t *testing.T) {
 			wantPrimary:   "https://okta",
 			wantPrimaryOK: true,
 		},
+		{
+			name: "same issuer flagged on one audience only",
+			auths: []Auth{
+				authFor("https://okta", "web", false),
+				authFor("https://okta", "cli", true),
+			},
+			wantIssuers:   []string{"https://okta"},
+			wantPrimary:   "https://okta",
+			wantPrimaryOK: true,
+			wantErr:       ErrConflictingIdentityConfig,
+		},
+		{
+			name: "same issuer with different link settings",
+			auths: []Auth{
+				{AuthConfig: ginjwt.AuthConfig{Issuer: "https://ping", Audience: "web"}, Identity: IdentityConfig{Enabled: true}},
+				{AuthConfig: ginjwt.AuthConfig{Issuer: "https://ping", Audience: "cli"}, Identity: IdentityConfig{Enabled: true, AutoLink: true}},
+			},
+			wantIssuers:   []string{"https://ping"},
+			wantPrimary:   "https://ping",
+			wantPrimaryOK: true,
+			wantErr:       ErrConflictingIdentityConfig,
+		},
+		{
+			name: "same issuer with different register settings",
+			auths: []Auth{
+				{AuthConfig: ginjwt.AuthConfig{Issuer: "https://ping", Audience: "web"}, Identity: IdentityConfig{Enabled: true}},
+				{AuthConfig: ginjwt.AuthConfig{Issuer: "https://ping", Audience: "cli"}, Identity: IdentityConfig{Enabled: true, AutoRegister: boolPtr(false)}},
+			},
+			wantIssuers:   []string{"https://ping"},
+			wantPrimary:   "https://ping",
+			wantPrimaryOK: true,
+			wantErr:       ErrConflictingIdentityConfig,
+		},
+		{
+			name: "same issuer with unset and explicit default register setting",
+			auths: []Auth{
+				{AuthConfig: ginjwt.AuthConfig{Issuer: "https://ping", Audience: "web"}, Identity: IdentityConfig{Enabled: true}},
+				{AuthConfig: ginjwt.AuthConfig{Issuer: "https://ping", Audience: "cli"}, Identity: IdentityConfig{Enabled: true, AutoRegister: boolPtr(true)}},
+			},
+			wantIssuers:   []string{"https://ping"},
+			wantPrimary:   "https://ping",
+			wantPrimaryOK: true,
+		},
 	}
 
 	for _, tt := range tests {
