@@ -86,8 +86,7 @@ func (r *Router) listUsers(c *gin.Context) {
 			return
 		}
 
-		switch k {
-		case "email":
+		if k == "email" {
 			// append email queries as case insensitive using LOWER()
 			// Note: This does a table scan by default, but we should be able to add a functional
 			// index if performance is an issue: CREATE INDEX ON users (LOWER(email));
