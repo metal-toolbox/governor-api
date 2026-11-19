@@ -27,7 +27,7 @@ require (
 	github.com/metal-toolbox/iam-runtime v0.4.1
 	github.com/metal-toolbox/iam-runtime-contrib v1.0.1
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/nats-io/nats.go v1.52.0
+	github.com/nats-io/nats.go v1.53.1
 	github.com/peterldowns/pgtestdb v0.1.1
 	github.com/pressly/goose/v3 v3.27.3
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2
@@ -59,7 +59,7 @@ require (
 	github.com/gofrs/flock v0.13.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.29.0 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
-	github.com/klauspost/compress v1.19.1 // indirect
+	github.com/klauspost/compress v1.19.2 // indirect
 	github.com/mfridman/interpolate v0.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
@@ -130,11 +130,13 @@ require (
 	go.opentelemetry.io/otel/trace v1.44.0
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.28.0 // indirect
-	golang.org/x/crypto v0.54.0 // indirect
+	golang.org/x/crypto v0.55.0 // indirect
 	golang.org/x/net v0.57.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
-	golang.org/x/text v0.40.0
+	golang.org/x/text v0.41.0
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/metal-toolbox/hollow-toolbox => /Users/bahe/hollow-toolbox
