@@ -391,8 +391,7 @@ func (b *Backupper) backupPSQL(ctx context.Context) (*BackupPSQL, error) {
 
 	thewholething.UserExternalIDs, err = psqlmodels.UserExternalIds().All(ctx, b.db)
 	if err != nil {
-		b.logger.Error("Failed to backup user external ids", zap.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("backup user external ids: %w", err)
 	}
 
 	b.logger.Info("getting user external ids", zap.Int("count", len(thewholething.UserExternalIDs)))
