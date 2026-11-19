@@ -35,11 +35,11 @@ const (
 )
 
 var (
-	metadataUserPairs = []dbtools.ExternalIDPair{
+	metadataUserPairs = []dbtools.ExternalID{
 		{Iss: testIdentityIssuer, ID: "okta-metadata"},
 		{Iss: usersPingIssuer, ID: "ping-metadata"},
 	}
-	noPairs = []dbtools.ExternalIDPair{}
+	noPairs = []dbtools.ExternalID{}
 )
 
 // identityRouter returns a Router with the test issuer as primary identity
@@ -98,7 +98,7 @@ func serveUserRequest(handler gin.HandlerFunc, method, id, body string, setup ..
 type identityResponse struct {
 	Email       string
 	Status      string
-	ExternalIDs []dbtools.ExternalIDPair
+	ExternalIDs []dbtools.ExternalID
 	ExternalID  null.String
 	Deprecation string
 	Link        string
@@ -121,7 +121,7 @@ func decodeIdentity(t *testing.T, w *httptest.ResponseRecorder) identityResponse
 }
 
 // storedPairs returns the user_external_ids records of the user with email.
-func (s *UserTestSuite) storedPairs(email string) []dbtools.ExternalIDPair {
+func (s *UserTestSuite) storedPairs(email string) []dbtools.ExternalID {
 	s.T().Helper()
 
 	rows, err := s.db.Query(`SELECT uei.iss, uei.external_id FROM user_external_ids uei
@@ -130,10 +130,10 @@ func (s *UserTestSuite) storedPairs(email string) []dbtools.ExternalIDPair {
 
 	defer rows.Close()
 
-	got := []dbtools.ExternalIDPair{}
+	got := []dbtools.ExternalID{}
 
 	for rows.Next() {
-		var p dbtools.ExternalIDPair
+		var p dbtools.ExternalID
 
 		s.Require().NoError(rows.Scan(&p.Iss, &p.ID))
 
@@ -189,7 +189,7 @@ func (s *UserTestSuite) TestCreateUserExternalIDs() {
 			wantResp: identityResponse{
 				Email:       "new@example.com",
 				Status:      UserStatusActive,
-				ExternalIDs: []dbtools.ExternalIDPair{{Iss: testIdentityIssuer, ID: "okta-new"}, {Iss: usersPingIssuer, ID: "ping-new"}},
+				ExternalIDs: []dbtools.ExternalID{{Iss: testIdentityIssuer, ID: "okta-new"}, {Iss: usersPingIssuer, ID: "ping-new"}},
 				ExternalID:  null.StringFrom("okta-new"),
 				Deprecation: "true",
 				Link:        deprecationLink,
@@ -204,7 +204,7 @@ func (s *UserTestSuite) TestCreateUserExternalIDs() {
 			wantResp: identityResponse{
 				Email:       "new@example.com",
 				Status:      UserStatusActive,
-				ExternalIDs: []dbtools.ExternalIDPair{{Iss: testIdentityIssuer, ID: strings.Repeat("a", 256)}, {Iss: usersPingIssuer, ID: "b"}},
+				ExternalIDs: []dbtools.ExternalID{{Iss: testIdentityIssuer, ID: strings.Repeat("a", 256)}, {Iss: usersPingIssuer, ID: "b"}},
 				ExternalID:  null.StringFrom(strings.Repeat("a", 256)),
 				Deprecation: "true",
 				Link:        deprecationLink,
@@ -218,7 +218,7 @@ func (s *UserTestSuite) TestCreateUserExternalIDs() {
 			wantResp: identityResponse{
 				Email:       "new@example.com",
 				Status:      UserStatusActive,
-				ExternalIDs: []dbtools.ExternalIDPair{{Iss: testIdentityIssuer, ID: "okta-new"}},
+				ExternalIDs: []dbtools.ExternalID{{Iss: testIdentityIssuer, ID: "okta-new"}},
 				ExternalID:  null.StringFrom("okta-new"),
 				Deprecation: "true",
 				Link:        deprecationLink,
@@ -404,7 +404,7 @@ func (s *UserTestSuite) TestUpdateUserExternalIDs() {
 		userID    string
 		email     string
 		payload   string
-		wantPairs []dbtools.ExternalIDPair
+		wantPairs []dbtools.ExternalID
 		wantExtID null.String
 		wantAudit map[string]int
 		wantEvent string
@@ -414,7 +414,7 @@ func (s *UserTestSuite) TestUpdateUserExternalIDs() {
 			userID:    usersMetadataUser,
 			email:     "metadata@example.com",
 			payload:   `{"external_ids": [{"iss": "` + usersPingIssuer + `", "id": "ping-metadata"}]}`,
-			wantPairs: []dbtools.ExternalIDPair{{Iss: usersPingIssuer, ID: "ping-metadata"}},
+			wantPairs: []dbtools.ExternalID{{Iss: usersPingIssuer, ID: "ping-metadata"}},
 			wantAudit: map[string]int{"user.external_id.removed": 1},
 			wantEvent: events.GovernorEventUpdate,
 		},
@@ -433,7 +433,7 @@ func (s *UserTestSuite) TestUpdateUserExternalIDs() {
 			userID:  usersMetadataUser,
 			email:   "metadata@example.com",
 			payload: `{"external_id": "okta-new"}`,
-			wantPairs: []dbtools.ExternalIDPair{
+			wantPairs: []dbtools.ExternalID{
 				{Iss: testIdentityIssuer, ID: "okta-new"},
 				{Iss: usersPingIssuer, ID: "ping-metadata"},
 			},
@@ -446,7 +446,7 @@ func (s *UserTestSuite) TestUpdateUserExternalIDs() {
 			userID:    usersTestUserID,
 			email:     "test@example.com",
 			payload:   `{"external_id": "okta-test"}`,
-			wantPairs: []dbtools.ExternalIDPair{{Iss: testIdentityIssuer, ID: "okta-test"}},
+			wantPairs: []dbtools.ExternalID{{Iss: testIdentityIssuer, ID: "okta-test"}},
 			wantExtID: null.StringFrom("okta-test"),
 			wantAudit: map[string]int{"user.external_id.added": 1},
 			wantEvent: events.GovernorEventUpdate,
@@ -465,7 +465,7 @@ func (s *UserTestSuite) TestUpdateUserExternalIDs() {
 			userID:    usersTestUserID,
 			email:     "test@example.com",
 			payload:   `{"name": "Renamed", "external_ids": [{"iss": "` + usersPingIssuer + `", "id": "ping-test"}]}`,
-			wantPairs: []dbtools.ExternalIDPair{{Iss: usersPingIssuer, ID: "ping-test"}},
+			wantPairs: []dbtools.ExternalID{{Iss: usersPingIssuer, ID: "ping-test"}},
 			wantAudit: map[string]int{"user.updated": 1, "user.external_id.added": 1},
 			wantEvent: events.GovernorEventUpdate,
 		},
@@ -491,13 +491,13 @@ func (s *UserTestSuite) TestUpdateUserExternalIDs() {
 }
 
 func (s *UserTestSuite) TestUpdateUserExternalIDsAtIssuerWithoutIdentity() {
-	hydraPair := dbtools.ExternalIDPair{Iss: usersHydraIssuer, ID: "hydra-metadata"}
+	hydraPair := dbtools.ExternalID{Iss: usersHydraIssuer, ID: "hydra-metadata"}
 
 	tests := []struct {
 		name       string
 		payload    string
 		wantStatus int
-		wantPairs  []dbtools.ExternalIDPair
+		wantPairs  []dbtools.ExternalID
 		wantAudit  map[string]int
 		wantEvent  string
 	}{
@@ -507,7 +507,7 @@ func (s *UserTestSuite) TestUpdateUserExternalIDsAtIssuerWithoutIdentity() {
 				{"iss": "` + usersPingIssuer + `", "id": "ping-metadata"},
 				{"iss": "` + usersHydraIssuer + `", "id": "hydra-metadata"}]}`,
 			wantStatus: http.StatusAccepted,
-			wantPairs: []dbtools.ExternalIDPair{
+			wantPairs: []dbtools.ExternalID{
 				hydraPair,
 				{Iss: testIdentityIssuer, ID: "okta-new"},
 				{Iss: usersPingIssuer, ID: "ping-metadata"},
@@ -528,14 +528,14 @@ func (s *UserTestSuite) TestUpdateUserExternalIDsAtIssuerWithoutIdentity() {
 			name:       "a changed record is rejected",
 			payload:    `{"external_ids": [{"iss": "` + usersHydraIssuer + `", "id": "hydra-other"}]}`,
 			wantStatus: http.StatusUnprocessableEntity,
-			wantPairs:  append([]dbtools.ExternalIDPair{hydraPair}, metadataUserPairs...),
+			wantPairs:  append([]dbtools.ExternalID{hydraPair}, metadataUserPairs...),
 			wantAudit:  map[string]int{},
 		},
 		{
 			name:       "the deprecated external id keeps the record",
 			payload:    `{"external_id": "okta-new"}`,
 			wantStatus: http.StatusAccepted,
-			wantPairs: []dbtools.ExternalIDPair{
+			wantPairs: []dbtools.ExternalID{
 				hydraPair,
 				{Iss: testIdentityIssuer, ID: "okta-new"},
 				{Iss: usersPingIssuer, ID: "ping-metadata"},
@@ -791,12 +791,12 @@ func (s *UserTestSuite) TestListUsersExternalIDs() {
 	tests := []struct {
 		name  string
 		query string
-		want  map[string][]dbtools.ExternalIDPair
+		want  map[string][]dbtools.ExternalID
 	}{
 		{
 			name:  "every user has its identities",
 			query: "",
-			want: map[string][]dbtools.ExternalIDPair{
+			want: map[string][]dbtools.ExternalID{
 				"test@example.com":       noPairs,
 				"metadata@example.com":   metadataUserPairs,
 				"deleted-user@abcde.com": noPairs,
@@ -805,27 +805,27 @@ func (s *UserTestSuite) TestListUsersExternalIDs() {
 		{
 			name:  "deprecated external id filter matches any issuer",
 			query: "external_id=ping-metadata",
-			want:  map[string][]dbtools.ExternalIDPair{"metadata@example.com": metadataUserPairs},
+			want:  map[string][]dbtools.ExternalID{"metadata@example.com": metadataUserPairs},
 		},
 		{
 			name:  "deprecated external id filter without a match",
 			query: "external_id=unknown",
-			want:  map[string][]dbtools.ExternalIDPair{},
+			want:  map[string][]dbtools.ExternalID{},
 		},
 		{
 			name:  "external id at its issuer",
 			query: "external_id=ping-metadata&iss=" + url.QueryEscape(usersPingIssuer),
-			want:  map[string][]dbtools.ExternalIDPair{"metadata@example.com": metadataUserPairs},
+			want:  map[string][]dbtools.ExternalID{"metadata@example.com": metadataUserPairs},
 		},
 		{
 			name:  "external id at another issuer",
 			query: "external_id=ping-metadata&iss=" + url.QueryEscape(testIdentityIssuer),
-			want:  map[string][]dbtools.ExternalIDPair{},
+			want:  map[string][]dbtools.ExternalID{},
 		},
 		{
 			name:  "users with a record at an issuer",
 			query: "iss=" + url.QueryEscape(usersPingIssuer),
-			want:  map[string][]dbtools.ExternalIDPair{"metadata@example.com": metadataUserPairs},
+			want:  map[string][]dbtools.ExternalID{"metadata@example.com": metadataUserPairs},
 		},
 	}
 
@@ -843,7 +843,7 @@ func (s *UserTestSuite) TestListUsersExternalIDs() {
 			var users []User
 			s.Require().NoError(json.Unmarshal(w.Body.Bytes(), &users))
 
-			got := map[string][]dbtools.ExternalIDPair{}
+			got := map[string][]dbtools.ExternalID{}
 			for _, u := range users {
 				got[u.Email] = u.ExternalIDs
 			}
@@ -1046,31 +1046,31 @@ func TestValidateExternalIDsAccepted(t *testing.T) {
 	longIssuer := "https://" + strings.Repeat("a", 512-len("https://"))
 
 	tenIssuers := make([]string, 10)
-	tenPairs := make([]dbtools.ExternalIDPair, 10)
+	tenPairs := make([]dbtools.ExternalID, 10)
 
 	for i := range tenIssuers {
 		tenIssuers[i] = "https://idp" + string(rune('a'+i)) + ".example.com"
-		tenPairs[i] = dbtools.ExternalIDPair{Iss: tenIssuers[i], ID: "id"}
+		tenPairs[i] = dbtools.ExternalID{Iss: tenIssuers[i], ID: "id"}
 	}
 
 	tests := []struct {
 		name    string
-		pairs   []dbtools.ExternalIDPair
+		pairs   []dbtools.ExternalID
 		issuers []string
 	}{
 		{
 			name:    "id of 256 characters",
-			pairs:   []dbtools.ExternalIDPair{{Iss: testIdentityIssuer, ID: strings.Repeat("a", 256)}},
+			pairs:   []dbtools.ExternalID{{Iss: testIdentityIssuer, ID: strings.Repeat("a", 256)}},
 			issuers: []string{testIdentityIssuer},
 		},
 		{
 			name:    "id of 1 character",
-			pairs:   []dbtools.ExternalIDPair{{Iss: testIdentityIssuer, ID: "a"}},
+			pairs:   []dbtools.ExternalID{{Iss: testIdentityIssuer, ID: "a"}},
 			issuers: []string{testIdentityIssuer},
 		},
 		{
 			name:    "issuer of 512 characters",
-			pairs:   []dbtools.ExternalIDPair{{Iss: longIssuer, ID: "a"}},
+			pairs:   []dbtools.ExternalID{{Iss: longIssuer, ID: "a"}},
 			issuers: []string{longIssuer},
 		},
 		{
@@ -1080,7 +1080,7 @@ func TestValidateExternalIDsAccepted(t *testing.T) {
 		},
 		{
 			name:    "http issuer",
-			pairs:   []dbtools.ExternalIDPair{{Iss: "http://idp.example.com", ID: "a"}},
+			pairs:   []dbtools.ExternalID{{Iss: "http://idp.example.com", ID: "a"}},
 			issuers: []string{"http://idp.example.com"},
 		},
 	}
@@ -1105,7 +1105,7 @@ func TestUserReqExternalIDsJSON(t *testing.T) {
 		},
 		{
 			name: "empty identities",
-			req:  UserReq{Email: "a@example.com", Name: "A", ExternalIDs: &[]dbtools.ExternalIDPair{}},
+			req:  UserReq{Email: "a@example.com", Name: "A", ExternalIDs: &[]dbtools.ExternalID{}},
 			want: `{"email": "a@example.com", "name": "A", "external_ids": []}`,
 		},
 		{

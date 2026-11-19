@@ -338,7 +338,7 @@ func (r *Router) provisionUser(
 		}
 	}
 
-	pair := dbtools.ExternalIDPair{Iss: provider.Issuer, ID: sub}
+	pair := dbtools.ExternalID{Iss: provider.Issuer, ID: sub}
 
 	var (
 		p      *provisioned
@@ -375,7 +375,7 @@ func (r *Router) provisionUser(
 // stays locked until the transaction ends, so a concurrent first sign-in of
 // the same identity waits here and then sees the committed record.
 func linkUser(
-	ctx context.Context, tx *sqlx.Tx, auditID string, pair dbtools.ExternalIDPair, email string,
+	ctx context.Context, tx *sqlx.Tx, auditID string, pair dbtools.ExternalID, email string,
 ) (p *provisioned, found bool, err error) {
 	user, err := models.Users(
 		qm.Where("lower(email) = lower(?)", email),
@@ -423,7 +423,7 @@ func linkUser(
 
 // registerUser inserts a new user for userInfo with the identity pair.
 func registerUser(
-	ctx context.Context, tx *sqlx.Tx, auditID string, pair dbtools.ExternalIDPair, userInfo *auth.OIDCUserInfo,
+	ctx context.Context, tx *sqlx.Tx, auditID string, pair dbtools.ExternalID, userInfo *auth.OIDCUserInfo,
 ) (*provisioned, error) {
 	newUser := &models.User{
 		Email:       userInfo.Email,

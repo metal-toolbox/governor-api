@@ -195,7 +195,7 @@ func (s *ExternalIDsTestSuite) TestAuditUserExternalIDAdded() {
 	s.Require().NoError(err)
 
 	event, err := AuditUserExternalIDAdded(ctx, s.db, "10000002-0000-0000-0000-000000000001", user, user,
-		ExternalIDPair{Iss: testIdentityIssuer, ID: "sub-two"})
+		ExternalID{Iss: testIdentityIssuer, ID: "sub-two"})
 	s.Require().NoError(err)
 
 	stored, err := models.FindAuditEvent(ctx, s.db, event.ID)
@@ -218,7 +218,7 @@ func (s *ExternalIDsTestSuite) TestAuditUserExternalIDRemoved() {
 	s.Require().NoError(err)
 
 	event, err := AuditUserExternalIDRemoved(ctx, s.db, "10000002-0000-0000-0000-000000000002", actor, user,
-		ExternalIDPair{Iss: testIdentityIssuer, ID: "sub-one"})
+		ExternalID{Iss: testIdentityIssuer, ID: "sub-one"})
 	s.Require().NoError(err)
 
 	stored, err := models.FindAuditEvent(ctx, s.db, event.ID)
@@ -232,7 +232,7 @@ func (s *ExternalIDsTestSuite) TestAuditUserExternalIDRemoved() {
 }
 
 // storedExternalIDs returns every user_external_ids row, keyed by user ID.
-func (s *ExternalIDsTestSuite) storedExternalIDs() map[string][]ExternalIDPair {
+func (s *ExternalIDsTestSuite) storedExternalIDs() map[string][]ExternalID {
 	s.T().Helper()
 
 	rows, err := s.db.Query(`SELECT user_id, iss, external_id FROM user_external_ids ORDER BY user_id, iss`)
@@ -240,12 +240,12 @@ func (s *ExternalIDsTestSuite) storedExternalIDs() map[string][]ExternalIDPair {
 
 	defer rows.Close()
 
-	got := map[string][]ExternalIDPair{}
+	got := map[string][]ExternalID{}
 
 	for rows.Next() {
 		var (
 			userID string
-			p      ExternalIDPair
+			p      ExternalID
 		)
 
 		s.Require().NoError(rows.Scan(&userID, &p.Iss, &p.ID))
@@ -261,47 +261,47 @@ func (s *ExternalIDsTestSuite) storedExternalIDs() map[string][]ExternalIDPair {
 func (s *ExternalIDsTestSuite) TestReplaceUserExternalIDs() {
 	tests := []struct {
 		name        string
-		ids         []ExternalIDPair
-		wantAdded   []ExternalIDPair
-		wantRemoved []ExternalIDPair
-		wantStored  map[string][]ExternalIDPair
+		ids         []ExternalID
+		wantAdded   []ExternalID
+		wantRemoved []ExternalID
+		wantStored  map[string][]ExternalID
 	}{
 		{
 			name:        "same set changes nothing",
-			ids:         []ExternalIDPair{{Iss: testIdentityIssuer, ID: "sub-one"}},
-			wantAdded:   []ExternalIDPair{},
-			wantRemoved: []ExternalIDPair{},
-			wantStored: map[string][]ExternalIDPair{
+			ids:         []ExternalID{{Iss: testIdentityIssuer, ID: "sub-one"}},
+			wantAdded:   []ExternalID{},
+			wantRemoved: []ExternalID{},
+			wantStored: map[string][]ExternalID{
 				extIDUser1:   {{Iss: testIdentityIssuer, ID: "sub-one"}},
 				extIDDeleted: {{Iss: testIdentityIssuer, ID: "sub-deleted"}},
 			},
 		},
 		{
 			name:        "second issuer is added",
-			ids:         []ExternalIDPair{{Iss: testIdentityIssuer, ID: "sub-one"}, {Iss: extIDIssuerB, ID: "sub-one-b"}},
-			wantAdded:   []ExternalIDPair{{Iss: extIDIssuerB, ID: "sub-one-b"}},
-			wantRemoved: []ExternalIDPair{},
-			wantStored: map[string][]ExternalIDPair{
+			ids:         []ExternalID{{Iss: testIdentityIssuer, ID: "sub-one"}, {Iss: extIDIssuerB, ID: "sub-one-b"}},
+			wantAdded:   []ExternalID{{Iss: extIDIssuerB, ID: "sub-one-b"}},
+			wantRemoved: []ExternalID{},
+			wantStored: map[string][]ExternalID{
 				extIDUser1:   {{Iss: testIdentityIssuer, ID: "sub-one"}, {Iss: extIDIssuerB, ID: "sub-one-b"}},
 				extIDDeleted: {{Iss: testIdentityIssuer, ID: "sub-deleted"}},
 			},
 		},
 		{
 			name:        "new id for the same issuer replaces the old one",
-			ids:         []ExternalIDPair{{Iss: testIdentityIssuer, ID: "sub-one-new"}},
-			wantAdded:   []ExternalIDPair{{Iss: testIdentityIssuer, ID: "sub-one-new"}},
-			wantRemoved: []ExternalIDPair{{Iss: testIdentityIssuer, ID: "sub-one"}},
-			wantStored: map[string][]ExternalIDPair{
+			ids:         []ExternalID{{Iss: testIdentityIssuer, ID: "sub-one-new"}},
+			wantAdded:   []ExternalID{{Iss: testIdentityIssuer, ID: "sub-one-new"}},
+			wantRemoved: []ExternalID{{Iss: testIdentityIssuer, ID: "sub-one"}},
+			wantStored: map[string][]ExternalID{
 				extIDUser1:   {{Iss: testIdentityIssuer, ID: "sub-one-new"}},
 				extIDDeleted: {{Iss: testIdentityIssuer, ID: "sub-deleted"}},
 			},
 		},
 		{
 			name:        "empty set removes all",
-			ids:         []ExternalIDPair{},
-			wantAdded:   []ExternalIDPair{},
-			wantRemoved: []ExternalIDPair{{Iss: testIdentityIssuer, ID: "sub-one"}},
-			wantStored: map[string][]ExternalIDPair{
+			ids:         []ExternalID{},
+			wantAdded:   []ExternalID{},
+			wantRemoved: []ExternalID{{Iss: testIdentityIssuer, ID: "sub-one"}},
+			wantStored: map[string][]ExternalID{
 				extIDDeleted: {{Iss: testIdentityIssuer, ID: "sub-deleted"}},
 			},
 		},
@@ -327,14 +327,14 @@ func (s *ExternalIDsTestSuite) TestReplaceUserExternalIDsConflict() {
 	defer func() { s.NoError(tx.Rollback()) }()
 
 	_, _, err = ReplaceUserExternalIDs(context.Background(), tx, extIDUser2,
-		[]ExternalIDPair{{Iss: testIdentityIssuer, ID: "sub-one"}})
+		[]ExternalID{{Iss: testIdentityIssuer, ID: "sub-one"}})
 	s.ErrorIs(err, ErrExternalIDConflict)
 }
 
 func (s *ExternalIDsTestSuite) TestDeleteUserExternalIDs() {
 	s.Require().NoError(DeleteUserExternalIDs(context.Background(), s.db, extIDUser1))
 
-	s.Equal(map[string][]ExternalIDPair{
+	s.Equal(map[string][]ExternalID{
 		extIDDeleted: {{Iss: testIdentityIssuer, ID: "sub-deleted"}},
 	}, s.storedExternalIDs())
 }
@@ -347,17 +347,17 @@ func (s *ExternalIDsTestSuite) TestListUserExternalIDs() {
 	tests := []struct {
 		name    string
 		userIDs []string
-		want    map[string][]ExternalIDPair
+		want    map[string][]ExternalID
 	}{
 		{
 			name:    "no users",
 			userIDs: nil,
-			want:    map[string][]ExternalIDPair{},
+			want:    map[string][]ExternalID{},
 		},
 		{
 			name:    "users with and without records",
 			userIDs: []string{extIDUser1, extIDUser2},
-			want: map[string][]ExternalIDPair{
+			want: map[string][]ExternalID{
 				extIDUser1: {{Iss: testIdentityIssuer, ID: "sub-one"}, {Iss: extIDIssuerB, ID: "sub-one-b"}},
 				extIDUser2: {},
 			},
@@ -437,11 +437,11 @@ func (s *ExternalIDsTestSuite) TestWhereUserHasExternalID() {
 }
 
 func TestPrimaryExternalID(t *testing.T) {
-	pairs := []ExternalIDPair{{Iss: extIDIssuerB, ID: "sub-b"}, {Iss: testIdentityIssuer, ID: "sub-a"}}
+	pairs := []ExternalID{{Iss: extIDIssuerB, ID: "sub-b"}, {Iss: testIdentityIssuer, ID: "sub-a"}}
 
 	tests := []struct {
 		name    string
-		pairs   []ExternalIDPair
+		pairs   []ExternalID
 		primary string
 		want    null.String
 	}{
@@ -461,8 +461,8 @@ func TestExternalIDsSuite(t *testing.T) {
 	suite.Run(t, new(ExternalIDsTestSuite))
 }
 
-func TestExternalIDPairJSON(t *testing.T) {
-	b, err := json.Marshal(ExternalIDPair{Iss: "https://idp.example.com", ID: "sub"})
+func TestExternalIDJSON(t *testing.T) {
+	b, err := json.Marshal(ExternalID{Iss: "https://idp.example.com", ID: "sub"})
 	require.NoError(t, err)
 	assert.JSONEq(t, `{"iss":"https://idp.example.com","id":"sub"}`, string(b))
 }

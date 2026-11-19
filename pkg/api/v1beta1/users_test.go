@@ -84,7 +84,7 @@ func (s *UsersTestSuite) router() *Router {
 
 // listedUser is the part of a listed user that these tests check.
 type listedUser struct {
-	ExternalIDs []dbtools.ExternalIDPair
+	ExternalIDs []dbtools.ExternalID
 	ExternalID  null.String
 }
 
@@ -122,11 +122,11 @@ func (s *UsersTestSuite) listUsers(query string) (int, string, map[string]listed
 
 var (
 	listedAlice = listedUser{
-		ExternalIDs: []dbtools.ExternalIDPair{{Iss: testIdentityIssuer, ID: "okta-alice"}, {Iss: testPingIssuer, ID: "ping-alice"}},
+		ExternalIDs: []dbtools.ExternalID{{Iss: testIdentityIssuer, ID: "okta-alice"}, {Iss: testPingIssuer, ID: "ping-alice"}},
 		ExternalID:  null.StringFrom("okta-alice"),
 	}
 	listedBob = listedUser{
-		ExternalIDs: []dbtools.ExternalIDPair{{Iss: testPingIssuer, ID: "ping-bob"}},
+		ExternalIDs: []dbtools.ExternalID{{Iss: testPingIssuer, ID: "ping-bob"}},
 	}
 )
 

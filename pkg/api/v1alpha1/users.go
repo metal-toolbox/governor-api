@@ -407,7 +407,7 @@ func (r *Router) createUser(c *gin.Context) {
 // addUserExternalIDs records pairs as the identities of the new user in tx,
 // audits them, and returns the stored identities. On error it rolls tx back,
 // sends the error and returns ok false.
-func addUserExternalIDs(c *gin.Context, tx *sql.Tx, user *models.User, pairs []dbtools.ExternalIDPair) (stored []dbtools.ExternalIDPair, ok bool) {
+func addUserExternalIDs(c *gin.Context, tx *sql.Tx, user *models.User, pairs []dbtools.ExternalID) (stored []dbtools.ExternalID, ok bool) {
 	ctx := c.Request.Context()
 
 	for _, p := range pairs {
@@ -699,7 +699,7 @@ func (r *Router) updateUserFields(c *gin.Context, tx *sql.Tx, original, user *mo
 // changed reports whether any identity was added or removed. On error it
 // rolls tx back, sends the error and returns ok false.
 func (r *Router) replaceUserExternalIDs(
-	c *gin.Context, tx *sql.Tx, user *models.User, pairs []dbtools.ExternalIDPair, upsert, auditData bool,
+	c *gin.Context, tx *sql.Tx, user *models.User, pairs []dbtools.ExternalID, upsert, auditData bool,
 ) (changed, ok bool) {
 	ctx := c.Request.Context()
 

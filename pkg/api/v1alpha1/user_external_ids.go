@@ -30,7 +30,7 @@ const (
 // false when req sets none. The deprecated external_id becomes the one
 // identity at the primary identity issuer. Whether each identity may be
 // written is checked against the user's records by checkIdentityIssuers.
-func (r *Router) requestedExternalIDs(req *UserReq) (pairs []dbtools.ExternalIDPair, ok bool, err error) {
+func (r *Router) requestedExternalIDs(req *UserReq) (pairs []dbtools.ExternalID, ok bool, err error) {
 	switch {
 	case req.ExternalID != "" && req.ExternalIDs != nil:
 		return nil, false, errBothExternalIDFields
@@ -39,7 +39,7 @@ func (r *Router) requestedExternalIDs(req *UserReq) (pairs []dbtools.ExternalIDP
 			return nil, false, errNoPrimaryIdentityIssuer
 		}
 
-		pairs = []dbtools.ExternalIDPair{{Iss: r.PrimaryIdentityIssuer, ID: req.ExternalID}}
+		pairs = []dbtools.ExternalID{{Iss: r.PrimaryIdentityIssuer, ID: req.ExternalID}}
 	case req.ExternalIDs != nil:
 		pairs = *req.ExternalIDs
 	default:
@@ -58,7 +58,7 @@ func (r *Router) requestedExternalIDs(req *UserReq) (pairs []dbtools.ExternalIDP
 // current, the user's stored records. A record at such an issuer can never
 // sign in, so it cannot be added or changed, but an unchanged one may be sent
 // back so that a full-set update keeps it.
-func (r *Router) checkIdentityIssuers(pairs, current []dbtools.ExternalIDPair) error {
+func (r *Router) checkIdentityIssuers(pairs, current []dbtools.ExternalID) error {
 	identityIssuers := r.AuthConf.IdentityIssuers()
 
 	for _, p := range pairs {
@@ -89,7 +89,7 @@ func (r *Router) allConfiguredIssuers(issuers []string) bool {
 // validateExternalIDs returns an error matching errInvalidExternalIDs when
 // pairs has more than maxUserExternalIDs entries, an issuer twice, or an entry
 // whose issuer is not one of issuers or whose ID is not a valid external ID.
-func validateExternalIDs(pairs []dbtools.ExternalIDPair, issuers []string) error {
+func validateExternalIDs(pairs []dbtools.ExternalID, issuers []string) error {
 	if len(pairs) > maxUserExternalIDs {
 		return fmt.Errorf("%w: at most %d entries are allowed", errInvalidExternalIDs, maxUserExternalIDs)
 	}
@@ -128,8 +128,8 @@ func validateExternalIDs(pairs []dbtools.ExternalIDPair, issuers []string) error
 }
 
 // upsertExternalID returns current with p in place of the record at p.Iss.
-func upsertExternalID(current []dbtools.ExternalIDPair, p dbtools.ExternalIDPair) []dbtools.ExternalIDPair {
-	out := make([]dbtools.ExternalIDPair, 0, len(current)+1)
+func upsertExternalID(current []dbtools.ExternalID, p dbtools.ExternalID) []dbtools.ExternalID {
+	out := make([]dbtools.ExternalID, 0, len(current)+1)
 
 	for _, c := range current {
 		if c.Iss != p.Iss {
@@ -141,7 +141,7 @@ func upsertExternalID(current []dbtools.ExternalIDPair, p dbtools.ExternalIDPair
 }
 
 // userExternalIDs returns the identities of the user userID, ordered by issuer.
-func userExternalIDs(ctx context.Context, exec boil.ContextExecutor, userID string) ([]dbtools.ExternalIDPair, error) {
+func userExternalIDs(ctx context.Context, exec boil.ContextExecutor, userID string) ([]dbtools.ExternalID, error) {
 	ids, err := dbtools.ListUserExternalIDs(ctx, exec, []string{userID})
 	if err != nil {
 		return nil, err
@@ -153,7 +153,7 @@ func userExternalIDs(ctx context.Context, exec boil.ContextExecutor, userID stri
 // auditExternalIDChanges writes one audit event for each identity added to
 // and removed from u, and returns the events.
 func auditExternalIDChanges(
-	ctx context.Context, exec boil.ContextExecutor, auditID string, actor, u *models.User, added, removed []dbtools.ExternalIDPair,
+	ctx context.Context, exec boil.ContextExecutor, auditID string, actor, u *models.User, added, removed []dbtools.ExternalID,
 ) ([]*models.AuditEvent, error) {
 	evs := make([]*models.AuditEvent, 0, len(added)+len(removed))
 
@@ -180,9 +180,9 @@ func auditExternalIDChanges(
 
 // newUserResponse returns u with its identities pairs and the deprecated
 // external_id computed from them.
-func (r *Router) newUserResponse(u *models.User, pairs []dbtools.ExternalIDPair) *User {
+func (r *Router) newUserResponse(u *models.User, pairs []dbtools.ExternalID) *User {
 	if pairs == nil {
-		pairs = []dbtools.ExternalIDPair{}
+		pairs = []dbtools.ExternalID{}
 	}
 
 	return &User{
