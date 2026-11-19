@@ -14,15 +14,14 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	models "github.com/metal-toolbox/governor-api/internal/models/psql"
+	apitypes "github.com/metal-toolbox/governor-api/pkg/api/types"
 )
 
 var tracer = otel.GetTracerProvider().Tracer("governor-api/dbtools")
 
-// ExternalIDPair is one identity of a user at an identity provider.
-type ExternalIDPair struct {
-	Iss string `json:"iss"`
-	ID  string `json:"id"`
-}
+// ExternalIDPair is one identity of a user at an identity provider. It is the
+// public API type, so that the API responses and requests can carry it.
+type ExternalIDPair = apitypes.ExternalID
 
 // FindUserByExternalID returns the active (not deleted) user that has the
 // identity externalID at the issuer iss. It returns sql.ErrNoRows when there

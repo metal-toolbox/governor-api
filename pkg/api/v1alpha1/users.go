@@ -17,6 +17,7 @@ import (
 
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	models "github.com/metal-toolbox/governor-api/internal/models/psql"
+	apitypes "github.com/metal-toolbox/governor-api/pkg/api/types"
 	events "github.com/metal-toolbox/governor-api/pkg/events/v1alpha1"
 )
 
@@ -38,7 +39,7 @@ type User struct {
 	*models.User
 	// ExternalIDs are the user's identities at the identity providers. It is
 	// an empty array when the user has none.
-	ExternalIDs []dbtools.ExternalIDPair `json:"external_ids"`
+	ExternalIDs []apitypes.ExternalID `json:"external_ids"`
 	// ExternalID is the user's identity at the primary identity provider, the
 	// first oidc provider with identity.enabled, or null.
 	//
@@ -60,12 +61,12 @@ type UserReq struct {
 	ExternalID string `json:"external_id,omitempty"`
 	// ExternalIDs sets the full set of the user's identities. nil leaves them
 	// unchanged on update; an empty array removes them all.
-	ExternalIDs    *[]dbtools.ExternalIDPair `json:"external_ids,omitempty"`
-	GithubID       string                    `json:"github_id,omitempty"`
-	GithubUsername string                    `json:"github_username,omitempty"`
-	Name           string                    `json:"name"`
-	Status         string                    `json:"status,omitempty"`
-	Metadata       *map[string]interface{}   `json:"metadata,omitempty"`
+	ExternalIDs    *[]apitypes.ExternalID  `json:"external_ids,omitempty"`
+	GithubID       string                  `json:"github_id,omitempty"`
+	GithubUsername string                  `json:"github_username,omitempty"`
+	Name           string                  `json:"name"`
+	Status         string                  `json:"status,omitempty"`
+	Metadata       *map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // listUsers responds with the list of all users

@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/url"
 	"testing"
@@ -12,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
-	"github.com/metal-toolbox/governor-api/internal/dbtools"
+	"github.com/metal-toolbox/governor-api/pkg/api/types"
 	"github.com/metal-toolbox/governor-api/pkg/api/v1alpha1"
 	"github.com/metal-toolbox/governor-api/pkg/api/v1beta1"
 )
@@ -281,7 +282,7 @@ func TestClient_CreateUser(t *testing.T) {
 				},
 			},
 			req: &v1alpha1.UserReq{
-				ExternalIDs: &[]dbtools.ExternalIDPair{{Iss: "https://sso.example.com/oauth2/default", ID: "000016"}},
+				ExternalIDs: &[]types.ExternalID{{Iss: "https://sso.example.com/oauth2/default", ID: "000016"}},
 				Name:        "John Trumbull",
 				Email:       "jtrumbull@ct.gov",
 			},
@@ -297,7 +298,7 @@ func TestClient_CreateUser(t *testing.T) {
 				},
 			},
 			req: &v1alpha1.UserReq{
-				ExternalIDs: &[]dbtools.ExternalIDPair{{Iss: "https://sso.example.com/oauth2/default", ID: "000001"}},
+				ExternalIDs: &[]types.ExternalID{{Iss: "https://sso.example.com/oauth2/default", ID: "000001"}},
 				Name:        "John Trumbull",
 				Email:       "jtrumbull@ct.gov",
 			},
@@ -312,7 +313,7 @@ func TestClient_CreateUser(t *testing.T) {
 				},
 			},
 			req: &v1alpha1.UserReq{
-				ExternalIDs: &[]dbtools.ExternalIDPair{{Iss: "https://sso.example.com/oauth2/default", ID: "999991"}},
+				ExternalIDs: &[]types.ExternalID{{Iss: "https://sso.example.com/oauth2/default", ID: "999991"}},
 				Name:        "Test One",
 				Email:       "test1@test.gov",
 			},
@@ -328,7 +329,7 @@ func TestClient_CreateUser(t *testing.T) {
 				},
 			},
 			req: &v1alpha1.UserReq{
-				ExternalIDs: &[]dbtools.ExternalIDPair{{Iss: "https://sso.example.com/oauth2/default", ID: "999992"}},
+				ExternalIDs: &[]types.ExternalID{{Iss: "https://sso.example.com/oauth2/default", ID: "999992"}},
 				Name:        "Test Two",
 				Email:       "test2@test.gov",
 			},
@@ -559,7 +560,7 @@ func TestUserResponseExternalIDs(t *testing.T) {
 	var u v1alpha1.User
 	require.NoError(t, json.Unmarshal(testUserResponse, &u))
 
-	assert.Equal(t, []dbtools.ExternalIDPair{
+	assert.Equal(t, []types.ExternalID{
 		{Iss: "https://sso.example.com/oauth2/default", ID: "000016"},
 		{Iss: "https://auth.pingone.example.com/as", ID: "ping-000016"},
 	}, u.ExternalIDs)
@@ -624,4 +625,34 @@ func TestClient_UserByExternalID(t *testing.T) {
 			assert.Equal(t, url.Values{"external_id": {externalID}, "iss": {iss}}, transport.Request().URL.Query())
 		})
 	}
+}
+
+// TestUserReqExternalIDsFromPublicTypes builds a request with the external
+// IDs type that client modules can import.
+func TestUserReqExternalIDsFromPublicTypes(t *testing.T) {
+	transport := &mockTransport{t: t, statusCode: http.StatusAccepted, resp: testUserResponse}
+	c := &Client{
+		url:        "https://the.gov",
+		logger:     zap.NewNop(),
+		httpClient: &http.Client{Transport: transport},
+	}
+
+	req := &v1alpha1.UserReq{
+		Name:        "John Trumbull",
+		Email:       "jtrumbull@ct.gov",
+		ExternalIDs: &[]types.ExternalID{{Iss: "https://sso.example.com/oauth2/default", ID: "000016"}},
+	}
+
+	got, err := c.CreateUser(context.TODO(), req)
+	require.NoError(t, err)
+
+	body, err := io.ReadAll(transport.Request().Body)
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"name": "John Trumbull", "email": "jtrumbull@ct.gov",
+		"external_ids": [{"iss": "https://sso.example.com/oauth2/default", "id": "000016"}]}`, string(body))
+
+	assert.Equal(t, []types.ExternalID{
+		{Iss: "https://sso.example.com/oauth2/default", ID: "000016"},
+		{Iss: "https://auth.pingone.example.com/as", ID: "ping-000016"},
+	}, got.ExternalIDs)
 }

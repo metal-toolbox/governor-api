@@ -12,6 +12,7 @@ import (
 
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	models "github.com/metal-toolbox/governor-api/internal/models/psql"
+	apitypes "github.com/metal-toolbox/governor-api/pkg/api/types"
 	"github.com/metal-toolbox/governor-api/pkg/configs"
 )
 
@@ -41,7 +42,7 @@ type User struct {
 	*models.User
 	// ExternalIDs are the user's identities at the identity providers. It is
 	// an empty array when the user has none.
-	ExternalIDs []dbtools.ExternalIDPair `json:"external_ids"`
+	ExternalIDs []apitypes.ExternalID `json:"external_ids"`
 	// ExternalID is the user's identity at the primary identity provider, the
 	// first oidc provider with identity.enabled, or null.
 	//
