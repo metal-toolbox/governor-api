@@ -346,6 +346,31 @@ func TestRestoreWithMigrationAfterBackfill(t *testing.T) {
 	assert.Equal(t, int64(psqlmigrations.BackfillVersion), testDBVersion(t, db))
 }
 
+// TestRestoreMigrateWithoutIdentityProvider runs restore --migrate against an
+// empty database with no oidc provider that has identity.enabled. The command
+// must return the same error as serve before it applies any migration or
+// loads any data.
+func TestRestoreMigrateWithoutIdentityProvider(t *testing.T) {
+	db := dbtools.NewPGTestServer(t)
+
+	backup := filepath.Join(t.TempDir(), "backup.json")
+	require.NoError(t, os.WriteFile(backup, []byte(`{"users": [{"id": "00000000-0000-0000-0000-000000000001", "name": "Alice", "email": "alice@example.com"}]}`), 0o600))
+
+	setGlobalConfig(t, noIdentityOIDCConfig, map[string]any{
+		"db.uri":          testDBURI(t, db),
+		"restore.driver":  "postgres",
+		"restore.input":   backup,
+		"restore.migrate": true,
+	})
+
+	restoreCMD.SetContext(context.Background())
+
+	err := restoreCMD.RunE(restoreCMD, nil)
+	require.ErrorIs(t, err, configs.ErrNoIdentityProvider)
+	assert.ErrorContains(t, err, "set identity.enabled: true on the provider that issued the existing user IDs")
+	assert.False(t, hasVersionTable(t, db), "no migration may run")
+}
+
 func TestPrintStatus(t *testing.T) {
 	out := &bytes.Buffer{}
 
