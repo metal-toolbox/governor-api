@@ -44,6 +44,20 @@ func (auths AuthConfigs) Issuers() []string {
 	return issuers
 }
 
+// ByIssuer returns the providers keyed by issuer. When providers share an
+// issuer, the first one in config order stands for all of them.
+func (auths AuthConfigs) ByIssuer() map[string]Auth {
+	byIssuer := make(map[string]Auth, len(auths))
+
+	for _, a := range auths {
+		if _, ok := byIssuer[a.Issuer]; !ok {
+			byIssuer[a.Issuer] = a
+		}
+	}
+
+	return byIssuer
+}
+
 // GetAuthFromFlags builds the auth providers from flags/config. It reuses
 // ginjwt.GetAuthConfigsFromFlags for OIDC parsing, enabled-filtering, and
 // validation, then augments each returned provider with its (optional) Cedar

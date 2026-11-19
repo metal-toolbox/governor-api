@@ -57,13 +57,9 @@ type provisioned struct {
 // entries for one issuer have different identity settings, so the first entry
 // stands for all of them.
 func (r *Router) authConfigFor(iss string) (configs.Auth, bool) {
-	for _, ac := range r.AuthConf {
-		if ac.Issuer == iss {
-			return ac, true
-		}
-	}
+	ac, ok := r.authByIssuer[iss]
 
-	return configs.Auth{}, false
+	return ac, ok
 }
 
 // resolveUser returns the governor user of the signed-in caller, found by the

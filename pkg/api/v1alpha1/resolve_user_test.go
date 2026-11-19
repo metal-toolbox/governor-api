@@ -206,18 +206,20 @@ func (s *ResolveUserTestSuite) router(reg *prometheus.Registry, oktaIdentity, pi
 	core, logs := observer.New(zapcore.DebugLevel)
 	s.logs = logs
 
-	return &Router{
-		AdminGroups: []string{"governor-admin"},
-		AuditMW:     ginaudit.NewJSONMiddleware("governor-api", io.Discard),
-		AuthConf: []configs.Auth{
-			{AuthConfig: ginjwt.AuthConfig{Issuer: s.okta.srv.URL}, Identity: oktaIdentity},
-			{AuthConfig: ginjwt.AuthConfig{Issuer: s.ping.srv.URL}, Identity: pingIdentity},
-		},
+	r := &Router{
+		AdminGroups:    []string{"governor-admin"},
+		AuditMW:        ginaudit.NewJSONMiddleware("governor-api", io.Discard),
 		DB:             sqlx.NewDb(s.db, "postgres"),
 		EventBus:       eventbus.NewClient(eventbus.WithNATSConn(s.conn)),
 		Logger:         zap.New(core),
 		UserResolution: m,
 	}
+	r.SetAuthConf(configs.AuthConfigs{
+		{AuthConfig: ginjwt.AuthConfig{Issuer: s.okta.srv.URL}, Identity: oktaIdentity},
+		{AuthConfig: ginjwt.AuthConfig{Issuer: s.ping.srv.URL}, Identity: pingIdentity},
+	})
+
+	return r
 }
 
 // claims are the verified token claims that the replaced auth middleware puts

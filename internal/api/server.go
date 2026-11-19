@@ -75,13 +75,13 @@ func (s *Server) routers() (*v1alpha.Router, *v1beta.Router) {
 		AdminGroups:           s.Conf.AdminGroups,
 		AuthMW:                s.AuthMW,
 		AuditMW:               s.aumdw,
-		AuthConf:              s.Conf.AuthConf,
 		Logger:                s.Conf.Logger,
 		DB:                    s.DB,
 		EventBus:              s.EventBus,
 		PrimaryIdentityIssuer: primaryIssuer,
 		UserResolution:        s.userResolution,
 	}
+	v1alphaRtr.SetAuthConf(s.Conf.AuthConf)
 
 	v1betaRtr := &v1beta.Router{
 		AdminGroups:           s.Conf.AdminGroups,

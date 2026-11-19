@@ -245,3 +245,28 @@ oidc:
 	assert.Equal(t, IdentityConfig{Enabled: true, AutoLink: true, AutoRegister: boolPtr(false)}, auths[3].Identity)
 	assert.False(t, auths[3].Identity.AutoRegisterOrDefault())
 }
+
+func TestAuthConfigsByIssuer(t *testing.T) {
+	okta := authFor("https://okta", "web", true)
+	oktaCLI := authFor("https://okta", "cli", false)
+	hydra := authFor("https://hydra", "api", false)
+
+	tests := []struct {
+		name  string
+		auths AuthConfigs
+		want  map[string]Auth
+	}{
+		{name: "no providers", auths: nil, want: map[string]Auth{}},
+		{
+			name:  "the first provider of an issuer stands for it",
+			auths: AuthConfigs{okta, hydra, oktaCLI},
+			want:  map[string]Auth{"https://okta": okta, "https://hydra": hydra},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, tt.auths.ByIssuer())
+		})
+	}
+}

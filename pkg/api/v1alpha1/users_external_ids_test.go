@@ -50,11 +50,11 @@ func (s *UserTestSuite) identityRouter(primary string) *Router {
 	identity := configs.IdentityConfig{Enabled: primary != ""}
 
 	r := s.v1alpha1()
-	r.AuthConf = []configs.Auth{
+	r.SetAuthConf(configs.AuthConfigs{
 		{AuthConfig: ginjwt.AuthConfig{Enabled: true, Issuer: testIdentityIssuer}, Identity: identity},
 		{AuthConfig: ginjwt.AuthConfig{Enabled: true, Issuer: usersPingIssuer}, Identity: identity},
 		{AuthConfig: ginjwt.AuthConfig{Enabled: true, Issuer: usersHydraIssuer}},
-	}
+	})
 	r.PrimaryIdentityIssuer = primary
 
 	return r
