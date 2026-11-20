@@ -14,6 +14,7 @@ const (
 	contextKeySubject = "jwt.subject"
 	contextKeyUser    = "jwt.user"
 	contextKeyRoles   = "jwt.roles"
+	contextKeyIssuer  = "jwt.issuer"
 )
 
 // oidcScope is the scope that distinguishes user (OIDC) tokens from workload
@@ -79,7 +80,7 @@ func (v *Verifier) VerifyTokenWithScopes(c *gin.Context, scopes []string) (ginau
 // The MultiTokenMiddleware runs every verifier concurrently against a shared
 // gin.Context, so this must not clobber identity a sibling verifier already set
 // on success. Mirror ginjwt's defensive semantics: write subject/user only when
-// non-empty and never touch roles here. The success path populates context via
+// non-empty and never touch roles or the issuer here. The success path populates context via
 // setContext instead.
 func (v *Verifier) SetMetadata(c *gin.Context, cm ginauth.ClaimMetadata) {
 	if cm.Subject != "" {
@@ -95,6 +96,7 @@ func (v *Verifier) setContext(c *gin.Context, cm ginauth.ClaimMetadata) {
 	c.Set(contextKeySubject, cm.Subject)
 	c.Set(contextKeyUser, cm.User)
 	c.Set(contextKeyRoles, cm.Roles)
+	c.Set(contextKeyIssuer, cm.Issuer)
 }
 
 // mostSpecificScope returns the single resource-qualified scope a route

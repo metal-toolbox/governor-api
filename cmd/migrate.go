@@ -3,16 +3,26 @@ package cmd
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"math"
 
 	_ "github.com/cockroachdb/cockroach-go/v2/crdb/crdbpgxv5" // crdb retries and postgres interface
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 
 	crdbmigrations "github.com/metal-toolbox/governor-api/db/crdb"
 	psqlmigrations "github.com/metal-toolbox/governor-api/db/psql"
+	"github.com/metal-toolbox/governor-api/pkg/configs"
 )
+
+// cmdTracerName names the tracer of the migration spans.
+const cmdTracerName = "github.com/metal-toolbox/governor-api/cmd"
 
 // migrateCmd represents the migrate command
 var migrateCmd = &cobra.Command{
@@ -34,8 +44,8 @@ create NAME [sql|go] Creates new migration file with the current timestamp
 fix                  Apply sequential ordering to migrations
 	`,
 	Args: cobra.MinimumNArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		migrate(cmd.Context(), args[0], args[1:])
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return migrate(cmd.Context(), args[0], args[1:])
 	},
 }
 
@@ -46,37 +56,108 @@ func init() {
 	viperBindFlag("db.driver", migrateCmd.PersistentFlags().Lookup("db-driver"))
 }
 
-func migrate(ctx context.Context, command string, args []string) {
+func migrate(ctx context.Context, command string, args []string) error {
 	db, err := goose.OpenDBWithDriver("postgres", viper.GetString("db.uri"))
 	if err != nil {
-		logger.Fatalw("failed to open DB", "error", err)
+		return fmt.Errorf("open DB: %w", err)
 	}
 
-	defer func() {
-		if err := db.Close(); err != nil {
-			logger.Fatalw("failed to close DB", "error", err)
-		}
-	}()
+	defer db.Close()
 
-	switch viper.GetString("db.driver") {
+	return runMigrate(ctx, db, viper.GetViper(), command, args)
+}
+
+// runMigrate runs a migrate command against db with the driver and oidc
+// providers configured in v.
+func runMigrate(ctx context.Context, db *sql.DB, v *viper.Viper, command string, args []string) error {
+	switch driver := v.GetString("db.driver"); driver {
 	case "postgres":
-		goose.SetBaseFS(psqlmigrations.Migrations)
+		return migratePostgres(ctx, db, v, command, args)
 	case "crdb":
+		// The crdb migrations are SQL only; a Go migration registered for
+		// postgres would collide with their version numbers.
+		goose.ResetGlobalMigrations()
 		goose.SetBaseFS(crdbmigrations.Migrations)
-	default:
-		logger.Fatalw("unsupported database driver", "driver", viper.GetString("db.driver"))
-	}
 
-	if err := goose.RunContext(ctx, command, db, "migrations", args...); err != nil {
-		logger.Fatalw("migrate command failed", "command", command, "error", err)
+		if err := goose.RunContext(ctx, command, db, "migrations", args...); err != nil {
+			return fmt.Errorf("migrate %s: %w", command, err)
+		}
+
+		return nil
+	default:
+		return fmt.Errorf("%w: %s", ErrUnsupportedDBDriver, driver)
 	}
 }
 
-// RunMigration is meant to assist when manually running a migration or when the migration is embedded.
-func RunMigration(db *sql.DB) {
-	goose.SetBaseFS(psqlmigrations.Migrations)
+// migratePostgres runs a migrate command on PostgreSQL through
+// psqlmigrations.RunContext. Commands that apply or inspect migrations include
+// Go migration 00007 and need an oidc provider with identity.enabled; create
+// and fix only write migration files, so they need no oidc config.
+func migratePostgres(ctx context.Context, db *sql.DB, v *viper.Viper, command string, args []string) error {
+	ctx, span := otel.GetTracerProvider().Tracer(cmdTracerName).Start(ctx, "migratePostgres",
+		trace.WithAttributes(attribute.String("migration.command", command)))
+	defer span.End()
 
-	if err := goose.Up(db, "migrations"); err != nil {
-		logger.Fatalw("migration failed", "error", err)
+	var identityIssuers []string
+
+	if !isFileCommand(command) {
+		auths, err := loadAuthConfigs(v)
+		if err != nil {
+			return spanError(span, err)
+		}
+
+		identityIssuers = auths.IdentityIssuers()
 	}
+
+	err := psqlmigrations.RunContext(ctx, db, identityIssuers, command, args, psqlmigrations.WithLogger(logger.Desugar()))
+	if err != nil {
+		return spanError(span, fmt.Errorf("migrate %s: %w", command, err))
+	}
+
+	return nil
+}
+
+// isFileCommand reports whether the goose command only writes migration files
+// and never applies a migration.
+func isFileCommand(command string) bool {
+	return command == "create" || command == "fix"
+}
+
+// RunMigration applies every pending PostgreSQL migration, as the service does
+// at start-up. auths are the oidc providers; migration 00007 needs exactly one
+// of them with identity.enabled when it is still pending.
+func RunMigration(ctx context.Context, db *sql.DB, auths configs.AuthConfigs) error {
+	return migrateTo(ctx, db, auths, "RunMigration", math.MaxInt64)
+}
+
+// migrateTo applies the pending PostgreSQL migrations up to and including
+// version in a span named spanName, and logs each applied migration.
+func migrateTo(ctx context.Context, db *sql.DB, auths configs.AuthConfigs, spanName string, version int64) error {
+	ctx, span := otel.GetTracerProvider().Tracer(cmdTracerName).Start(ctx, spanName,
+		trace.WithAttributes(attribute.Int64("migration.target_version", version)))
+	defer span.End()
+
+	p, err := psqlmigrations.NewProvider(db, auths.IdentityIssuers(), psqlmigrations.WithLogger(logger.Desugar()))
+	if err != nil {
+		return spanError(span, fmt.Errorf("build migration provider: %w", err))
+	}
+
+	results, err := p.UpTo(ctx, version)
+	if err != nil {
+		return spanError(span, fmt.Errorf("run migrations: %w", err))
+	}
+
+	for _, r := range results {
+		logger.Infow("migration applied", "version", r.Source.Version, "duration", r.Duration)
+	}
+
+	return nil
+}
+
+// spanError records err on span, marks the span failed and returns err.
+func spanError(span trace.Span, err error) error {
+	span.RecordError(err)
+	span.SetStatus(codes.Error, err.Error())
+
+	return err
 }

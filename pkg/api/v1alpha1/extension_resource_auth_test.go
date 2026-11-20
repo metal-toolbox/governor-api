@@ -15,12 +15,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/metal-toolbox/auditevent/ginaudit"
-	dbm "github.com/metal-toolbox/governor-api/db/psql"
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	"github.com/metal-toolbox/governor-api/internal/eventbus"
 	models "github.com/metal-toolbox/governor-api/internal/models/psql"
 	"github.com/metal-toolbox/hollow-toolbox/ginauth"
-	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 )
@@ -56,14 +54,14 @@ func (s *ExtensionResourcesGroupAuthTestSuite) seedTestDB() error {
 		VALUES ('00000002-0000-0000-0000-000000000004', 'Other Group', 'other-group', 'other-group', 'some note', now(), now());`,
 
 		// test users
-		`INSERT INTO "users" ("id", "external_id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
-		('00000003-0000-0000-0000-000000000001', NULL, 'Harold Admin', 'hadmin@email.com', 0, NULL, NULL, now(), now(), NULL, NULL, NULL, 'active');`,
-		`INSERT INTO "users" ("id", "external_id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
-		('00000003-0000-0000-0000-000000000002', NULL, 'John User', 'juser@email.com', 0, NULL, NULL, now(), now(), NULL, NULL, NULL, 'active');`,
-		`INSERT INTO "users" ("id", "external_id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
-		('00000003-0000-0000-0000-000000000003', NULL, 'Alice Owner', 'aowner@email.com', 0, NULL, NULL, now(), now(), NULL, NULL, NULL, 'active');`,
-		`INSERT INTO "users" ("id", "external_id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
-		('00000003-0000-0000-0000-000000000004', NULL, 'Bob Regular', 'bregular@email.com', 0, NULL, NULL, now(), now(), NULL, NULL, NULL, 'active');`,
+		`INSERT INTO "users" ("id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
+		('00000003-0000-0000-0000-000000000001', 'Harold Admin', 'hadmin@email.com', 0, NULL, NULL, now(), now(), NULL, NULL, NULL, 'active');`,
+		`INSERT INTO "users" ("id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
+		('00000003-0000-0000-0000-000000000002', 'John User', 'juser@email.com', 0, NULL, NULL, now(), now(), NULL, NULL, NULL, 'active');`,
+		`INSERT INTO "users" ("id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
+		('00000003-0000-0000-0000-000000000003', 'Alice Owner', 'aowner@email.com', 0, NULL, NULL, now(), now(), NULL, NULL, NULL, 'active');`,
+		`INSERT INTO "users" ("id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
+		('00000003-0000-0000-0000-000000000004', 'Bob Regular', 'bregular@email.com', 0, NULL, NULL, now(), now(), NULL, NULL, NULL, 'active');`,
 
 		// group members
 		// 		harold-admin -> governor-admin
@@ -288,9 +286,7 @@ func (s *ExtensionResourcesGroupAuthTestSuite) SetupSuite() {
 
 	s.db = dbtools.NewPGTestServer(s.T())
 
-	goose.SetBaseFS(dbm.Migrations)
-
-	if err := goose.Up(s.db, "migrations"); err != nil {
+	if err := migrateTestDB(s.db); err != nil {
 		panic("migration failed - could not set up test db")
 	}
 

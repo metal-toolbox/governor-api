@@ -15,13 +15,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/metal-toolbox/auditevent/ginaudit"
-	dbm "github.com/metal-toolbox/governor-api/db/psql"
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	"github.com/metal-toolbox/governor-api/internal/eventbus"
 	models "github.com/metal-toolbox/governor-api/internal/models/psql"
 	events "github.com/metal-toolbox/governor-api/pkg/events/v1alpha1"
 	"github.com/metal-toolbox/hollow-toolbox/ginauth"
-	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
@@ -100,9 +98,7 @@ func (s *ExtensionResourceDefinitionsTestSuite) SetupSuite() {
 
 	s.db = dbtools.NewPGTestServer(s.T())
 
-	goose.SetBaseFS(dbm.Migrations)
-
-	if err := goose.Up(s.db, "migrations"); err != nil {
+	if err := migrateTestDB(s.db); err != nil {
 		panic("migration failed - could not set up test db")
 	}
 

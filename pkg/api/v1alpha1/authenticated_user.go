@@ -79,17 +79,23 @@ func (r *Router) getAuthenticatedUser(c *gin.Context) {
 		return
 	}
 
+	externalIDs, err := userExternalIDs(c.Request.Context(), r.DB, ctxUser.ID)
+	if err != nil {
+		sendError(c, http.StatusInternalServerError, "error getting user: "+err.Error())
+		return
+	}
+
+	resp := r.newUserResponse(ctxUser, externalIDs)
+	resp.NotificationPreferences = notificationPreferences
+
+	setExternalIDDeprecation(c)
+
 	if ctxUser.R == nil {
-		c.JSON(http.StatusOK, AuthenticatedUser{
-			User: &User{
-				User:                    ctxUser,
-				Memberships:             []string{},
-				MembershipsDirect:       []string{},
-				MembershipRequests:      []string{},
-				NotificationPreferences: notificationPreferences,
-			},
-			Admin: *ctxAdmin,
-		})
+		resp.Memberships = []string{}
+		resp.MembershipsDirect = []string{}
+		resp.MembershipRequests = []string{}
+
+		c.JSON(http.StatusOK, AuthenticatedUser{User: resp, Admin: *ctxAdmin})
 
 		return
 	}
@@ -117,16 +123,11 @@ func (r *Router) getAuthenticatedUser(c *gin.Context) {
 		requests[i] = r.GroupID
 	}
 
-	c.JSON(http.StatusOK, AuthenticatedUser{
-		User: &User{
-			User:                    ctxUser,
-			Memberships:             memberships,
-			MembershipsDirect:       membershipsDirect,
-			MembershipRequests:      requests,
-			NotificationPreferences: notificationPreferences,
-		},
-		Admin: *ctxAdmin,
-	})
+	resp.Memberships = memberships
+	resp.MembershipsDirect = membershipsDirect
+	resp.MembershipRequests = requests
+
+	c.JSON(http.StatusOK, AuthenticatedUser{User: resp, Admin: *ctxAdmin})
 }
 
 // getAuthenticatedUserGroups returns a list of groups that the authenticated user is a member of
@@ -613,5 +614,12 @@ func (r *Router) updateAuthenticatedUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusAccepted, ctxUser)
+	externalIDs, err := userExternalIDs(c.Request.Context(), r.DB, ctxUser.ID)
+	if err != nil {
+		sendError(c, http.StatusInternalServerError, "error getting user: "+err.Error())
+		return
+	}
+
+	setExternalIDDeprecation(c)
+	c.JSON(http.StatusAccepted, r.newUserResponse(ctxUser, externalIDs))
 }

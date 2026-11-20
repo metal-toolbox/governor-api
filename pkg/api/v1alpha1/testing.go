@@ -7,10 +7,17 @@ import (
 type mockNATSConn struct {
 	Subject string
 	Payload []byte
+
+	// err, when set, is returned by every publish, and nothing is recorded.
+	err error
 }
 
 func (m *mockNATSConn) Drain() error { return nil }
 func (m *mockNATSConn) Publish(s string, p []byte) error {
+	if m.err != nil {
+		return m.err
+	}
+
 	m.Subject = s
 	m.Payload = p
 
@@ -18,6 +25,10 @@ func (m *mockNATSConn) Publish(s string, p []byte) error {
 }
 
 func (m *mockNATSConn) PublishMsg(msg *nats.Msg) error {
+	if m.err != nil {
+		return m.err
+	}
+
 	m.Subject = msg.Subject
 	m.Payload = msg.Data
 

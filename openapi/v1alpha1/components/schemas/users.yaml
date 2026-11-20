@@ -15,7 +15,15 @@ User:
       description: Email address of the user
     external_id:
       type: [string, "null"]
-      description: External ID for the user from the identity provider
+      deprecated: true
+      description: |
+        Deprecated: use external_ids. The user's external ID at the primary identity provider (the first
+        oidc provider with identity.enabled), or null when the user has none there.
+    external_ids:
+      type: array
+      items:
+        $ref: '#/ExternalID'
+      description: The user's identities at the identity providers; an empty array when the user has none
     avatar_url:
       type: 
         - string
@@ -43,6 +51,29 @@ User:
     - created_at
     - updated_at
 
+ExternalID:
+  type: object
+  description: One identity of a user at an identity provider.
+  properties:
+    iss:
+      type: string
+      format: uri
+      maxLength: 512
+      description: |
+        Issuer URL of the identity provider. On create and update, it must equal the issuer of a configured
+        oidc provider with identity.enabled. On update, a pair the user already has at an issuer without
+        identity.enabled may be sent back unchanged.
+      examples: ["https://sso.example.com/oauth2/default"]
+    id:
+      type: string
+      minLength: 1
+      maxLength: 256
+      description: The identity provider's external ID for the user, without leading or trailing spaces
+      examples: ["00u1abcd2EFGH3ijk4x7"]
+  required:
+    - iss
+    - id
+
 UserProfile:
   type: object
   description: |
@@ -60,7 +91,15 @@ UserProfile:
       description: Email address of the user
     external_id:
       type: [string, "null"]
-      description: External ID for the user from the identity provider
+      deprecated: true
+      description: |
+        Deprecated: use external_ids. The user's external ID at the primary identity provider (the first
+        oidc provider with identity.enabled), or null when the user has none there.
+    external_ids:
+      type: array
+      items:
+        $ref: '#/ExternalID'
+      description: The user's identities at the identity providers; an empty array when the user has none
     avatar_url:
       type: [string, "null"]
       description: URL to user's profile image
@@ -165,8 +204,18 @@ UserCreateRequest:
       examples: ["jane.smith@example.com"]
     external_id:
       type: [string, "null"]
-      description: External identity provider user ID
+      deprecated: true
+      description: |
+        Deprecated: use external_ids. The user's external ID at the primary identity provider (the first
+        oidc provider with identity.enabled). Do not combine with external_ids.
       examples: ["auth0|123456789"]
+    external_ids:
+      type: array
+      maxItems: 10
+      items:
+        $ref: '#/ExternalID'
+      description: |
+        The user's identities, at most one for each iss. Do not combine with external_id.
     avatar_url:
       type: [string, "null"]
       description: URL to the user's avatar image
@@ -204,6 +253,20 @@ UserUpdateRequest:
     email:
       type: [string, "null"]
       description: Email address of the user
+    external_id:
+      type: [string, "null"]
+      deprecated: true
+      description: |
+        Deprecated: use external_ids. Sets the user's external ID at the primary identity provider and keeps
+        the identities at other providers. Do not combine with external_ids.
+    external_ids:
+      type: array
+      maxItems: 10
+      items:
+        $ref: '#/ExternalID'
+      description: |
+        Replaces the full set of the user's identities, at most one for each iss; an empty array removes them
+        all. Leave it out to keep them unchanged. Do not combine with external_id.
     avatar_url:
       type: [string, "null"]
       description: URL to the user's avatar image

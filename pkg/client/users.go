@@ -9,6 +9,9 @@ import (
 	"net/url"
 
 	"github.com/goccy/go-json"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/metal-toolbox/governor-api/pkg/api/v1alpha1"
 	"github.com/metal-toolbox/governor-api/pkg/api/v1beta1"
@@ -80,6 +83,30 @@ func (c *Client) UsersQuery(ctx context.Context, query map[string][]string) ([]*
 	}
 
 	return out, nil
+}
+
+// UserByExternalID returns the user that has the identity externalID at the
+// identity provider iss. It returns ErrUserNotFound when there is none.
+func (c *Client) UserByExternalID(ctx context.Context, iss, externalID string) (*v1alpha1.User, error) {
+	ctx, span := tracer.Start(ctx, "UserByExternalID", trace.WithAttributes(attribute.String("iss", iss)))
+	defer span.End()
+
+	users, err := c.UsersQuery(ctx, map[string][]string{
+		"external_id": {externalID},
+		"iss":         {iss},
+	})
+	if err != nil {
+		span.SetStatus(codes.Error, "failed to query users")
+		span.RecordError(err)
+
+		return nil, err
+	}
+
+	if len(users) == 0 {
+		return nil, ErrUserNotFound
+	}
+
+	return users[0], nil
 }
 
 // User gets the details of a user from governor

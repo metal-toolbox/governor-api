@@ -26,7 +26,6 @@ import (
 // User is an object representing the database table.
 type User struct {
 	ID             string      `boil:"id" json:"id" toml:"id" yaml:"id"`
-	ExternalID     null.String `boil:"external_id" json:"external_id,omitempty" toml:"external_id" yaml:"external_id,omitempty"`
 	Name           string      `boil:"name" json:"name" toml:"name" yaml:"name"`
 	Email          string      `boil:"email" json:"email" toml:"email" yaml:"email"`
 	LoginCount     int64       `boil:"login_count" json:"login_count" toml:"login_count" yaml:"login_count"`
@@ -46,7 +45,6 @@ type User struct {
 
 var UserColumns = struct {
 	ID             string
-	ExternalID     string
 	Name           string
 	Email          string
 	LoginCount     string
@@ -61,7 +59,6 @@ var UserColumns = struct {
 	Metadata       string
 }{
 	ID:             "id",
-	ExternalID:     "external_id",
 	Name:           "name",
 	Email:          "email",
 	LoginCount:     "login_count",
@@ -78,7 +75,6 @@ var UserColumns = struct {
 
 var UserTableColumns = struct {
 	ID             string
-	ExternalID     string
 	Name           string
 	Email          string
 	LoginCount     string
@@ -93,7 +89,6 @@ var UserTableColumns = struct {
 	Metadata       string
 }{
 	ID:             "users.id",
-	ExternalID:     "users.external_id",
 	Name:           "users.name",
 	Email:          "users.email",
 	LoginCount:     "users.login_count",
@@ -150,7 +145,6 @@ func (w whereHelpernull_Int64) IsNotNull() qm.QueryMod { return qmhelper.WhereIs
 
 var UserWhere = struct {
 	ID             whereHelperstring
-	ExternalID     whereHelpernull_String
 	Name           whereHelperstring
 	Email          whereHelperstring
 	LoginCount     whereHelperint64
@@ -165,7 +159,6 @@ var UserWhere = struct {
 	Metadata       whereHelpertypes_JSON
 }{
 	ID:             whereHelperstring{field: "\"users\".\"id\""},
-	ExternalID:     whereHelpernull_String{field: "\"users\".\"external_id\""},
 	Name:           whereHelperstring{field: "\"users\".\"name\""},
 	Email:          whereHelperstring{field: "\"users\".\"email\""},
 	LoginCount:     whereHelperint64{field: "\"users\".\"login_count\""},
@@ -189,6 +182,7 @@ var UserRels = struct {
 	GroupMemberships                      string
 	NotificationPreferences               string
 	UserExtensionResources                string
+	UserExternalIds                       string
 }{
 	ActorAuditEvents:                      "ActorAuditEvents",
 	SubjectUserAuditEvents:                "SubjectUserAuditEvents",
@@ -197,6 +191,7 @@ var UserRels = struct {
 	GroupMemberships:                      "GroupMemberships",
 	NotificationPreferences:               "NotificationPreferences",
 	UserExtensionResources:                "UserExtensionResources",
+	UserExternalIds:                       "UserExternalIds",
 }
 
 // userR is where relationships are stored.
@@ -208,6 +203,7 @@ type userR struct {
 	GroupMemberships                      GroupMembershipSlice         `boil:"GroupMemberships" json:"GroupMemberships" toml:"GroupMemberships" yaml:"GroupMemberships"`
 	NotificationPreferences               NotificationPreferenceSlice  `boil:"NotificationPreferences" json:"NotificationPreferences" toml:"NotificationPreferences" yaml:"NotificationPreferences"`
 	UserExtensionResources                UserExtensionResourceSlice   `boil:"UserExtensionResources" json:"UserExtensionResources" toml:"UserExtensionResources" yaml:"UserExtensionResources"`
+	UserExternalIds                       UserExternalIDSlice          `boil:"UserExternalIds" json:"UserExternalIds" toml:"UserExternalIds" yaml:"UserExternalIds"`
 }
 
 // NewStruct creates a new relationship struct
@@ -327,13 +323,29 @@ func (r *userR) GetUserExtensionResources() UserExtensionResourceSlice {
 	return r.UserExtensionResources
 }
 
+func (o *User) GetUserExternalIds() UserExternalIDSlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetUserExternalIds()
+}
+
+func (r *userR) GetUserExternalIds() UserExternalIDSlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.UserExternalIds
+}
+
 // userL is where Load methods for each relationship are stored.
 type userL struct{}
 
 var (
-	userAllColumns            = []string{"id", "external_id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status", "metadata"}
+	userAllColumns            = []string{"id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status", "metadata"}
 	userColumnsWithoutDefault = []string{"name", "email", "created_at", "updated_at"}
-	userColumnsWithDefault    = []string{"id", "external_id", "login_count", "avatar_url", "last_login_at", "github_id", "github_username", "deleted_at", "status", "metadata"}
+	userColumnsWithDefault    = []string{"id", "login_count", "avatar_url", "last_login_at", "github_id", "github_username", "deleted_at", "status", "metadata"}
 	userPrimaryKeyColumns     = []string{"id"}
 	userGeneratedColumns      = []string{}
 )
@@ -739,6 +751,20 @@ func (o *User) UserExtensionResources(mods ...qm.QueryMod) userExtensionResource
 	)
 
 	return UserExtensionResources(queryMods...)
+}
+
+// UserExternalIds retrieves all the user_external_id's UserExternalIds with an executor.
+func (o *User) UserExternalIds(mods ...qm.QueryMod) userExternalIDQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"user_external_ids\".\"user_id\"=?", o.ID),
+	)
+
+	return UserExternalIds(queryMods...)
 }
 
 // LoadActorAuditEvents allows an eager lookup of values, cached into the
@@ -1533,6 +1559,119 @@ func (userL) LoadUserExtensionResources(ctx context.Context, e boil.ContextExecu
 	return nil
 }
 
+// LoadUserExternalIds allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (userL) LoadUserExternalIds(ctx context.Context, e boil.ContextExecutor, singular bool, maybeUser interface{}, mods queries.Applicator) error {
+	var slice []*User
+	var object *User
+
+	if singular {
+		var ok bool
+		object, ok = maybeUser.(*User)
+		if !ok {
+			object = new(User)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeUser)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeUser))
+			}
+		}
+	} else {
+		s, ok := maybeUser.(*[]*User)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeUser)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeUser))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &userR{}
+		}
+		args[object.ID] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &userR{}
+			}
+			args[obj.ID] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`user_external_ids`),
+		qm.WhereIn(`user_external_ids.user_id in ?`, argsSlice...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load user_external_ids")
+	}
+
+	var resultSlice []*UserExternalID
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice user_external_ids")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on user_external_ids")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for user_external_ids")
+	}
+
+	if len(userExternalIDAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.UserExternalIds = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &userExternalIDR{}
+			}
+			foreign.R.User = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.UserID {
+				local.R.UserExternalIds = append(local.R.UserExternalIds, foreign)
+				if foreign.R == nil {
+					foreign.R = &userExternalIDR{}
+				}
+				foreign.R.User = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
 // AddActorAuditEvents adds the given related objects to the existing relationships
 // of the user, optionally inserting them as new records.
 // Appends related to o.R.ActorAuditEvents.
@@ -2043,6 +2182,59 @@ func (o *User) AddUserExtensionResources(ctx context.Context, exec boil.ContextE
 	for _, rel := range related {
 		if rel.R == nil {
 			rel.R = &userExtensionResourceR{
+				User: o,
+			}
+		} else {
+			rel.R.User = o
+		}
+	}
+	return nil
+}
+
+// AddUserExternalIds adds the given related objects to the existing relationships
+// of the user, optionally inserting them as new records.
+// Appends related to o.R.UserExternalIds.
+// Sets related.R.User appropriately.
+func (o *User) AddUserExternalIds(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*UserExternalID) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.UserID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"user_external_ids\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"user_id"}),
+				strmangle.WhereClause("\"", "\"", 2, userExternalIDPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.UserID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &userR{
+			UserExternalIds: related,
+		}
+	} else {
+		o.R.UserExternalIds = append(o.R.UserExternalIds, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &userExternalIDR{
 				User: o,
 			}
 		} else {

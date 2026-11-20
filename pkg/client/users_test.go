@@ -3,12 +3,17 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
+	"net/url"
 	"testing"
 
+	"github.com/aarondl/null/v8"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
+	"github.com/metal-toolbox/governor-api/pkg/api/types"
 	"github.com/metal-toolbox/governor-api/pkg/api/v1alpha1"
 	"github.com/metal-toolbox/governor-api/pkg/api/v1beta1"
 )
@@ -277,9 +282,9 @@ func TestClient_CreateUser(t *testing.T) {
 				},
 			},
 			req: &v1alpha1.UserReq{
-				ExternalID: "000001",
-				Name:       "John Trumbull",
-				Email:      "jtrumbull@ct.gov",
+				ExternalIDs: &[]types.ExternalID{{Iss: "https://sso.example.com/oauth2/default", ID: "000016"}},
+				Name:        "John Trumbull",
+				Email:       "jtrumbull@ct.gov",
 			},
 			want: testResp(testUserResponse),
 		},
@@ -293,9 +298,9 @@ func TestClient_CreateUser(t *testing.T) {
 				},
 			},
 			req: &v1alpha1.UserReq{
-				ExternalID: "000001",
-				Name:       "John Trumbull",
-				Email:      "jtrumbull@ct.gov",
+				ExternalIDs: &[]types.ExternalID{{Iss: "https://sso.example.com/oauth2/default", ID: "000001"}},
+				Name:        "John Trumbull",
+				Email:       "jtrumbull@ct.gov",
 			},
 			want: testResp(testUserResponse),
 		},
@@ -308,9 +313,9 @@ func TestClient_CreateUser(t *testing.T) {
 				},
 			},
 			req: &v1alpha1.UserReq{
-				ExternalID: "999991",
-				Name:       "Test One",
-				Email:      "test1@test.gov",
+				ExternalIDs: &[]types.ExternalID{{Iss: "https://sso.example.com/oauth2/default", ID: "999991"}},
+				Name:        "Test One",
+				Email:       "test1@test.gov",
 			},
 			wantErr: true,
 		},
@@ -324,9 +329,9 @@ func TestClient_CreateUser(t *testing.T) {
 				},
 			},
 			req: &v1alpha1.UserReq{
-				ExternalID: "999992",
-				Name:       "Test Two",
-				Email:      "test2@test.gov",
+				ExternalIDs: &[]types.ExternalID{{Iss: "https://sso.example.com/oauth2/default", ID: "999992"}},
+				Name:        "Test Two",
+				Email:       "test2@test.gov",
 			},
 			wantErr: true,
 		},
@@ -549,4 +554,105 @@ func TestClient_UpdateUser(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func TestUserResponseExternalIDs(t *testing.T) {
+	var u v1alpha1.User
+	require.NoError(t, json.Unmarshal(testUserResponse, &u))
+
+	assert.Equal(t, []types.ExternalID{
+		{Iss: "https://sso.example.com/oauth2/default", ID: "000016"},
+		{Iss: "https://auth.pingone.example.com/as", ID: "ping-000016"},
+	}, u.ExternalIDs)
+	assert.Equal(t, null.StringFrom("000016"), u.ExternalID) //nolint:staticcheck // clients still decode the deprecated field for one release
+}
+
+func TestClient_UserByExternalID(t *testing.T) {
+	const (
+		iss        = "https://auth.pingone.example.com/as"
+		externalID = "ping-000016"
+	)
+
+	testResp := func(r []byte) *v1alpha1.User {
+		var u v1alpha1.User
+		if err := json.Unmarshal(r, &u); err != nil {
+			t.Error(err)
+		}
+
+		return &u
+	}
+
+	tests := []struct {
+		name       string
+		statusCode int
+		resp       []byte
+		want       *v1alpha1.User
+		wantErr    error
+	}{
+		{
+			name:       "found",
+			statusCode: http.StatusOK,
+			resp:       []byte("[" + string(testUserResponse) + "]"),
+			want:       testResp(testUserResponse),
+		},
+		{
+			name:       "not found",
+			statusCode: http.StatusOK,
+			resp:       []byte(`[]`),
+			wantErr:    ErrUserNotFound,
+		},
+		{
+			name:       "non-success",
+			statusCode: http.StatusInternalServerError,
+			wantErr:    ErrRequestNonSuccess,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			transport := &mockTransport{t: t, statusCode: tt.statusCode, resp: tt.resp}
+			c := &Client{
+				url:        "https://the.gov",
+				logger:     zap.NewNop(),
+				httpClient: &http.Client{Transport: transport},
+			}
+
+			got, err := c.UserByExternalID(context.TODO(), iss, externalID)
+
+			assert.ErrorIs(t, err, tt.wantErr)
+			assert.Equal(t, tt.want, got)
+			assert.Equal(t, "/api/v1alpha1/users", transport.Request().URL.Path)
+			assert.Equal(t, url.Values{"external_id": {externalID}, "iss": {iss}}, transport.Request().URL.Query())
+		})
+	}
+}
+
+// TestUserReqExternalIDsFromPublicTypes builds a request with the external
+// IDs type that client modules can import.
+func TestUserReqExternalIDsFromPublicTypes(t *testing.T) {
+	transport := &mockTransport{t: t, statusCode: http.StatusAccepted, resp: testUserResponse}
+	c := &Client{
+		url:        "https://the.gov",
+		logger:     zap.NewNop(),
+		httpClient: &http.Client{Transport: transport},
+	}
+
+	req := &v1alpha1.UserReq{
+		Name:        "John Trumbull",
+		Email:       "jtrumbull@ct.gov",
+		ExternalIDs: &[]types.ExternalID{{Iss: "https://sso.example.com/oauth2/default", ID: "000016"}},
+	}
+
+	got, err := c.CreateUser(context.TODO(), req)
+	require.NoError(t, err)
+
+	body, err := io.ReadAll(transport.Request().Body)
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"name": "John Trumbull", "email": "jtrumbull@ct.gov",
+		"external_ids": [{"iss": "https://sso.example.com/oauth2/default", "id": "000016"}]}`, string(body))
+
+	assert.Equal(t, []types.ExternalID{
+		{Iss: "https://sso.example.com/oauth2/default", ID: "000016"},
+		{Iss: "https://auth.pingone.example.com/as", ID: "ping-000016"},
+	}, got.ExternalIDs)
 }

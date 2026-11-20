@@ -34,6 +34,25 @@ var (
 	ErrBadRequest = errors.New("bad request")
 	// ErrRemoveActiveRecord is returned when trying to remove an active record
 	ErrRemoveActiveRecord = fmt.Errorf("%w: cannot remove active record", ErrBadRequest)
+
+	// errEmailExists is returned when a first sign-in would register a user
+	// whose email belongs to an existing user.
+	errEmailExists = errors.New("a user with this email exists")
+	// errLinkedToOtherIdentity is returned when a first sign-in matches a user
+	// by email that already has a different identity at the same issuer.
+	errLinkedToOtherIdentity = errors.New("user already linked to a different identity for this issuer")
+	// errNotRegistered is returned when a first sign-in matches no user and the
+	// provider may not create one.
+	errNotRegistered = errors.New("user not registered")
+	// errBothExternalIDFields is returned when a user request sets both the
+	// deprecated external_id and external_ids.
+	errBothExternalIDFields = errors.New("use either external_id or external_ids, not both")
+	// errNoPrimaryIdentityIssuer is returned when a user request sets the
+	// deprecated external_id and no provider has identity.enabled to map it to.
+	errNoPrimaryIdentityIssuer = errors.New("external_id needs an oidc provider with identity.enabled; use external_ids")
+	// errInvalidExternalIDs is returned when the external_ids of a user request
+	// break a constraint; the wrapping error names it.
+	errInvalidExternalIDs = errors.New("invalid external_ids")
 )
 
 func sendError(c *gin.Context, code int, msg string) {

@@ -17,6 +17,7 @@ import (
 
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	models "github.com/metal-toolbox/governor-api/internal/models/psql"
+	apitypes "github.com/metal-toolbox/governor-api/pkg/api/types"
 	events "github.com/metal-toolbox/governor-api/pkg/events/v1alpha1"
 )
 
@@ -31,11 +32,19 @@ const (
 	UserStatusSuspended = "suspended"
 )
 
-var permittedListUsersParams = []string{"external_id", "email", "metadata"}
+var permittedListUsersParams = []string{"external_id", "iss", "email", "metadata"}
 
 // User is a user response
 type User struct {
 	*models.User
+	// ExternalIDs are the user's identities at the identity providers. It is
+	// an empty array when the user has none.
+	ExternalIDs []apitypes.ExternalID `json:"external_ids"`
+	// ExternalID is the user's identity at the primary identity provider, the
+	// first oidc provider with identity.enabled, or null.
+	//
+	// Deprecated: use ExternalIDs.
+	ExternalID              null.String                         `json:"external_id"`
 	Memberships             []string                            `json:"memberships,omitempty"`
 	MembershipsDirect       []string                            `json:"memberships_direct,omitempty"`
 	MembershipRequests      []string                            `json:"membership_requests,omitempty"`
@@ -44,9 +53,15 @@ type User struct {
 
 // UserReq is a user request payload
 type UserReq struct {
-	AvatarURL      string                  `json:"avatar_url,omitempty"`
-	Email          string                  `json:"email"`
-	ExternalID     string                  `json:"external_id"`
+	AvatarURL string `json:"avatar_url,omitempty"`
+	Email     string `json:"email"`
+	// ExternalID sets the user's identity at the primary identity provider.
+	//
+	// Deprecated: use ExternalIDs.
+	ExternalID string `json:"external_id,omitempty"`
+	// ExternalIDs sets the full set of the user's identities. nil leaves them
+	// unchanged on update; an empty array removes them all.
+	ExternalIDs    *[]apitypes.ExternalID  `json:"external_ids,omitempty"`
 	GithubID       string                  `json:"github_id,omitempty"`
 	GithubUsername string                  `json:"github_username,omitempty"`
 	Name           string                  `json:"name"`
@@ -57,6 +72,12 @@ type UserReq struct {
 // listUsers responds with the list of all users
 func (r *Router) listUsers(c *gin.Context) {
 	queryMods := []qm.QueryMod{}
+
+	filterIssuers, filterIDs := c.QueryArray("iss"), c.QueryArray("external_id")
+	if !r.allConfiguredIssuers(filterIssuers) {
+		sendError(c, http.StatusUnprocessableEntity, "invalid iss: not a configured issuer")
+		return
+	}
 
 	for k, val := range c.Request.URL.Query() {
 		r.Logger.Debug("checking query", zap.String("url.query.key", k), zap.Strings("url.query.value", val))
@@ -99,9 +120,15 @@ func (r *Router) listUsers(c *gin.Context) {
 			}
 
 			queryMods = append(queryMods, qms...)
+		case "external_id", "iss":
+			// both filter one EXISTS subquery, added once after the loop
 		default:
 			queryMods = append(queryMods, qm.Or2(qm.WhereIn(k+" IN ?", convertedVals...)))
 		}
+	}
+
+	if len(filterIssuers) > 0 || len(filterIDs) > 0 {
+		queryMods = append(queryMods, qm.Or2(dbtools.WhereUserHasExternalID(filterIssuers, filterIDs)))
 	}
 
 	users, err := models.Users(queryMods...).All(c.Request.Context(), r.DB)
@@ -112,7 +139,26 @@ func (r *Router) listUsers(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, users)
+	ids := make([]string, len(users))
+	for i, u := range users {
+		ids[i] = u.ID
+	}
+
+	externalIDs, err := dbtools.ListUserExternalIDs(c.Request.Context(), r.DB, ids)
+	if err != nil {
+		r.Logger.Error("error fetching user external ids", zap.Error(err))
+		sendError(c, http.StatusBadRequest, "error fetching users: "+err.Error())
+
+		return
+	}
+
+	resp := make([]*User, len(users))
+	for i, u := range users {
+		resp[i] = r.newUserResponse(u, externalIDs[u.ID])
+	}
+
+	setExternalIDDeprecation(c)
+	c.JSON(http.StatusOK, resp)
 }
 
 // getUser gets a user
@@ -169,13 +215,20 @@ func (r *Router) getUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, User{
-		User:                    user,
-		Memberships:             memberships,
-		MembershipsDirect:       membershipsDirect,
-		MembershipRequests:      requests,
-		NotificationPreferences: notificationPreferences,
-	})
+	externalIDs, err := userExternalIDs(c.Request.Context(), r.DB, user.ID)
+	if err != nil {
+		sendError(c, http.StatusInternalServerError, "error getting user: "+err.Error())
+		return
+	}
+
+	resp := r.newUserResponse(user, externalIDs)
+	resp.Memberships = memberships
+	resp.MembershipsDirect = membershipsDirect
+	resp.MembershipRequests = requests
+	resp.NotificationPreferences = notificationPreferences
+
+	setExternalIDDeprecation(c)
+	c.JSON(http.StatusOK, resp)
 }
 
 // createUser creates a user in the database
@@ -194,6 +247,16 @@ func (r *Router) createUser(c *gin.Context) {
 
 	if req.Name == "" {
 		sendError(c, http.StatusBadRequest, "missing name in user request")
+		return
+	}
+
+	externalIDs, _, err := r.requestedExternalIDs(&req)
+	if err == nil {
+		err = r.checkIdentityIssuers(externalIDs, nil)
+	}
+
+	if err != nil {
+		sendError(c, http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 
@@ -217,10 +280,6 @@ func (r *Router) createUser(c *gin.Context) {
 	}
 
 	// add optional parameters
-	if req.ExternalID != "" {
-		user.ExternalID = null.StringFrom(req.ExternalID)
-	}
-
 	if req.AvatarURL != "" {
 		user.AvatarURL = null.StringFrom(req.AvatarURL)
 	}
@@ -243,8 +302,8 @@ func (r *Router) createUser(c *gin.Context) {
 		user.Status = null.StringFrom(req.Status)
 	}
 
-	// if the user has no external_id and the status is not explicitly set, we assume it's pending
-	if req.ExternalID == "" && req.Status == "" {
+	// if the user has no external IDs and the status is not explicitly set, we assume it's pending
+	if len(externalIDs) == 0 && req.Status == "" {
 		user.Status = null.StringFrom(UserStatusPending)
 	}
 
@@ -304,6 +363,13 @@ func (r *Router) createUser(c *gin.Context) {
 		return
 	}
 
+	storedIDs, ok := addUserExternalIDs(c, tx, user, externalIDs)
+	if !ok {
+		return
+	}
+
+	resp := r.newUserResponse(user, storedIDs)
+
 	if err := tx.Commit(); err != nil {
 		msg := "error committing user create, rolling back: " + err.Error()
 		if err := tx.Rollback(); err != nil {
@@ -315,9 +381,11 @@ func (r *Router) createUser(c *gin.Context) {
 		return
 	}
 
+	setExternalIDDeprecation(c)
+
 	// only publish events for active users
 	if !isActiveUser(user) {
-		c.JSON(http.StatusAccepted, user)
+		c.JSON(http.StatusAccepted, resp)
 		return
 	}
 
@@ -333,7 +401,40 @@ func (r *Router) createUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusAccepted, user)
+	c.JSON(http.StatusAccepted, resp)
+}
+
+// addUserExternalIDs records pairs as the identities of the new user in tx,
+// audits them, and returns the stored identities. On error it rolls tx back,
+// sends the error and returns ok false.
+func addUserExternalIDs(c *gin.Context, tx *sql.Tx, user *models.User, pairs []dbtools.ExternalID) (stored []dbtools.ExternalID, ok bool) {
+	ctx := c.Request.Context()
+
+	for _, p := range pairs {
+		if _, err := dbtools.AddUserExternalID(ctx, tx, user.ID, p.Iss, p.ID); err != nil {
+			if errors.Is(err, dbtools.ErrExternalIDConflict) {
+				rollbackAndSendError(c, tx, http.StatusConflict, "external id already linked to another user")
+				return nil, false
+			}
+
+			rollbackAndSendError(c, tx, http.StatusInternalServerError, "error creating user: "+err.Error())
+
+			return nil, false
+		}
+	}
+
+	if _, err := auditExternalIDChanges(ctx, tx, getCtxAuditID(c), getCtxUser(c), user, pairs, nil); err != nil {
+		rollbackAndSendError(c, tx, http.StatusInternalServerError, "error creating user (audit): "+err.Error())
+		return nil, false
+	}
+
+	stored, err := userExternalIDs(ctx, tx, user.ID)
+	if err != nil {
+		rollbackAndSendError(c, tx, http.StatusInternalServerError, "error creating user: "+err.Error())
+		return nil, false
+	}
+
+	return stored, true
 }
 
 // updateUser updates a user in the database. It is also used to activate a pending user by setting their status
@@ -370,16 +471,24 @@ func (r *Router) updateUser(c *gin.Context) {
 		return
 	}
 
+	externalIDs, setExternalIDs, err := r.requestedExternalIDs(&req)
+	if err != nil {
+		sendError(c, http.StatusUnprocessableEntity, err.Error())
+		return
+	}
+
+	// A request that sets only identities updates no user field, so an
+	// unchanged set writes nothing and publishes no event.
+	userFields := req
+	userFields.ExternalID, userFields.ExternalIDs = "", nil
+	updateFields := userFields != (UserReq{})
+
 	if req.AvatarURL != "" {
 		user.AvatarURL = null.StringFrom(req.AvatarURL)
 	}
 
 	if req.Email != "" {
 		user.Email = req.Email
-	}
-
-	if req.ExternalID != "" {
-		user.ExternalID = null.StringFrom(req.ExternalID)
 	}
 
 	if req.Name != "" {
@@ -454,39 +563,30 @@ func (r *Router) updateUser(c *gin.Context) {
 		return
 	}
 
-	if _, err := user.Update(c.Request.Context(), tx, boil.Infer()); err != nil {
-		msg := "error updating user: " + err.Error()
-		if err := tx.Rollback(); err != nil {
-			msg += "error rolling back transaction: " + err.Error()
+	if updateFields {
+		if !r.updateUserFields(c, tx, &original, user) {
+			return
 		}
-
-		sendError(c, http.StatusBadRequest, msg)
-
-		return
 	}
 
-	event, err := dbtools.AuditUserUpdated(c.Request.Context(), tx, getCtxAuditID(c), getCtxUser(c), &original, user)
+	changedExternalIDs := false
+
+	if setExternalIDs {
+		var ok bool
+
+		changedExternalIDs, ok = r.replaceUserExternalIDs(c, tx, user, externalIDs, req.ExternalID != "", !updateFields)
+		if !ok {
+			return
+		}
+	}
+
+	storedIDs, err := userExternalIDs(c.Request.Context(), tx, user.ID)
 	if err != nil {
-		msg := "error updating user (audit): " + err.Error()
-		if err := tx.Rollback(); err != nil {
-			msg += "error rolling back transaction: " + err.Error()
-		}
-
-		sendError(c, http.StatusBadRequest, msg)
-
+		rollbackAndSendError(c, tx, http.StatusInternalServerError, "error updating user: "+err.Error())
 		return
 	}
 
-	if err := updateContextWithAuditEventData(c, event); err != nil {
-		msg := "error updating user (audit): " + err.Error()
-		if err := tx.Rollback(); err != nil {
-			msg += "error rolling back transaction: " + err.Error()
-		}
-
-		sendError(c, http.StatusBadRequest, msg)
-
-		return
-	}
+	resp := r.newUserResponse(user, storedIDs)
 
 	if err := tx.Commit(); err != nil {
 		msg := "error committing user update, rolling back: " + err.Error()
@@ -499,9 +599,16 @@ func (r *Router) updateUser(c *gin.Context) {
 		return
 	}
 
+	setExternalIDDeprecation(c)
+
+	if !updateFields && !changedExternalIDs {
+		c.JSON(http.StatusAccepted, resp)
+		return
+	}
+
 	// only publish events for active users
 	if !isActiveUser(user) {
-		c.JSON(http.StatusAccepted, user)
+		c.JSON(http.StatusAccepted, resp)
 		return
 	}
 
@@ -542,7 +649,7 @@ func (r *Router) updateUser(c *gin.Context) {
 			}
 		}
 
-		c.JSON(http.StatusAccepted, user)
+		c.JSON(http.StatusAccepted, resp)
 
 		return
 	}
@@ -559,7 +666,84 @@ func (r *Router) updateUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusAccepted, user)
+	c.JSON(http.StatusAccepted, resp)
+}
+
+// updateUserFields writes user, the update of original, and its audit event
+// in tx. On error it rolls tx back, sends the error and returns false.
+func (r *Router) updateUserFields(c *gin.Context, tx *sql.Tx, original, user *models.User) bool {
+	if _, err := user.Update(c.Request.Context(), tx, boil.Infer()); err != nil {
+		rollbackAndSendError(c, tx, http.StatusBadRequest, "error updating user: "+err.Error())
+		return false
+	}
+
+	event, err := dbtools.AuditUserUpdated(c.Request.Context(), tx, getCtxAuditID(c), getCtxUser(c), original, user)
+	if err != nil {
+		rollbackAndSendError(c, tx, http.StatusBadRequest, "error updating user (audit): "+err.Error())
+		return false
+	}
+
+	if err := updateContextWithAuditEventData(c, event); err != nil {
+		rollbackAndSendError(c, tx, http.StatusBadRequest, "error updating user (audit): "+err.Error())
+		return false
+	}
+
+	return true
+}
+
+// replaceUserExternalIDs makes pairs the identities of user in tx, or, with
+// upsert, replaces only the identity at the issuer of pairs[0]. A pair at an
+// issuer without identity.enabled is accepted only when it is one of the
+// user's stored records. It audits each added and removed identity, and with
+// auditData it also puts those audit events in the request's audit data.
+// changed reports whether any identity was added or removed. On error it
+// rolls tx back, sends the error and returns ok false.
+func (r *Router) replaceUserExternalIDs(
+	c *gin.Context, tx *sql.Tx, user *models.User, pairs []dbtools.ExternalID, upsert, auditData bool,
+) (changed, ok bool) {
+	ctx := c.Request.Context()
+
+	current, err := userExternalIDs(ctx, tx, user.ID)
+	if err != nil {
+		rollbackAndSendError(c, tx, http.StatusInternalServerError, "error updating user: "+err.Error())
+		return false, false
+	}
+
+	if err := r.checkIdentityIssuers(pairs, current); err != nil {
+		rollbackAndSendError(c, tx, http.StatusUnprocessableEntity, err.Error())
+		return false, false
+	}
+
+	if upsert {
+		pairs = upsertExternalID(current, pairs[0])
+	}
+
+	added, removed, err := dbtools.ReplaceUserExternalIDs(ctx, tx, user.ID, pairs)
+	if err != nil {
+		if errors.Is(err, dbtools.ErrExternalIDConflict) {
+			rollbackAndSendError(c, tx, http.StatusConflict, "external id already linked to another user")
+			return false, false
+		}
+
+		rollbackAndSendError(c, tx, http.StatusInternalServerError, "error updating user: "+err.Error())
+
+		return false, false
+	}
+
+	evs, err := auditExternalIDChanges(ctx, tx, getCtxAuditID(c), getCtxUser(c), user, added, removed)
+	if err != nil {
+		rollbackAndSendError(c, tx, http.StatusInternalServerError, "error updating user (audit): "+err.Error())
+		return false, false
+	}
+
+	if auditData && len(evs) > 0 {
+		if err := updateContextWithAuditEventData(c, evs); err != nil {
+			rollbackAndSendError(c, tx, http.StatusInternalServerError, "error updating user (audit): "+err.Error())
+			return false, false
+		}
+	}
+
+	return len(evs) > 0, true
 }
 
 // deleteUser marks a user as deleted in the database
@@ -638,6 +822,27 @@ func (r *Router) deleteUser(c *gin.Context) {
 		return
 	}
 
+	// delete the user's identities, so that a new user can register with them
+	removedIDs, err := userExternalIDs(c.Request.Context(), tx, user.ID)
+	if err != nil {
+		rollbackAndSendError(c, tx, http.StatusInternalServerError, "error deleting user external ids: "+err.Error())
+		return
+	}
+
+	if err := dbtools.DeleteUserExternalIDs(c.Request.Context(), tx, user.ID); err != nil {
+		rollbackAndSendError(c, tx, http.StatusInternalServerError, "error deleting user external ids: "+err.Error())
+		return
+	}
+
+	if _, err := auditExternalIDChanges(
+		c.Request.Context(), tx, getCtxAuditID(c), getCtxUser(c), user, nil, removedIDs,
+	); err != nil {
+		rollbackAndSendError(c, tx, http.StatusInternalServerError, "error deleting user (audit): "+err.Error())
+		return
+	}
+
+	resp := r.newUserResponse(user, nil)
+
 	if err := updateContextWithAuditEventData(c, event); err != nil {
 		msg := "error deleting user (audit): " + err.Error()
 		if err := tx.Rollback(); err != nil {
@@ -660,9 +865,11 @@ func (r *Router) deleteUser(c *gin.Context) {
 		return
 	}
 
+	setExternalIDDeprecation(c)
+
 	// only publish events for active users
 	if !isActiveUser(user) {
-		c.JSON(http.StatusAccepted, user)
+		c.JSON(http.StatusAccepted, resp)
 		return
 	}
 
@@ -678,7 +885,7 @@ func (r *Router) deleteUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusAccepted, user)
+	c.JSON(http.StatusAccepted, resp)
 }
 
 // isActiveUser returns true if events related to the given user should be published.

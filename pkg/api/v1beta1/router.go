@@ -26,10 +26,14 @@ type Router struct {
 	AuditLogWriter io.Writer
 	AuditMW        *ginaudit.Middleware
 	AuthMW         *ginauth.MultiTokenMiddleware
-	AuthConf       []configs.Auth
+	AuthConf       configs.AuthConfigs
 	DB             *sqlx.DB
 	EventBus       *eventbus.Client
 	Logger         *zap.Logger
+	// PrimaryIdentityIssuer is the issuer of the first oidc provider with
+	// identity.enabled, or "" when there is none. The deprecated external_id
+	// field of a user is the user's identity at this issuer.
+	PrimaryIdentityIssuer string
 }
 
 // Routes sets up protected routes and sets the scopes for said routes

@@ -45,20 +45,14 @@ func startAPI(ctx context.Context) error {
 
 	dbtools.RegisterHooks()
 
-	// Run the embedded migration in the event that this is the first run or first run since a new migration was added.
-	RunMigration(db.DB)
-
-	// NOTE: oidc config only works when loading from config file, not env variables,
-	// since GetAuthFromFlags expects a slice of oidc structs
-	authcfgs, err := configs.GetAuthFromFlags(viper.GetViper())
+	authcfgs, err := loadAuthConfigs(viper.GetViper())
 	if err != nil {
-		logger.Fatalw("failed getting JWT configurations", "error", err)
+		return err
 	}
 
-	// we shouldn't continue if no oidc configs were provided, since that
-	// will allow any unauthenticated requests to succeed in the auth middleware
-	if len(authcfgs) == 0 {
-		logger.Fatalln("no oidc auth configs found")
+	// Run the embedded migration in the event that this is the first run or first run since a new migration was added.
+	if err := RunMigration(ctx, db.DB, authcfgs); err != nil {
+		return err
 	}
 
 	logger.Debugf("loaded %d oidc config(s)", len(authcfgs))
@@ -150,4 +144,31 @@ func startAPI(ctx context.Context) error {
 	}
 
 	return apiServer.Run()
+}
+
+// loadAuthConfigs reads the oidc providers and checks that at least one of them
+// identifies governor users. Commands that migrate the database call it before
+// the first migration, so a misconfigured provider list stops them before any
+// schema change.
+//
+// NOTE: oidc config only works when loading from config file, not env variables,
+// since GetAuthFromFlags expects a slice of oidc structs
+func loadAuthConfigs(v *viper.Viper) (configs.AuthConfigs, error) {
+	authcfgs, err := configs.GetAuthFromFlags(v)
+	if err != nil {
+		return nil, fmt.Errorf("load oidc config: %w", err)
+	}
+
+	// we shouldn't continue if no oidc configs were provided, since that
+	// will allow any unauthenticated requests to succeed in the auth middleware
+	if len(authcfgs) == 0 {
+		return nil, ErrNoOIDCConfig
+	}
+
+	auths := configs.AuthConfigs(authcfgs)
+	if err := auths.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid oidc config: %w", err)
+	}
+
+	return auths, nil
 }

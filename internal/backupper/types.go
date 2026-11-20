@@ -67,6 +67,10 @@ type BackupPSQL struct {
 	Organizations psqlmodels.OrganizationSlice `json:"organizations"`
 
 	Users psqlmodels.UserSlice `json:"users"`
+	// UserExternalIDs are the users' identities at the identity providers. The
+	// users table holds no identity, so a backup without them restores users
+	// that no sign-in can resolve.
+	UserExternalIDs psqlmodels.UserExternalIDSlice `json:"user_external_ids"`
 
 	ExtensionResourceDefinitions psqlmodels.ExtensionResourceDefinitionSlice `json:"extension_resource_definitions"`
 	Extensions                   psqlmodels.ExtensionSlice                   `json:"extensions"`

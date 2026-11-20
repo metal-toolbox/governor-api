@@ -4,21 +4,16 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
-	"strings"
 	"time"
 
-	"github.com/aarondl/null/v8"
-	"github.com/aarondl/sqlboiler/v4/boil"
 	"github.com/aarondl/sqlboiler/v4/queries/qm"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/metal-toolbox/auditevent/ginaudit"
 	"go.uber.org/zap"
 
-	"github.com/metal-toolbox/governor-api/internal/auth"
 	"github.com/metal-toolbox/governor-api/internal/dbtools"
 	models "github.com/metal-toolbox/governor-api/internal/models/psql"
-	events "github.com/metal-toolbox/governor-api/pkg/events/v1alpha1"
 )
 
 type mwAuthRole int
@@ -61,8 +56,8 @@ const (
 const oidcScope = "openid"
 
 // mwUserAuthRequired checks if the current authenticated user has the required auth role and
-// adds user information to the gin context. It will automatically register the user if they don't
-// exist in the database.
+// adds user information to the gin context. A first sign-in from a provider with identity.enabled
+// may register the user (see resolveUser).
 func (r *Router) mwUserAuthRequired(authRole mwAuthRole) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		r.Logger.Debug("mwUserAuthRequired", zap.String("role", authRole.String()))
@@ -78,13 +73,7 @@ func (r *Router) mwUserAuthRequired(authRole mwAuthRole) gin.HandlerFunc {
 			return
 		}
 
-		if c.GetString("jwt.user") == "" {
-			sendError(c, http.StatusUnauthorized, "missing jwt user")
-			return
-		}
-
 		queryMods := []qm.QueryMod{
-			models.UserWhere.ExternalID.EQ(null.StringFrom(c.GetString("jwt.user"))),
 			qm.Load("GroupMemberships"),
 			qm.Load("GroupMembershipRequests"),
 			qm.Load("GroupMembershipRequests.User"),
@@ -96,122 +85,12 @@ func (r *Router) mwUserAuthRequired(authRole mwAuthRole) gin.HandlerFunc {
 			qm.Load("RequesterUserGroupApplicationRequests.RequesterUser"),
 		}
 
-		isAdmin := false
-
-		user, err := models.Users(queryMods...).One(c.Request.Context(), r.DB)
-		if err != nil {
-			if !errors.Is(err, sql.ErrNoRows) {
-				sendError(c, http.StatusInternalServerError, "error getting user: "+err.Error())
-				return
-			}
-
-			r.Logger.Debug("user not found in db, trying to register",
-				zap.Any("email", c.GetString("jwt.subject")),
-				zap.Any("external_id", c.GetString("jwt.user")),
-			)
-
-			authzHeader := strings.Split(c.Request.Header.Get("Authorization"), " ")
-			if len(authzHeader) != expectedAuthzHeaderParts {
-				sendError(c, http.StatusUnauthorized, "invalid authorization header")
-				return
-			}
-
-			userInfo, err := auth.UserInfoFromJWT(c.Request.Context(), authzHeader[expectedAuthzHeaderParts-1], r.AuthConf)
-			if err != nil {
-				r.Logger.Debug(err.Error())
-				sendError(c, http.StatusBadRequest, "error retrieving userinfo")
-
-				return
-			}
-
-			r.Logger.Debug("got oidc userinfo", zap.Any("claims", userInfo))
-
-			if userInfo.Name == "" {
-				sendError(c, http.StatusBadRequest, "invalid name from oidc userinfo")
-				return
-			}
-
-			// make sure the email we got matches the email in the jwt.subject
-			if userInfo.Email != c.GetString("jwt.subject") {
-				sendError(c, http.StatusBadRequest, "invalid email from oidc userinfo")
-				return
-			}
-
-			// make sure the subject we got matches the external_id in jwt.user
-			if userInfo.Sub != c.GetString("jwt.user") {
-				sendError(c, http.StatusBadRequest, "invalid subject from oidc userinfo")
-				return
-			}
-
-			newUser := &models.User{
-				Email:       userInfo.Email,
-				ExternalID:  null.StringFrom(userInfo.Sub),
-				Name:        userInfo.Name,
-				LastLoginAt: null.TimeFrom(time.Now()),
-			}
-
-			tx, err := r.DB.BeginTx(c.Request.Context(), nil)
-			if err != nil {
-				sendError(c, http.StatusBadRequest, "error starting create user transaction: "+err.Error())
-				return
-			}
-
-			if err := newUser.Insert(c.Request.Context(), tx, boil.Infer()); err != nil {
-				sendError(c, http.StatusBadRequest, "error creating user: "+err.Error())
-				return
-			}
-
-			event, err := dbtools.AuditUserCreatedWithActor(c.Request.Context(), tx, getCtxAuditID(c), newUser, newUser)
-			if err != nil {
-				msg := "error creating user (audit): " + err.Error()
-				if err := tx.Rollback(); err != nil {
-					msg += "error rolling back transaction: " + err.Error()
-				}
-
-				sendError(c, http.StatusBadRequest, msg)
-
-				return
-			}
-
-			if err := updateContextWithAuditEventData(c, event); err != nil {
-				msg := "error creating user (audit): " + err.Error()
-				if err := tx.Rollback(); err != nil {
-					msg += "error rolling back transaction: " + err.Error()
-				}
-
-				sendError(c, http.StatusBadRequest, msg)
-
-				return
-			}
-
-			if err := tx.Commit(); err != nil {
-				msg := "error committing user create, rolling back: " + err.Error()
-				if err := tx.Rollback(); err != nil {
-					msg = msg + "error rolling back transaction: " + err.Error()
-				}
-
-				sendError(c, http.StatusBadRequest, msg)
-
-				return
-			}
-
-			if err := r.EventBus.Publish(c.Request.Context(), events.GovernorUsersEventSubject, &events.Event{
-				Version: events.Version,
-				Action:  events.GovernorEventCreate,
-				AuditID: c.GetString(ginaudit.AuditIDContextKey),
-				ActorID: getCtxActorID(c),
-				GroupID: "",
-				UserID:  newUser.ID,
-			}); err != nil {
-				sendError(c, http.StatusBadRequest, "failed to publish user create event, downstream changes may be delayed "+err.Error())
-				return
-			}
-
-			setCtxUser(c, newUser)
-			setCtxAdmin(c, &isAdmin)
-
+		user, ok := r.resolveUser(c, true, queryMods...)
+		if !ok {
 			return
 		}
+
+		isAdmin := false
 
 		r.Logger.Debug("got authenticated user", zap.Any("user", user))
 
@@ -307,19 +186,8 @@ func (r *Router) mwGroupAuthRequired(authRole mwAuthRole) gin.HandlerFunc {
 			return
 		}
 
-		queryMods := []qm.QueryMod{
-			models.UserWhere.ExternalID.EQ(null.StringFrom(c.GetString("jwt.user"))),
-		}
-
-		user, err := models.Users(queryMods...).One(c.Request.Context(), r.DB)
-		if err != nil {
-			if !errors.Is(err, sql.ErrNoRows) {
-				sendError(c, http.StatusInternalServerError, "error getting user: "+err.Error())
-				return
-			}
-
-			sendError(c, http.StatusUnauthorized, "user not found")
-
+		user, ok := r.resolveUser(c, false)
+		if !ok {
 			return
 		}
 

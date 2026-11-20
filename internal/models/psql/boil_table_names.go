@@ -22,6 +22,7 @@ var TableNames = struct {
 	Organizations                string
 	SystemExtensionResources     string
 	UserExtensionResources       string
+	UserExternalIds              string
 	Users                        string
 }{
 	ApplicationTypes:             "application_types",
@@ -42,5 +43,6 @@ var TableNames = struct {
 	Organizations:                "organizations",
 	SystemExtensionResources:     "system_extension_resources",
 	UserExtensionResources:       "user_extension_resources",
+	UserExternalIds:              "user_external_ids",
 	Users:                        "users",
 }

@@ -8,9 +8,7 @@ import (
 
 	"github.com/aarondl/sqlboiler/v4/queries/qm"
 	"github.com/jmoiron/sqlx"
-	dbm "github.com/metal-toolbox/governor-api/db/psql"
 	models "github.com/metal-toolbox/governor-api/internal/models/psql"
-	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -29,14 +27,14 @@ type NotificationPreferencesTestSuite struct {
 
 func (s *NotificationPreferencesTestSuite) seedTestDB() error {
 	testData := []string{
-		`INSERT INTO "users" ("id", "external_id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
-		('00000001-0000-0000-0000-000000000001', NULL, 'User1', 'user1@email.com', 0, NULL, NULL, '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL, NULL, NULL, 'active');`,
-		`INSERT INTO "users" ("id", "external_id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
-		('00000001-0000-0000-0000-000000000002', NULL, 'User2', 'user2@email.com', 0, NULL, NULL, '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL, NULL, NULL, 'active');`,
-		`INSERT INTO "users" ("id", "external_id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
-		('00000001-0000-0000-0000-000000000003', NULL, 'User3', 'user3@email.com', 0, NULL, NULL, '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL, NULL, NULL, 'active');`,
-		`INSERT INTO "users" ("id", "external_id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
-		('00000001-0000-0000-0000-000000000004', NULL, 'User4', 'user4@email.com', 0, NULL, NULL, '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL, NULL, NULL, 'active');`,
+		`INSERT INTO "users" ("id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
+		('00000001-0000-0000-0000-000000000001', 'User1', 'user1@email.com', 0, NULL, NULL, '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL, NULL, NULL, 'active');`,
+		`INSERT INTO "users" ("id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
+		('00000001-0000-0000-0000-000000000002', 'User2', 'user2@email.com', 0, NULL, NULL, '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL, NULL, NULL, 'active');`,
+		`INSERT INTO "users" ("id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
+		('00000001-0000-0000-0000-000000000003', 'User3', 'user3@email.com', 0, NULL, NULL, '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL, NULL, NULL, 'active');`,
+		`INSERT INTO "users" ("id", "name", "email", "login_count", "avatar_url", "last_login_at", "created_at", "updated_at", "github_id", "github_username", "deleted_at", "status") VALUES
+		('00000001-0000-0000-0000-000000000004', 'User4', 'user4@email.com', 0, NULL, NULL, '2023-07-12 12:00:00.000000+00', '2023-07-12 12:00:00.000000+00', NULL, NULL, NULL, 'active');`,
 	}
 	for _, q := range testData {
 		_, err := s.db.Query(q)
@@ -51,9 +49,7 @@ func (s *NotificationPreferencesTestSuite) seedTestDB() error {
 func (s *NotificationPreferencesTestSuite) SetupSuite() {
 	s.db = NewPGTestServer(s.T())
 
-	goose.SetBaseFS(dbm.Migrations)
-
-	if err := goose.Up(s.db, "migrations"); err != nil {
+	if err := migrateTestDB(s.db); err != nil {
 		panic("migration failed - could not set up test db")
 	}
 

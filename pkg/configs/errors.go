@@ -11,4 +11,11 @@ var (
 	ErrCedarURLRequired = errors.New("authz.cedar.url is required when cedar authorization is enabled")
 	// ErrInvalidAuthConfig is returned when the oidc cedar configuration cannot be parsed
 	ErrInvalidAuthConfig = errors.New("invalid oidc auth configuration")
+	// ErrNoIdentityProvider is returned when no oidc provider has identity.enabled.
+	// The text names the fix for the operator who reads it in the start-up log.
+	ErrNoIdentityProvider = errors.New("no oidc provider has identity.enabled; set identity.enabled: true on the provider that issued the existing user IDs")
+	// ErrConflictingIdentityConfig is returned when oidc providers that share an
+	// issuer have different identity blocks. A sign-in is mapped to a user by its
+	// issuer alone, so all entries of one issuer must agree.
+	ErrConflictingIdentityConfig = errors.New("oidc providers with the same issuer have different identity settings; give every entry of the issuer the same identity block")
 )

@@ -14,6 +14,7 @@ import (
 	"github.com/metal-toolbox/auditevent"
 	"github.com/metal-toolbox/auditevent/ginaudit"
 	"github.com/metal-toolbox/hollow-toolbox/ginauth"
+	"github.com/prometheus/client_golang/prometheus"
 	ginprometheus "github.com/zsais/go-gin-prometheus"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"go.opentelemetry.io/otel"
@@ -21,6 +22,7 @@ import (
 
 	"github.com/metal-toolbox/governor-api/internal/auth"
 	"github.com/metal-toolbox/governor-api/internal/eventbus"
+	"github.com/metal-toolbox/governor-api/internal/metrics"
 	v1alpha "github.com/metal-toolbox/governor-api/pkg/api/v1alpha1"
 	v1beta "github.com/metal-toolbox/governor-api/pkg/api/v1beta1"
 	"github.com/metal-toolbox/governor-api/pkg/configs"
@@ -35,7 +37,7 @@ var (
 // Conf allows other packages to compose their api configuration and use our NewAPI factor to put it together for them
 type Conf struct {
 	AdminGroups []string
-	AuthConf    []configs.Auth
+	AuthConf    configs.AuthConfigs
 	Debug       bool
 	Listen      string
 	Logger      *zap.Logger
@@ -50,36 +52,49 @@ type Server struct {
 	AuditLogWriter io.Writer
 	aumdw          *ginaudit.Middleware
 	EventBus       *eventbus.Client
+	userResolution *metrics.UserResolution
 }
 
 func (s *Server) setupRoutes(router *gin.Engine) {
 	s.Conf.Logger.Sugar().Info("Setting up routes")
 
-	v1alphaRtr := v1alpha.Router{
-		AdminGroups: s.Conf.AdminGroups,
-		AuthMW:      s.AuthMW,
-		AuditMW:     s.aumdw,
-		AuthConf:    s.Conf.AuthConf,
-		Logger:      s.Conf.Logger,
-		DB:          s.DB,
-		EventBus:    s.EventBus,
-	}
+	v1alphaRtr, v1betaRtr := s.routers()
 
 	v1alpha1 := router.Group("/api/v1alpha1")
 	v1alphaRtr.Routes(v1alpha1)
 
-	v1betaRtr := v1beta.Router{
-		AdminGroups: s.Conf.AdminGroups,
-		AuthMW:      s.AuthMW,
-		AuditMW:     s.aumdw,
-		AuthConf:    s.Conf.AuthConf,
-		Logger:      s.Conf.Logger,
-		DB:          s.DB,
-		EventBus:    s.EventBus,
-	}
-
 	v1beta1 := router.Group("/api/v1beta1")
 	v1betaRtr.Routes(v1beta1)
+}
+
+// routers returns the v1alpha1 and v1beta1 routers for the server's config.
+func (s *Server) routers() (*v1alpha.Router, *v1beta.Router) {
+	primaryIssuer, _ := s.Conf.AuthConf.PrimaryIdentityIssuer()
+
+	v1alphaRtr := &v1alpha.Router{
+		AdminGroups:           s.Conf.AdminGroups,
+		AuthMW:                s.AuthMW,
+		AuditMW:               s.aumdw,
+		Logger:                s.Conf.Logger,
+		DB:                    s.DB,
+		EventBus:              s.EventBus,
+		PrimaryIdentityIssuer: primaryIssuer,
+		UserResolution:        s.userResolution,
+	}
+	v1alphaRtr.SetAuthConf(s.Conf.AuthConf)
+
+	v1betaRtr := &v1beta.Router{
+		AdminGroups:           s.Conf.AdminGroups,
+		AuthMW:                s.AuthMW,
+		AuditMW:               s.aumdw,
+		AuthConf:              s.Conf.AuthConf,
+		Logger:                s.Conf.Logger,
+		DB:                    s.DB,
+		EventBus:              s.EventBus,
+		PrimaryIdentityIssuer: primaryIssuer,
+	}
+
+	return v1alphaRtr, v1betaRtr
 }
 
 // setup builds our api router and expects that an AuthConf exists on the api.Conf object
@@ -119,6 +134,15 @@ func (s *Server) setup() *gin.Engine {
 	}
 
 	prom.Use(router)
+
+	// ginprometheus serves the default registry, so the user-resolution
+	// metrics are registered there too.
+	userResolution, err := metrics.NewUserResolution(prometheus.DefaultRegisterer)
+	if err != nil {
+		s.Conf.Logger.Sugar().Fatal("failed to register user resolution metrics", "error", err)
+	}
+
+	s.userResolution = userResolution
 
 	customLogger := s.Conf.Logger.With(zap.String("component", "api"))
 	router.Use(

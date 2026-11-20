@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	"io"
+	"slices"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
@@ -13,6 +14,7 @@ import (
 	"github.com/metal-toolbox/hollow-toolbox/ginjwt"
 
 	"github.com/metal-toolbox/governor-api/internal/eventbus"
+	"github.com/metal-toolbox/governor-api/internal/metrics"
 	"github.com/metal-toolbox/governor-api/pkg/configs"
 )
 
@@ -29,10 +31,32 @@ type Router struct {
 	AuditLogWriter io.Writer
 	AuditMW        *ginaudit.Middleware
 	AuthMW         *ginauth.MultiTokenMiddleware
-	AuthConf       []configs.Auth
 	DB             *sqlx.DB
 	EventBus       *eventbus.Client
 	Logger         *zap.Logger
+	// PrimaryIdentityIssuer is the issuer of the first oidc provider with
+	// identity.enabled, or "" when there is none. The deprecated external_id
+	// field of a user is the user's identity at this issuer.
+	PrimaryIdentityIssuer string
+	// UserResolution records how signed-in users are resolved. nil records nothing.
+	UserResolution *metrics.UserResolution
+
+	// authConf and authByIssuer, the same providers keyed by issuer, are set
+	// together by SetAuthConf only. Both hold copies, so they agree even when a
+	// caller changes its slice later.
+	authConf     configs.AuthConfigs
+	authByIssuer map[string]configs.Auth
+}
+
+// SetAuthConf sets the oidc providers and builds their issuer lookup.
+func (r *Router) SetAuthConf(auths configs.AuthConfigs) {
+	r.authConf = slices.Clone(auths)
+	r.authByIssuer = r.authConf.ByIssuer()
+}
+
+// AuthConf returns a copy of the oidc providers set by SetAuthConf.
+func (r *Router) AuthConf() configs.AuthConfigs {
+	return slices.Clone(r.authConf)
 }
 
 // Routes sets up protected routes and sets the scopes for said routes

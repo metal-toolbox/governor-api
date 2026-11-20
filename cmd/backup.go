@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"io"
 	"os"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/metal-toolbox/governor-api/internal/backupper"
+	"github.com/metal-toolbox/governor-api/pkg/configs"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -46,7 +48,7 @@ var (
 		Use:   "restore",
 		Short: "Restore the system",
 		Long:  `Restore governor system data`,
-		Run: func(cmd *cobra.Command, _ []string) {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			driverstr := viper.GetString("restore.driver")
 			conn := viper.GetString("db.uri")
 
@@ -58,20 +60,41 @@ var (
 				driver = backupper.DBDriverPostgres
 			}
 
-			if viper.GetBool("restore.migrate") {
-				RunMigration(db.DB)
-			}
-
 			// Perform restore operations using the db connection
 			r := backupper.New(db, driver, backupper.WithLogger(logger.Desugar()))
 
-			err := r.Restore(cmd.Context(), inputReader())
-			if err != nil {
-				logger.Fatal("failed to restore governor", zap.Error(err))
+			restore := func(ctx context.Context) error {
+				if err := r.Restore(ctx, inputReader()); err != nil {
+					return fmt.Errorf("restore governor: %w", err)
+				}
+
+				return nil
 			}
+
+			if !viper.GetBool("restore.migrate") {
+				return restore(cmd.Context())
+			}
+
+			auths, err := loadAuthConfigs(viper.GetViper())
+			if err != nil {
+				return err
+			}
+
+			return restoreWithMigration(cmd.Context(), db.DB, auths, restore)
 		},
 	}
 )
+
+// restoreWithMigration applies the pending PostgreSQL migrations to db, then
+// runs restore. A failed restore leaves db migrated and empty, so the command
+// can run again with another backup.
+func restoreWithMigration(ctx context.Context, db *sql.DB, auths configs.AuthConfigs, restore func(context.Context) error) error {
+	if err := RunMigration(ctx, db, auths); err != nil {
+		return err
+	}
+
+	return restore(ctx)
+}
 
 func outputWriter() io.Writer {
 	if viper.GetString("backup.output") == "stdout" {
