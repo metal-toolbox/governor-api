@@ -2,6 +2,8 @@ module github.com/metal-toolbox/governor-api
 
 go 1.26.0
 
+toolchain go1.26.11
+
 require (
 	dario.cat/mergo v1.0.2
 	github.com/XSAM/otelsql v0.43.0
@@ -14,7 +16,7 @@ require (
 	github.com/gin-contrib/cors v1.7.7
 	github.com/gin-contrib/zap v1.1.7
 	github.com/gin-gonic/gin v1.12.0
-	github.com/go-jose/go-jose/v4 v4.1.4
+	github.com/go-jose/go-jose/v4 v4.1.6
 	github.com/goccy/go-json v0.10.6
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
@@ -43,7 +45,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.47.0
 	go.uber.org/zap v1.28.0
 	golang.org/x/oauth2 v0.36.0
-	google.golang.org/grpc v1.82.1
+	google.golang.org/grpc v1.83.2
 )
 
 require (
@@ -131,7 +133,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.28.0 // indirect
 	golang.org/x/crypto v0.58.0 // indirect
-	golang.org/x/net v0.60.0 // indirect
+	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/sys v0.50.0 // indirect
 	golang.org/x/text v0.43.0
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
